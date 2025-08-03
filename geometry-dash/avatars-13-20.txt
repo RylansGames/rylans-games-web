@@ -1,0 +1,352 @@
+        // Add anxiety face to slot 13
+        if (index === 12) {
+          // Pale purple background for the anxiety face
+          const faceBackground = this.add.rectangle(x, y, slotSize - 10, slotSize - 10, 0xE6E6FA)
+          faceBackground.setStrokeStyle(2, 0x000000)
+          
+          // Worried eyes (slightly wider)
+          const leftEye = this.add.circle(x - 10, y - 8, 5, 0x000000)
+          const rightEye = this.add.circle(x + 10, y - 8, 5, 0x000000)
+          
+          // Worried eyebrows
+          const leftBrow = this.add.rectangle(x - 10, y - 15, 12, 2, 0x000000)
+          leftBrow.setRotation(0.2)
+          const rightBrow = this.add.rectangle(x + 10, y - 15, 12, 2, 0x000000)
+          rightBrow.setRotation(-0.2)
+          
+          // Wavy stressed mouth
+          const stressedMouth = this.add.graphics()
+          stressedMouth.lineStyle(2, 0x000000, 1)
+          stressedMouth.beginPath()
+          stressedMouth.moveTo(x - 10, y + 8)
+          stressedMouth.lineTo(x - 5, y + 10)
+          stressedMouth.lineTo(x, y + 8)
+          stressedMouth.lineTo(x + 5, y + 10)
+          stressedMouth.lineTo(x + 10, y + 8)
+          stressedMouth.strokePath()
+          
+          // Multiple sweat drops
+          const sweat1 = this.add.ellipse(x - 18, y - 10, 3, 5, 0x87CEEB)
+          const sweat2 = this.add.ellipse(x + 18, y - 10, 3, 5, 0x87CEEB)
+          
+          // Add name text
+          const nameText = this.add.text(x, y - 30, 'Anxiety', {
+            fontSize: '10px',
+            color: '#9370DB'
+          })
+          nameText.setOrigin(0.5)
+          
+          // Add price (180 coins)
+          const priceText = this.add.text(x, y + 35, isFreeEvent ? 'FREE!' : '180', {
+            fontSize: '14px',
+            color: isFreeEvent ? '#ff00ff' : '#ffd700'
+          })
+          priceText.setOrigin(0.5)
+          priceText.setDepth(10)
+          
+          // Add coin icon
+          const coinIcon = this.add.circle(x + 25, y + 35, 6, 0xffd700)
+          coinIcon.setStrokeStyle(1, 0x000000)
+          coinIcon.setDepth(10)
+          
+          // Add Equip/Equipped text
+          let equipTextStr = 'Buy'
+          let equipTextColor = totalCoins >= 180 ? '#ffffff' : '#666666'
+          
+          if (purchasedAvatars.includes(12)) {
+            equipTextStr = equippedAvatar === 12 ? 'Equipped' : 'Equip'
+            equipTextColor = equippedAvatar === 12 ? '#00ff00' : '#ffffff'
+          }
+          
+          const equipText = this.add.text(x, y + 50, equipTextStr, {
+            fontSize: '12px',
+            color: equipTextColor
+          })
+          equipText.setOrigin(0.5)
+          equipText.setDepth(10)
+          
+          // Store references
+          slot.setData('equipText', equipText)
+          slot.setData('avatarIndex', 12)
+          slot.setData('price', 180)
+          slot.setData('priceText', priceText)
+          slot.setData('coinIcon', coinIcon)
+          slot.setData('anxietyMouth', stressedMouth)
+          slot.setData('anxietyElements', [leftBrow, rightBrow, sweat1, sweat2])
+          
+          // Hide price if already purchased
+          if (purchasedAvatars.includes(12)) {
+            priceText.setVisible(false)
+            coinIcon.setVisible(false)
+          }
+        }
+        
+        // Add surprise face to slot 14
+        if (index === 13) {
+          // Light orange background for the surprise face
+          const faceBackground = this.add.rectangle(x, y, slotSize - 10, slotSize - 10, 0xFFE4B5)
+          faceBackground.setStrokeStyle(2, 0x000000)
+          
+          // Wide surprised eyes
+          const leftEyeOuter = this.add.circle(x - 10, y - 8, 8, 0xFFFFFF)
+          leftEyeOuter.setStrokeStyle(2, 0x000000)
+          const leftEyeInner = this.add.circle(x - 10, y - 8, 4, 0x000000)
+          
+          const rightEyeOuter = this.add.circle(x + 10, y - 8, 8, 0xFFFFFF)
+          rightEyeOuter.setStrokeStyle(2, 0x000000)
+          const rightEyeInner = this.add.circle(x + 10, y - 8, 4, 0x000000)
+          
+          // Raised eyebrows
+          const leftBrow = this.add.arc(x - 10, y - 16, 8, 180, 360, false, 0x000000)
+          leftBrow.setStrokeStyle(2, 0x000000)
+          const rightBrow = this.add.arc(x + 10, y - 16, 8, 180, 360, false, 0x000000)
+          rightBrow.setStrokeStyle(2, 0x000000)
+          
+          // Big O mouth
+          const mouth = this.add.ellipse(x, y + 10, 12, 16, 0x000000)
+          
+          // Exclamation mark
+          const exclamation = this.add.text(x + 20, y - 20, '!', {
+            fontSize: '18px',
+            color: '#FF6347',
+            fontWeight: 'bold'
+          })
+          exclamation.setOrigin(0.5)
+          
+          // Add name text
+          const nameText = this.add.text(x, y - 30, 'Surprise', {
+            fontSize: '10px',
+            color: '#FF8C00'
+          })
+          nameText.setOrigin(0.5)
+          
+          // Add price (190 coins)
+          const priceText = this.add.text(x, y + 35, isFreeEvent ? 'FREE!' : '190', {
+            fontSize: '14px',
+            color: isFreeEvent ? '#ff00ff' : '#ffd700'
+          })
+          priceText.setOrigin(0.5)
+          priceText.setDepth(10)
+          
+          // Add coin icon
+          const coinIcon = this.add.circle(x + 25, y + 35, 6, 0xffd700)
+          coinIcon.setStrokeStyle(1, 0x000000)
+          coinIcon.setDepth(10)
+          
+          // Add Equip/Equipped text
+          let equipTextStr = 'Buy'
+          let equipTextColor = totalCoins >= 190 ? '#ffffff' : '#666666'
+          
+          if (purchasedAvatars.includes(13)) {
+            equipTextStr = equippedAvatar === 13 ? 'Equipped' : 'Equip'
+            equipTextColor = equippedAvatar === 13 ? '#00ff00' : '#ffffff'
+          }
+          
+          const equipText = this.add.text(x, y + 50, equipTextStr, {
+            fontSize: '12px',
+            color: equipTextColor
+          })
+          equipText.setOrigin(0.5)
+          equipText.setDepth(10)
+          
+          // Store references
+          slot.setData('equipText', equipText)
+          slot.setData('avatarIndex', 13)
+          slot.setData('price', 190)
+          slot.setData('priceText', priceText)
+          slot.setData('coinIcon', coinIcon)
+          slot.setData('surpriseElements', [leftEyeOuter, rightEyeOuter, leftEyeInner, rightEyeInner, leftBrow, rightBrow, exclamation])
+          
+          // Hide price if already purchased
+          if (purchasedAvatars.includes(13)) {
+            priceText.setVisible(false)
+            coinIcon.setVisible(false)
+          }
+        }
+        
+        // Add extremely happy face to slot 15
+        if (index === 14) {
+          // Rainbow gradient background for the SUPER happy face
+          const faceBackground = this.add.rectangle(x, y, slotSize - 10, slotSize - 10, 0xFFD700)
+          faceBackground.setStrokeStyle(3, 0xFF1493)
+          
+          // Heart eyes
+          const leftHeart = this.add.text(x - 10, y - 10, '❤️', { fontSize: '16px' })
+          leftHeart.setOrigin(0.5)
+          const rightHeart = this.add.text(x + 10, y - 10, '❤️', { fontSize: '16px' })
+          rightHeart.setOrigin(0.5)
+          
+          // HUGE smile with teeth
+          const smile = this.add.graphics()
+          smile.fillStyle(0xFFFFFF, 1)
+          smile.fillRoundedRect(x - 20, y + 5, 40, 15, 5)
+          smile.lineStyle(3, 0x000000, 1)
+          smile.strokeRoundedRect(x - 20, y + 5, 40, 15, 5)
+          
+          // Teeth lines
+          for (let i = 0; i < 4; i++) {
+            smile.moveTo(x - 15 + (i * 10), y + 5)
+            smile.lineTo(x - 15 + (i * 10), y + 20)
+          }
+          smile.strokePath()
+          
+          // Multiple sparkles everywhere
+          const sparkles = []
+          for (let i = 0; i < 6; i++) {
+            const angle = (i * 60) * Math.PI / 180
+            const sparkleX = x + Math.cos(angle) * 25
+            const sparkleY = y + Math.sin(angle) * 25
+            const sparkle = this.add.text(sparkleX, sparkleY, '✨', { fontSize: '10px' })
+            sparkle.setOrigin(0.5)
+            sparkles.push(sparkle)
+          }
+          
+          // Rainbows on sides
+          const leftRainbow = this.add.text(x - 30, y, '🌈', { fontSize: '14px' })
+          leftRainbow.setOrigin(0.5)
+          const rightRainbow = this.add.text(x + 30, y, '🌈', { fontSize: '14px' })
+          rightRainbow.setOrigin(0.5)
+          
+          // Add name text
+          const nameText = this.add.text(x, y - 30, 'MEGA HAPPY!', {
+            fontSize: '10px',
+            color: '#FF1493',
+            fontWeight: 'bold'
+          })
+          nameText.setOrigin(0.5)
+          
+          // Add price (350 coins)
+          const priceText = this.add.text(x, y + 35, isFreeEvent ? 'FREE!' : '350', {
+            fontSize: '14px',
+            color: isFreeEvent ? '#ff00ff' : '#ffd700'
+          })
+          priceText.setOrigin(0.5)
+          priceText.setDepth(10)
+          
+          // Add coin icon
+          const coinIcon = this.add.circle(x + 25, y + 35, 6, 0xffd700)
+          coinIcon.setStrokeStyle(1, 0x000000)
+          coinIcon.setDepth(10)
+          
+          // Add Equip/Equipped text
+          let equipTextStr = 'Buy'
+          let equipTextColor = totalCoins >= 350 ? '#ffffff' : '#666666'
+          
+          if (purchasedAvatars.includes(14)) {
+            equipTextStr = equippedAvatar === 14 ? 'Equipped' : 'Equip'
+            equipTextColor = equippedAvatar === 14 ? '#00ff00' : '#ffffff'
+          }
+          
+          const equipText = this.add.text(x, y + 50, equipTextStr, {
+            fontSize: '12px',
+            color: equipTextColor
+          })
+          equipText.setOrigin(0.5)
+          equipText.setDepth(10)
+          
+          // Store references
+          slot.setData('equipText', equipText)
+          slot.setData('avatarIndex', 14)
+          slot.setData('price', 350)
+          slot.setData('priceText', priceText)
+          slot.setData('coinIcon', coinIcon)
+          slot.setData('megaHappySmile', smile)
+          slot.setData('megaHappyElements', [leftHeart, rightHeart, leftRainbow, rightRainbow, ...sparkles])
+          
+          // Hide price if already purchased
+          if (purchasedAvatars.includes(14)) {
+            priceText.setVisible(false)
+            coinIcon.setVisible(false)
+          }
+        }
+        
+        // Add angry face to slot 16
+        if (index === 15) {
+          // Dark red background for the angry face
+          const faceBackground = this.add.rectangle(x, y, slotSize - 10, slotSize - 10, 0xDC143C)
+          faceBackground.setStrokeStyle(2, 0x000000)
+          
+          // Angry eyes (narrow slits)
+          const leftEye = this.add.rectangle(x - 10, y - 8, 10, 3, 0x000000)
+          const rightEye = this.add.rectangle(x + 10, y - 8, 10, 3, 0x000000)
+          
+          // Angry V-shaped eyebrows
+          const leftBrow = this.add.graphics()
+          leftBrow.lineStyle(3, 0x000000, 1)
+          leftBrow.beginPath()
+          leftBrow.moveTo(x - 15, y - 12)
+          leftBrow.lineTo(x - 8, y - 16)
+          leftBrow.strokePath()
+          
+          const rightBrow = this.add.graphics()
+          rightBrow.lineStyle(3, 0x000000, 1)
+          rightBrow.beginPath()
+          rightBrow.moveTo(x + 8, y - 16)
+          rightBrow.lineTo(x + 15, y - 12)
+          rightBrow.strokePath()
+          
+          // Angry frown with teeth showing
+          const angryMouth = this.add.graphics()
+          angryMouth.lineStyle(3, 0x000000, 1)
+          angryMouth.beginPath()
+          angryMouth.moveTo(x - 15, y + 8)
+          angryMouth.lineTo(x - 8, y + 12)
+          angryMouth.lineTo(x + 8, y + 12)
+          angryMouth.lineTo(x + 15, y + 8)
+          angryMouth.strokePath()
+          
+          // Steam puffs
+          const steam1 = this.add.text(x - 20, y - 20, '💨', { fontSize: '12px' })
+          const steam2 = this.add.text(x + 20, y - 20, '💨', { fontSize: '12px' })
+          
+          // Add name text
+          const nameText = this.add.text(x, y - 30, 'Angry', {
+            fontSize: '10px',
+            color: '#8B0000'
+          })
+          nameText.setOrigin(0.5)
+          
+          // Add price (200 coins)
+          const priceText = this.add.text(x, y + 35, isFreeEvent ? 'FREE!' : '200', {
+            fontSize: '14px',
+            color: isFreeEvent ? '#ff00ff' : '#ffd700'
+          })
+          priceText.setOrigin(0.5)
+          priceText.setDepth(10)
+          
+          // Add coin icon
+          const coinIcon = this.add.circle(x + 25, y + 35, 6, 0xffd700)
+          coinIcon.setStrokeStyle(1, 0x000000)
+          coinIcon.setDepth(10)
+          
+          // Add Equip/Equipped text
+          let equipTextStr = 'Buy'
+          let equipTextColor = totalCoins >= 200 ? '#ffffff' : '#666666'
+          
+          if (purchasedAvatars.includes(15)) {
+            equipTextStr = equippedAvatar === 15 ? 'Equipped' : 'Equip'
+            equipTextColor = equippedAvatar === 15 ? '#00ff00' : '#ffffff'
+          }
+          
+          const equipText = this.add.text(x, y + 50, equipTextStr, {
+            fontSize: '12px',
+            color: equipTextColor
+          })
+          equipText.setOrigin(0.5)
+          equipText.setDepth(10)
+          
+          // Store references
+          slot.setData('equipText', equipText)
+          slot.setData('avatarIndex', 15)
+          slot.setData('price', 200)
+          slot.setData('priceText', priceText)
+          slot.setData('coinIcon', coinIcon)
+          slot.setData('angryMouth', angryMouth)
+          slot.setData('angryElements', [leftBrow, rightBrow, steam1, steam2])
+          
+          // Hide price if already purchased
+          if (purchasedAvatars.includes(15)) {
+            priceText.setVisible(false)
+            coinIcon.setVisible(false)
+          }
+        }

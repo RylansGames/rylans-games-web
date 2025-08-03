@@ -1,0 +1,336 @@
+        // Add sighing face to slot 17
+        if (index === 16) {
+          // Light gray background for the sighing face
+          const faceBackground = this.add.rectangle(x, y, slotSize - 10, slotSize - 10, 0xD3D3D3)
+          faceBackground.setStrokeStyle(2, 0x000000)
+          
+          // Half-closed tired eyes
+          const leftEye = this.add.arc(x - 10, y - 8, 6, 0, 180, false, 0x000000)
+          leftEye.setStrokeStyle(2, 0x000000)
+          const rightEye = this.add.arc(x + 10, y - 8, 6, 0, 180, false, 0x000000)
+          rightEye.setStrokeStyle(2, 0x000000)
+          
+          // Lowered eyebrows
+          const leftBrow = this.add.rectangle(x - 10, y - 14, 10, 2, 0x000000)
+          leftBrow.setRotation(-0.1)
+          const rightBrow = this.add.rectangle(x + 10, y - 14, 10, 2, 0x000000)
+          rightBrow.setRotation(0.1)
+          
+          // Small frown
+          const frown = this.add.arc(x, y + 14, 10, 0, 180, true, 0x000000)
+          frown.setStrokeStyle(2, 0x000000)
+          
+          // Sigh cloud
+          const sighCloud = this.add.ellipse(x + 25, y, 20, 15, 0xFFFFFF, 0.7)
+          sighCloud.setStrokeStyle(1, 0x999999)
+          const sighText = this.add.text(x + 25, y, '...', {
+            fontSize: '12px',
+            color: '#666666'
+          })
+          sighText.setOrigin(0.5)
+          
+          // Add name text
+          const nameText = this.add.text(x, y - 30, 'Sighing', {
+            fontSize: '10px',
+            color: '#696969'
+          })
+          nameText.setOrigin(0.5)
+          
+          // Add price (160 coins)
+          const priceText = this.add.text(x, y + 35, isFreeEvent ? 'FREE!' : '160', {
+            fontSize: '14px',
+            color: isFreeEvent ? '#ff00ff' : '#ffd700'
+          })
+          priceText.setOrigin(0.5)
+          priceText.setDepth(10)
+          
+          // Add coin icon
+          const coinIcon = this.add.circle(x + 25, y + 35, 6, 0xffd700)
+          coinIcon.setStrokeStyle(1, 0x000000)
+          coinIcon.setDepth(10)
+          
+          // Add Equip/Equipped text
+          let equipTextStr = 'Buy'
+          let equipTextColor = totalCoins >= 160 ? '#ffffff' : '#666666'
+          
+          if (purchasedAvatars.includes(16)) {
+            equipTextStr = equippedAvatar === 16 ? 'Equipped' : 'Equip'
+            equipTextColor = equippedAvatar === 16 ? '#00ff00' : '#ffffff'
+          }
+          
+          const equipText = this.add.text(x, y + 50, equipTextStr, {
+            fontSize: '12px',
+            color: equipTextColor
+          })
+          equipText.setOrigin(0.5)
+          equipText.setDepth(10)
+          
+          // Store references
+          slot.setData('equipText', equipText)
+          slot.setData('avatarIndex', 16)
+          slot.setData('price', 160)
+          slot.setData('priceText', priceText)
+          slot.setData('coinIcon', coinIcon)
+          slot.setData('sighingElements', [leftBrow, rightBrow, sighCloud, sighText])
+          
+          // Hide price if already purchased
+          if (purchasedAvatars.includes(16)) {
+            priceText.setVisible(false)
+            coinIcon.setVisible(false)
+          }
+        }
+        
+        // Add sleepy face to slot 18
+        if (index === 17) {
+          // Lavender background for the sleepy face
+          const faceBackground = this.add.rectangle(x, y, slotSize - 10, slotSize - 10, 0xE6E6FA)
+          faceBackground.setStrokeStyle(2, 0x000000)
+          
+          // Closed eyes (curved lines)
+          const leftEye = this.add.arc(x - 10, y - 8, 6, 0, 180, true, 0x000000)
+          leftEye.setStrokeStyle(2, 0x000000)
+          leftEye.setRotation(Math.PI)
+          const rightEye = this.add.arc(x + 10, y - 8, 6, 0, 180, true, 0x000000)
+          rightEye.setStrokeStyle(2, 0x000000)
+          rightEye.setRotation(Math.PI)
+          
+          // Sleepy eyebrows
+          const leftBrow = this.add.rectangle(x - 10, y - 14, 8, 2, 0x000000)
+          leftBrow.setRotation(-0.2)
+          const rightBrow = this.add.rectangle(x + 10, y - 14, 8, 2, 0x000000)
+          rightBrow.setRotation(0.2)
+          
+          // Yawning mouth
+          const mouth = this.add.ellipse(x, y + 10, 20, 25, 0x000000)
+          
+          // Z's floating
+          const z1 = this.add.text(x + 20, y - 15, 'Z', {
+            fontSize: '14px',
+            color: '#4169E1'
+          })
+          const z2 = this.add.text(x + 25, y - 20, 'z', {
+            fontSize: '12px',
+            color: '#4169E1'
+          })
+          const z3 = this.add.text(x + 28, y - 25, 'z', {
+            fontSize: '10px',
+            color: '#4169E1'
+          })
+          
+          // Add name text
+          const nameText = this.add.text(x, y - 30, 'Sleepy', {
+            fontSize: '10px',
+            color: '#6A5ACD'
+          })
+          nameText.setOrigin(0.5)
+          
+          // Add price (170 coins)
+          const priceText = this.add.text(x, y + 35, isFreeEvent ? 'FREE!' : '170', {
+            fontSize: '14px',
+            color: isFreeEvent ? '#ff00ff' : '#ffd700'
+          })
+          priceText.setOrigin(0.5)
+          priceText.setDepth(10)
+          
+          // Add coin icon
+          const coinIcon = this.add.circle(x + 25, y + 35, 6, 0xffd700)
+          coinIcon.setStrokeStyle(1, 0x000000)
+          coinIcon.setDepth(10)
+          
+          // Add Equip/Equipped text
+          let equipTextStr = 'Buy'
+          let equipTextColor = totalCoins >= 170 ? '#ffffff' : '#666666'
+          
+          if (purchasedAvatars.includes(17)) {
+            equipTextStr = equippedAvatar === 17 ? 'Equipped' : 'Equip'
+            equipTextColor = equippedAvatar === 17 ? '#00ff00' : '#ffffff'
+          }
+          
+          const equipText = this.add.text(x, y + 50, equipTextStr, {
+            fontSize: '12px',
+            color: equipTextColor
+          })
+          equipText.setOrigin(0.5)
+          equipText.setDepth(10)
+          
+          // Store references
+          slot.setData('equipText', equipText)
+          slot.setData('avatarIndex', 17)
+          slot.setData('price', 170)
+          slot.setData('priceText', priceText)
+          slot.setData('coinIcon', coinIcon)
+          slot.setData('sleepyElements', [leftBrow, rightBrow, z1, z2, z3])
+          
+          // Hide price if already purchased
+          if (purchasedAvatars.includes(17)) {
+            priceText.setVisible(false)
+            coinIcon.setVisible(false)
+          }
+        }
+        
+        // Add teen bored face to slot 19
+        if (index === 18) {
+          // Dark purple background for the teen bored face
+          const faceBackground = this.add.rectangle(x, y, slotSize - 10, slotSize - 10, 0x483D8B)
+          faceBackground.setStrokeStyle(2, 0x000000)
+          
+          // Rolling eyes (looking up)
+          const leftEyeWhite = this.add.circle(x - 10, y - 8, 6, 0xFFFFFF)
+          leftEyeWhite.setStrokeStyle(2, 0x000000)
+          const leftPupil = this.add.circle(x - 10, y - 11, 3, 0x000000)
+          
+          const rightEyeWhite = this.add.circle(x + 10, y - 8, 6, 0xFFFFFF)
+          rightEyeWhite.setStrokeStyle(2, 0x000000)
+          const rightPupil = this.add.circle(x + 10, y - 11, 3, 0x000000)
+          
+          // Flat eyebrows
+          const leftBrow = this.add.rectangle(x - 10, y - 15, 10, 2, 0x000000)
+          const rightBrow = this.add.rectangle(x + 10, y - 15, 10, 2, 0x000000)
+          
+          // "Whatever" mouth
+          const mouth = this.add.graphics()
+          mouth.lineStyle(2, 0x000000, 1)
+          mouth.beginPath()
+          mouth.moveTo(x - 8, y + 10)
+          mouth.lineTo(x + 8, y + 8)
+          mouth.strokePath()
+          
+          // Phone emoji
+          const phone = this.add.text(x - 25, y + 5, '📱', { fontSize: '14px' })
+          
+          // Add name text
+          const nameText = this.add.text(x, y - 30, 'Teen Bored', {
+            fontSize: '10px',
+            color: '#9370DB'
+          })
+          nameText.setOrigin(0.5)
+          
+          // Add price (185 coins)
+          const priceText = this.add.text(x, y + 35, isFreeEvent ? 'FREE!' : '185', {
+            fontSize: '14px',
+            color: isFreeEvent ? '#ff00ff' : '#ffd700'
+          })
+          priceText.setOrigin(0.5)
+          priceText.setDepth(10)
+          
+          // Add coin icon
+          const coinIcon = this.add.circle(x + 25, y + 35, 6, 0xffd700)
+          coinIcon.setStrokeStyle(1, 0x000000)
+          coinIcon.setDepth(10)
+          
+          // Add Equip/Equipped text
+          let equipTextStr = 'Buy'
+          let equipTextColor = totalCoins >= 185 ? '#ffffff' : '#666666'
+          
+          if (purchasedAvatars.includes(18)) {
+            equipTextStr = equippedAvatar === 18 ? 'Equipped' : 'Equip'
+            equipTextColor = equippedAvatar === 18 ? '#00ff00' : '#ffffff'
+          }
+          
+          const equipText = this.add.text(x, y + 50, equipTextStr, {
+            fontSize: '12px',
+            color: equipTextColor
+          })
+          equipText.setOrigin(0.5)
+          equipText.setDepth(10)
+          
+          // Store references
+          slot.setData('equipText', equipText)
+          slot.setData('avatarIndex', 18)
+          slot.setData('price', 185)
+          slot.setData('priceText', priceText)
+          slot.setData('coinIcon', coinIcon)
+          slot.setData('teenMouth', mouth)
+          slot.setData('teenElements', [leftEyeWhite, rightEyeWhite, leftPupil, rightPupil, leftBrow, rightBrow, phone])
+          
+          // Hide price if already purchased
+          if (purchasedAvatars.includes(18)) {
+            priceText.setVisible(false)
+            coinIcon.setVisible(false)
+          }
+        }
+        
+        // Add cool face to slot 20
+        if (index === 19) {
+          // Ice blue background for the cool face
+          const faceBackground = this.add.rectangle(x, y, slotSize - 10, slotSize - 10, 0x00CED1)
+          faceBackground.setStrokeStyle(2, 0x000000)
+          
+          // Cool sunglasses (bigger than sigma)
+          const sunglasses = this.add.graphics()
+          sunglasses.fillStyle(0x000000, 0.8)
+          sunglasses.fillRoundedRect(x - 22, y - 12, 44, 12, 2)
+          sunglasses.lineStyle(2, 0x000000, 1)
+          sunglasses.strokeRoundedRect(x - 22, y - 12, 44, 12, 2)
+          
+          // Slight smirk
+          const smirk = this.add.graphics()
+          smirk.lineStyle(3, 0x000000, 1)
+          smirk.beginPath()
+          smirk.moveTo(x - 5, y + 8)
+          smirk.lineTo(x + 8, y + 10)
+          smirk.strokePath()
+          
+          // Ice crystals
+          const ice1 = this.add.text(x - 25, y - 20, '❄️', { fontSize: '12px' })
+          const ice2 = this.add.text(x + 20, y - 20, '❄️', { fontSize: '12px' })
+          
+          // Cool text
+          const coolText = this.add.text(x, y + 25, 'COOL', {
+            fontSize: '8px',
+            color: '#00008B',
+            fontWeight: 'bold'
+          })
+          coolText.setOrigin(0.5)
+          
+          // Add name text
+          const nameText = this.add.text(x, y - 30, 'Cool', {
+            fontSize: '10px',
+            color: '#00008B'
+          })
+          nameText.setOrigin(0.5)
+          
+          // Add price (275 coins)
+          const priceText = this.add.text(x, y + 35, isFreeEvent ? 'FREE!' : '275', {
+            fontSize: '14px',
+            color: isFreeEvent ? '#ff00ff' : '#ffd700'
+          })
+          priceText.setOrigin(0.5)
+          priceText.setDepth(10)
+          
+          // Add coin icon
+          const coinIcon = this.add.circle(x + 25, y + 35, 6, 0xffd700)
+          coinIcon.setStrokeStyle(1, 0x000000)
+          coinIcon.setDepth(10)
+          
+          // Add Equip/Equipped text
+          let equipTextStr = 'Buy'
+          let equipTextColor = totalCoins >= 275 ? '#ffffff' : '#666666'
+          
+          if (purchasedAvatars.includes(19)) {
+            equipTextStr = equippedAvatar === 19 ? 'Equipped' : 'Equip'
+            equipTextColor = equippedAvatar === 19 ? '#00ff00' : '#ffffff'
+          }
+          
+          const equipText = this.add.text(x, y + 50, equipTextStr, {
+            fontSize: '12px',
+            color: equipTextColor
+          })
+          equipText.setOrigin(0.5)
+          equipText.setDepth(10)
+          
+          // Store references
+          slot.setData('equipText', equipText)
+          slot.setData('avatarIndex', 19)
+          slot.setData('price', 275)
+          slot.setData('priceText', priceText)
+          slot.setData('coinIcon', coinIcon)
+          slot.setData('coolSmirk', smirk)
+          slot.setData('coolElements', [sunglasses, ice1, ice2, coolText])
+          
+          // Hide price if already purchased
+          if (purchasedAvatars.includes(19)) {
+            priceText.setVisible(false)
+            coinIcon.setVisible(false)
+          }
+        }
