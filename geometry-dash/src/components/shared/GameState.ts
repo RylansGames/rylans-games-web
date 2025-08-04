@@ -10,6 +10,9 @@ export interface GameState {
   speedBoostLevel: number
   jumpPowerLevel: number
   scoreMultiplierLevel: number
+  highScore: number
+  rebirthCount: number
+  levelProgress: { [key: string]: number } // Track best score for each level
 }
 
 class GameStateManager {
@@ -30,7 +33,10 @@ class GameStateManager {
       playerName: 'Player45125',
       speedBoostLevel: 0,
       jumpPowerLevel: 0,
-      scoreMultiplierLevel: 0
+      scoreMultiplierLevel: 0,
+      highScore: 0,
+      rebirthCount: 0,
+      levelProgress: {}
     }
 
     if (savedState) {
@@ -180,6 +186,46 @@ class GameStateManager {
     this.saveState()
   }
 
+  getHighScore(): number {
+    return this.state.highScore || 0
+  }
+
+  updateHighScore(score: number): void {
+    if (score > this.state.highScore) {
+      this.state.highScore = score
+      this.saveState()
+    }
+  }
+
+  getRebirthCount(): number {
+    return this.state.rebirthCount || 0
+  }
+
+  incrementRebirthCount(): void {
+    this.state.rebirthCount = (this.state.rebirthCount || 0) + 1
+    this.saveState()
+  }
+
+  getCoinMultiplier(): number {
+    // Each rebirth gives a permanent 2x coin multiplier
+    return Math.pow(2, this.state.rebirthCount || 0)
+  }
+
+  getLevelProgress(levelName: string): number {
+    return this.state.levelProgress[levelName] || 0
+  }
+
+  updateLevelProgress(levelName: string, score: number): void {
+    if (!this.state.levelProgress[levelName] || score > this.state.levelProgress[levelName]) {
+      this.state.levelProgress[levelName] = score
+      this.saveState()
+    }
+  }
+
+  isLevelCompleted(levelName: string): boolean {
+    return (this.state.levelProgress[levelName] || 0) >= 10000
+  }
+
   resetState(): void {
     this.state = {
       totalCoins: 0,
@@ -190,7 +236,10 @@ class GameStateManager {
       playerName: 'Player45125',
       speedBoostLevel: 0,
       jumpPowerLevel: 0,
-      scoreMultiplierLevel: 0
+      scoreMultiplierLevel: 0,
+      highScore: this.state.highScore || 0, // Preserve high score
+      rebirthCount: this.state.rebirthCount || 0, // Preserve rebirth count
+      levelProgress: this.state.levelProgress || {} // Preserve level progress
     }
     this.saveState()
   }

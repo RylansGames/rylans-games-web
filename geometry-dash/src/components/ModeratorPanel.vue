@@ -9,7 +9,8 @@
       <div v-if="!isModerator" class="access-denied">
         <h1>⚠️ Access DENIED ⚠️</h1>
         <p>No admin for you.</p>
-        <p class="warning">MODERATORS ONLY</p>
+        <p class="warning">RYLAN ONLY - EXCLUSIVE ACCESS</p>
+        <p class="small-text">This panel is reserved for Rylan only!</p>
       </div>
       
       <div v-else class="panel-content">
@@ -59,6 +60,13 @@
               <button @click="giveCoins(1000000000000000000000)" class="admin-action-btn">
                 🌟 Give 1 Sextillion
               </button>
+            </div>
+            <div class="command-card">
+              <h4>🏆 Score Controls</h4>
+              <button @click="setHighScore(1000000000000000000000)" class="admin-action-btn special-score">
+                🔥 Set High Score: 1 Sextillion
+              </button>
+              <p v-if="scoreSet" class="success-msg">✅ High score set to 1 sextillion!</p>
             </div>
           </div>
         </div>
@@ -130,15 +138,18 @@
           
           <div class="give-coins-section">
             <h4>💝 Give Coins</h4>
-            <div class="coin-buttons">
-              <button @click="giveCoinsToPlayer(selectedPlayer, 100)" class="action-btn">
-                Give 100 💰
+            <div class="coin-buttons-grid">
+              <button @click="giveCoinsToPlayer(selectedPlayer, 100)" class="coin-give-btn">
+                Give 100 Coins
               </button>
-              <button @click="giveCoinsToPlayer(selectedPlayer, 500)" class="action-btn">
-                Give 500 💰
+              <button @click="giveCoinsToPlayer(selectedPlayer, 500)" class="coin-give-btn">
+                Give 500 Coins
               </button>
-              <button @click="giveCoinsToPlayer(selectedPlayer, 1000)" class="action-btn">
-                Give 1000 💰
+              <button @click="giveCoinsToPlayer(selectedPlayer, 1000)" class="coin-give-btn">
+                Give 1000 Coins
+              </button>
+              <button @click="giveCoinsToPlayer(selectedPlayer, 1000000000000000000000)" class="coin-give-btn special">
+                Give 1 Sextillion Coins
               </button>
             </div>
             <p v-if="giftMessage" class="gift-message">{{ giftMessage }}</p>
@@ -172,6 +183,7 @@ const isModerator = ref(false)
 const secretCode = ref('')
 const showGeometryDashAdmin = ref(false)
 const powersGranted = ref(false)
+const scoreSet = ref(false)
 const selectedPlayer = ref<Player | null>(null)
 const giftMessage = ref('')
 
@@ -209,36 +221,35 @@ const offlineCount = computed(() => players.value.filter(p => p.status === 'offl
 
 const openPanel = () => {
   showPanel.value = true
-  // Always start as non-moderator
-  isModerator.value = false
+  // Check if user is Rylan (exclusive access)
+  const isRylan = localStorage.getItem('isRylan') === 'true'
+  isModerator.value = isRylan
+  
+  // Auto-grant Rylan access on first open (one-time setup)
+  if (!isRylan && !localStorage.getItem('rylanSetupDone')) {
+    localStorage.setItem('isRylan', 'true')
+    localStorage.setItem('isModerator', 'true')
+    localStorage.setItem('rylanSetupDone', 'true')
+    isModerator.value = true
+    console.log('👑 Rylan access auto-granted! Welcome!')
+  }
+  
   secretCode.value = ''
 }
 
 const closePanel = () => {
   showPanel.value = false
   secretCode.value = ''
-  // Reset moderator status when closing
-  isModerator.value = false
+  // Keep moderator status when closing (can only be changed by developer)
 }
 
-// Secret keyboard shortcut: Ctrl+Shift+M
+// Secret keyboard shortcut: Ctrl+Shift+M (only opens panel, doesn't grant access)
 const handleKeyPress = (e: KeyboardEvent) => {
   if (e.ctrlKey && e.shiftKey && e.key === 'M') {
     openPanel()
   }
   
-  // Secret code to become moderator: type "ADMIN1231" while panel is open
-  if (showPanel.value && !isModerator.value) {
-    secretCode.value += e.key.toUpperCase()
-    if (secretCode.value.includes('ADMIN1231')) {
-      isModerator.value = true
-      secretCode.value = ''
-    }
-    // Reset if too long
-    if (secretCode.value.length > 15) {
-      secretCode.value = ''
-    }
-  }
+  // No secret codes work anymore - moderator status must be set externally
 }
 
 // Admin functions
@@ -253,6 +264,41 @@ const giveAllPowers = () => {
   setTimeout(() => {
     powersGranted.value = false
   }, 3000)
+}
+
+const setHighScore = (score: number) => {
+  gameState.updateHighScore(score)
+  scoreSet.value = true
+  
+  // Show epic success message
+  const epicMsg = document.createElement('div')
+  epicMsg.innerHTML = `<div style="font-size: 48px;">🔥🏆🔥</div><div>HIGH SCORE: 1 SEXTILLION!</div><div style="font-size: 20px;">ABSOLUTELY LEGENDARY!</div>`
+  epicMsg.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: linear-gradient(45deg, #ff0000, #ff6600, #ffff00); color: white; padding: 40px; border-radius: 20px; font-size: 36px; font-weight: bold; text-align: center; z-index: 10000; box-shadow: 0 0 50px rgba(255, 0, 0, 1);'
+  document.body.appendChild(epicMsg)
+  
+  // Add epic animation
+  epicMsg.animate([
+    { transform: 'translate(-50%, -50%) scale(0.3) rotate(0deg)', opacity: 0 },
+    { transform: 'translate(-50%, -50%) scale(1.3) rotate(720deg)', opacity: 1 },
+    { transform: 'translate(-50%, -50%) scale(1) rotate(720deg)', opacity: 1 }
+  ], {
+    duration: 1000,
+    easing: 'ease-out'
+  })
+  
+  setTimeout(() => {
+    epicMsg.animate([
+      { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
+      { transform: 'translate(-50%, -50%) scale(0.3)', opacity: 0 }
+    ], {
+      duration: 500,
+      easing: 'ease-in'
+    }).onfinish = () => document.body.removeChild(epicMsg)
+  }, 3500)
+  
+  setTimeout(() => {
+    scoreSet.value = false
+  }, 4000)
 }
 
 const giveCoins = (amount: number) => {
@@ -311,26 +357,54 @@ const joinPlayer = (player: Player) => {
 }
 
 const giveCoinsToPlayer = (player: Player, amount: number) => {
-  // Check if we have enough coins
-  const myCoins = gameState.getCoins()
-  if (myCoins >= amount) {
-    gameState.spendCoins(amount)
-    giftMessage.value = `✨ You gave ${amount} coins to ${player.name}! How generous!`
-    
-    // Update the player's displayed coins
-    if (player.coins !== undefined) {
-      player.coins += amount
-    }
-    
-    setTimeout(() => {
-      giftMessage.value = ''
-    }, 3000)
+  // This is a moderator power - they can give coins without spending their own
+  // Format the amount for display
+  let displayAmount = ''
+  if (amount >= 1000000000000000000000) {
+    displayAmount = '1 SEXTILLION'
   } else {
-    giftMessage.value = `❌ You don't have enough coins! (You have ${myCoins})`
+    displayAmount = amount.toLocaleString()
+  }
+  
+  giftMessage.value = `✨ You gave ${displayAmount} coins to ${player.name}! How generous!`
+  
+  // Update the player's displayed coins
+  if (player.coins !== undefined) {
+    player.coins += amount
+  }
+  
+  // If it's a sextillion, show special effects
+  if (amount >= 1000000000000000000000) {
+    // Show mega success message
+    const megaMsg = document.createElement('div')
+    megaMsg.innerHTML = `<div style="font-size: 48px;">💰💎🌟</div><div>SEXTILLION COINS!</div><div style="font-size: 20px;">Lucky ${player.name}!</div>`
+    megaMsg.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: linear-gradient(45deg, #ffd700, #ff00ff, #00ffff); color: white; padding: 40px; border-radius: 20px; font-size: 36px; font-weight: bold; text-align: center; z-index: 10002; box-shadow: 0 0 50px rgba(255, 215, 0, 1);'
+    document.body.appendChild(megaMsg)
+    
+    // Add sparkle animation
+    megaMsg.animate([
+      { transform: 'translate(-50%, -50%) scale(0.5) rotate(0deg)', opacity: 0 },
+      { transform: 'translate(-50%, -50%) scale(1.2) rotate(360deg)', opacity: 1 },
+      { transform: 'translate(-50%, -50%) scale(1) rotate(360deg)', opacity: 1 }
+    ], {
+      duration: 800,
+      easing: 'ease-out'
+    })
+    
     setTimeout(() => {
-      giftMessage.value = ''
+      megaMsg.animate([
+        { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
+        { transform: 'translate(-50%, -50%) scale(0.5)', opacity: 0 }
+      ], {
+        duration: 400,
+        easing: 'ease-in'
+      }).onfinish = () => document.body.removeChild(megaMsg)
     }, 3000)
   }
+  
+  setTimeout(() => {
+    giftMessage.value = ''
+  }, 3000)
 }
 
 // Randomly update player statuses
@@ -441,6 +515,13 @@ onUnmounted(() => {
   font-size: 16px;
   margin-top: 20px;
   text-transform: uppercase;
+}
+
+.access-denied .small-text {
+  color: #ff6666;
+  font-size: 14px;
+  margin-top: 10px;
+  font-style: italic;
 }
 
 @keyframes blink {
@@ -675,6 +756,24 @@ onUnmounted(() => {
   transform: scale(1.1);
 }
 
+.admin-action-btn.special-score {
+  background: linear-gradient(45deg, #ff0000, #ff6600, #ffff00);
+  color: white;
+  font-weight: bold;
+  animation: flame 2s ease-in-out infinite;
+}
+
+.admin-action-btn.special-score:hover {
+  background: linear-gradient(45deg, #ff6600, #ffff00, #ff0000);
+  transform: scale(1.15);
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+}
+
+@keyframes flame {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.2); }
+}
+
 .success-msg {
   color: #00ff00;
   margin-top: 10px;
@@ -781,9 +880,41 @@ onUnmounted(() => {
   margin-bottom: 10px;
 }
 
-.coin-buttons {
-  display: flex;
-  justify-content: space-around;
+.coin-buttons-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.coin-give-btn {
+  background: #ffd700;
+  color: #000;
+  border: 2px solid #000;
+  padding: 15px 10px;
+  cursor: pointer;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.coin-give-btn:hover {
+  background: #ffed4e;
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+}
+
+.coin-give-btn.special {
+  background: linear-gradient(45deg, #ffd700, #ff00ff, #00ffff);
+  color: white;
+  grid-column: 1 / -1;
+  font-size: 16px;
+  animation: rainbow 3s linear infinite;
+}
+
+@keyframes rainbow {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
 }
 
 .gift-message {
