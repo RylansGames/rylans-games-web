@@ -10,7 +10,7 @@
         <div class="hud-coins">Coins Collected: {{ coinsCollected }}</div>
       </div>
       <div class="controls-hint">
-        WASD: Move | Mouse: Look Around | SPACE: Jump | E: Interact | B: Toggle Camera
+        WASD: Move | Mouse: Look Around | SPACE: Jump | E: Interact | B: Toggle Camera | Left Click: Hit Apple
       </div>
     </div>
   </div>
@@ -35,6 +35,8 @@ let renderer: THREE.WebGLRenderer
 let player: THREE.Mesh
 let tungTungNPC: THREE.Group
 let coins: THREE.Mesh[] = []
+let rocks: THREE.Group[] = []
+let apples: THREE.Mesh[] = []
 let animationId: number
 
 // Player movement
@@ -232,6 +234,9 @@ const init3DScene = () => {
 
   // Create collectible coins
   createCoins()
+
+  // Create rocks and apples
+  createRocksAndApples()
 
   // Create skybox with stars
   createStars()
@@ -618,6 +623,80 @@ const createCoins = () => {
   })
 }
 
+const createRocksAndApples = () => {
+  // 4 rock locations with 3 apples each (1 golden, 2 normal)
+  const rockLocations = [
+    { x: -50, z: -50 },
+    { x: 50, z: -50 },
+    { x: -50, z: 50 },
+    { x: 50, z: 50 }
+  ]
+
+  rockLocations.forEach((loc, rockIndex) => {
+    // Create a rock group
+    const rockGroup = new THREE.Group()
+    rockGroup.position.set(loc.x, 0, loc.z)
+
+    // Create gray rock (irregular sphere shape)
+    const rockGeometry = new THREE.SphereGeometry(2, 8, 6) // Low poly for rocky look
+    const rockMaterial = new THREE.MeshStandardMaterial({
+      color: 0x808080,
+      roughness: 0.9,
+      metalness: 0.1
+    })
+    const rock = new THREE.Mesh(rockGeometry, rockMaterial)
+    rock.position.y = 1.5
+    rock.scale.set(1, 0.7, 1) // Flatten it a bit
+    rock.castShadow = true
+    rock.receiveShadow = true
+    rockGroup.add(rock)
+
+    scene.add(rockGroup)
+    rocks.push(rockGroup)
+
+    // Create 3 apples next to each rock (1 golden, 2 normal)
+    const applePositions = [
+      { x: loc.x + 3, z: loc.z, isGolden: false },
+      { x: loc.x - 3, z: loc.z, isGolden: false },
+      { x: loc.x, z: loc.z + 3, isGolden: true }
+    ]
+
+    applePositions.forEach((applePos, appleIndex) => {
+      // Apple body (sphere)
+      const appleGeometry = new THREE.SphereGeometry(0.5, 16, 16)
+      const appleMaterial = new THREE.MeshStandardMaterial({
+        color: applePos.isGolden ? 0xffd700 : 0xff0000,
+        metalness: applePos.isGolden ? 0.8 : 0.2,
+        roughness: applePos.isGolden ? 0.2 : 0.6,
+        emissive: applePos.isGolden ? 0xffaa00 : 0x000000,
+        emissiveIntensity: applePos.isGolden ? 0.3 : 0
+      })
+      const apple = new THREE.Mesh(appleGeometry, appleMaterial)
+      apple.position.set(applePos.x, 0.5, applePos.z)
+      apple.castShadow = true
+
+      // Add stem on top
+      const stemGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 8)
+      const stemMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 })
+      const stem = new THREE.Mesh(stemGeometry, stemMaterial)
+      stem.position.set(applePos.x, 0.8, applePos.z)
+      scene.add(stem)
+
+      // Store apple data
+      apple.userData.isApple = true
+      apple.userData.isGolden = applePos.isGolden
+      apple.userData.hp = applePos.isGolden ? 20 : 5
+      apple.userData.maxHp = applePos.isGolden ? 20 : 5
+      apple.userData.stem = stem
+      apple.userData.rockIndex = rockIndex
+      apple.userData.appleIndex = appleIndex
+
+      apples.push(apple)
+      scene.add(apple)
+    })
+  })
+}
+
 const createStars = () => {
   const starGeometry = new THREE.BufferGeometry()
   const starPositions = []
@@ -672,6 +751,69 @@ const setupControls = () => {
       mouseY = e.movementY
     }
   })
+
+  // Mouse click to hit apples
+  renderer.domElement.addEventListener('click', (e) => {
+    if (document.pointerLockElement === renderer.domElement) {
+      hitApple()
+    }
+  })
+}
+
+const hitApple = () => {
+  // Create a raycaster to detect what we're looking at
+  const raycaster = new THREE.Raycaster()
+  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera) // Center of screen
+
+  // Check if we're looking at any apples
+  const intersects = raycaster.intersectObjects(apples)
+
+  if (intersects.length > 0) {
+    const apple = intersects[0].object as THREE.Mesh
+    if (apple.userData.isApple && apple.userData.hp > 0) {
+      // Hit the apple
+      apple.userData.hp -= 1
+
+      const isGolden = apple.userData.isGolden
+      const appleType = isGolden ? 'Golden Apple' : 'Apple'
+
+      if (apple.userData.hp <= 0) {
+        // Apple destroyed
+        scene.remove(apple)
+        scene.remove(apple.userData.stem)
+        const index = apples.indexOf(apple)
+        if (index > -1) {
+          apples.splice(index, 1)
+        }
+        infoText.value = `${appleType} destroyed! 💥`
+
+        // Give rewards
+        if (isGolden) {
+          gameState.addCoins(50)
+          infoText.value = `Golden Apple destroyed! +50 coins! 💰`
+        } else {
+          gameState.addCoins(10)
+          infoText.value = `Apple destroyed! +10 coins! 🍎`
+        }
+
+        setTimeout(() => {
+          infoText.value = 'Explore the brainrot world! 🧠'
+        }, 2000)
+      } else {
+        // Apple hit but not destroyed
+        infoText.value = `${appleType} HP: ${apple.userData.hp}/${apple.userData.maxHp}`
+
+        // Make apple flash red when hit
+        const originalEmissive = (apple.material as THREE.MeshStandardMaterial).emissive.clone()
+        ;(apple.material as THREE.MeshStandardMaterial).emissive.set(0xff0000)
+        setTimeout(() => {
+          if (apple.parent) { // Check if still exists
+            ;(apple.material as THREE.MeshStandardMaterial).emissive.copy(originalEmissive)
+          }
+        }, 100)
+      }
+    }
+  }
 }
 
 const updatePlayer = () => {
