@@ -54,6 +54,7 @@ let mouseY = 0
 let yaw = 0
 let pitch = 0
 let isFirstPerson = true // Camera mode
+let lastNPCInteraction = 0 // Cooldown timer for NPC interaction
 
 // Game data
 interface GameData {
@@ -932,22 +933,34 @@ const checkCollisions = () => {
 
     if (distance < 5) {
       exclamation.visible = true
-      infoText.value = 'Press E to talk to Italian tung tung tung tung sahur! 🇮🇹'
 
-      if (keys['e'] && !gameData.value.hasMetTungTung) {
+      // Check cooldown (1 second = 1000ms)
+      const currentTime = Date.now()
+      const canInteract = currentTime - lastNPCInteraction >= 1000
+
+      if (canInteract) {
+        infoText.value = 'Press E to talk to tung tung tung tung sahur! 🪵'
+      } else {
+        const timeLeft = Math.ceil((1000 - (currentTime - lastNPCInteraction)) / 1000)
+        infoText.value = `Wait ${timeLeft}s before talking again...`
+      }
+
+      if (keys['e'] && canInteract && !gameData.value.hasMetTungTung) {
         gameData.value.hasMetTungTung = true
         gameState.addCoins(100)
-        infoText.value = '🇮🇹 tung tung tung tung sahur: "Buongiorno! Welcome to-a Brainrot World! Mamma mia, +100 coins for you! 🍝"'
+        infoText.value = '🪵 tung tung tung tung sahur: "Greetings! Welcome to Brainrot World! +100 coins for you!"'
         setTimeout(() => {
-          infoText.value = 'Keep-a exploring! Magnifico!'
+          infoText.value = 'Keep exploring!'
         }, 4000)
         keys['e'] = false // Prevent spam
-      } else if (keys['e'] && gameData.value.hasMetTungTung) {
-        infoText.value = '🇮🇹 tung tung tung tung sahur: "Ciao bella! Arrivederci amico! 🤌"'
+        lastNPCInteraction = currentTime
+      } else if (keys['e'] && canInteract && gameData.value.hasMetTungTung) {
+        infoText.value = '🪵 tung tung tung tung sahur: "Hello again, friend!"'
         setTimeout(() => {
-          infoText.value = 'Explore the Italian brainrot world! 🇮🇹'
+          infoText.value = 'Explore the brainrot world! 🧠'
         }, 2000)
         keys['e'] = false
+        lastNPCInteraction = currentTime
       }
     } else {
       exclamation.visible = false
