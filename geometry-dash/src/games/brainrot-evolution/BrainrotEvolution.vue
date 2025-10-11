@@ -3,6 +3,9 @@
     <Settings />
     <CoinDisplay />
     <button class="back-button" @click="goBack">← Back to Portal</button>
+    <button class="auto-attack-button" @click="toggleAutoAttack">
+      {{ autoAttackEnabled ? '🗡️ Auto Attack: ON' : '⚔️ Auto Attack: OFF' }}
+    </button>
     <div ref="gameContainer" class="game-container">
       <div class="hud">
         <div class="hud-title">🧠 BRAINROT EVOLUTION 3D 🧠</div>
@@ -28,6 +31,7 @@ const gameContainer = ref<HTMLDivElement>()
 const router = useRouter()
 const infoText = ref('Benvenuto! Welcome to the Italian Brainrot World! Find tung tung tung tung sahur! 🇮🇹🤌')
 const coinsCollected = ref(0)
+const autoAttackEnabled = ref(false)
 
 let scene: THREE.Scene
 let camera: THREE.PerspectiveCamera
@@ -74,6 +78,18 @@ const gameData = ref<GameData>({
 
 const goBack = () => {
   router.push('/')
+}
+
+const toggleAutoAttack = () => {
+  autoAttackEnabled.value = !autoAttackEnabled.value
+  if (autoAttackEnabled.value) {
+    infoText.value = 'Auto Attack enabled! 🗡️'
+  } else {
+    infoText.value = 'Auto Attack disabled! ⚔️'
+  }
+  setTimeout(() => {
+    infoText.value = 'Explore the brainrot world! 🧠'
+  }, 2000)
 }
 
 const loadGameData = () => {
@@ -999,6 +1015,16 @@ const animate = () => {
   // Check collisions
   checkCollisions()
 
+  // Auto-attack logic
+  if (autoAttackEnabled.value) {
+    const currentTime = Date.now()
+    const canAutoAttack = currentTime - lastAppleAttack >= 1000
+
+    if (canAutoAttack) {
+      hitApple()
+    }
+  }
+
   // Show/hide player mesh based on camera mode
   if (player) {
     player.visible = !isFirstPerson
@@ -1078,6 +1104,26 @@ onUnmounted(() => {
 
 .back-button:hover {
   background: #cc0000;
+}
+
+.auto-attack-button {
+  position: absolute;
+  top: 70px;
+  left: 20px;
+  padding: 10px 20px;
+  background: #9f7aea;
+  color: white;
+  border: 2px solid white;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  z-index: 1000;
+  transition: background 0.3s;
+}
+
+.auto-attack-button:hover {
+  background: #805ad5;
 }
 
 .hud {
