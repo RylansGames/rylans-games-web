@@ -55,6 +55,7 @@ let yaw = 0
 let pitch = 0
 let isFirstPerson = true // Camera mode
 let lastNPCInteraction = 0 // Cooldown timer for NPC interaction
+let lastAppleAttack = 0 // Cooldown timer for apple attacks
 
 // Game data
 interface GameData {
@@ -762,6 +763,16 @@ const setupControls = () => {
 }
 
 const hitApple = () => {
+  // Check cooldown (1 second = 1000ms)
+  const currentTime = Date.now()
+  const canAttack = currentTime - lastAppleAttack >= 1000
+
+  if (!canAttack) {
+    const timeLeft = Math.ceil((1000 - (currentTime - lastAppleAttack)) / 1000)
+    infoText.value = `Attack cooldown: ${timeLeft}s ⏱️`
+    return
+  }
+
   // Create a raycaster to detect what we're looking at
   const raycaster = new THREE.Raycaster()
   raycaster.setFromCamera(new THREE.Vector2(0, 0), camera) // Center of screen
@@ -774,6 +785,7 @@ const hitApple = () => {
     if (apple.userData.isApple && apple.userData.hp > 0) {
       // Hit the apple
       apple.userData.hp -= 1
+      lastAppleAttack = currentTime // Update cooldown timer
 
       const isGolden = apple.userData.isGolden
       const appleType = isGolden ? 'Golden Apple' : 'Apple'
@@ -814,6 +826,13 @@ const hitApple = () => {
         }, 100)
       }
     }
+  } else {
+    // Clicked but not looking at an apple
+    lastAppleAttack = currentTime // Still trigger cooldown to prevent spam clicking
+    infoText.value = 'No apple in sight! 👀'
+    setTimeout(() => {
+      infoText.value = 'Explore the brainrot world! 🧠'
+    }, 1000)
   }
 }
 
