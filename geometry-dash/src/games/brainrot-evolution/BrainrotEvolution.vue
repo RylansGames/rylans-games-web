@@ -150,6 +150,9 @@ const init3DScene = () => {
   // Create walls around the world
   createWalls()
 
+  // Create giant statue in center
+  createStatue()
+
   // Create tung tung tung tung sahur NPC
   createTungTungNPC()
 
@@ -258,6 +261,117 @@ const createWalls = () => {
   )
   westGlow.position.set(-worldSize, wallHeight, 0)
   scene.add(westGlow)
+}
+
+const createStatue = () => {
+  // Create a massive statue of tung tung tung tung sahur in the center!
+  const statueGroup = new THREE.Group()
+  statueGroup.position.set(0, 0, 0) // Dead center of the map
+
+  const statueScale = 5 // 5x larger than the NPC!
+
+  // Pedestal base
+  const pedestalGeometry = new THREE.CylinderGeometry(3, 4, 2, 32)
+  const pedestalMaterial = new THREE.MeshStandardMaterial({
+    color: 0x444444,
+    roughness: 0.7
+  })
+  const pedestal = new THREE.Mesh(pedestalGeometry, pedestalMaterial)
+  pedestal.position.y = 1
+  pedestal.castShadow = true
+  pedestal.receiveShadow = true
+  statueGroup.add(pedestal)
+
+  // Plaque on pedestal
+  const plaqueGeometry = new THREE.BoxGeometry(3, 0.5, 0.1)
+  const plaqueMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffd700,
+    metalness: 0.8
+  })
+  const plaque = new THREE.Mesh(plaqueGeometry, plaqueMaterial)
+  plaque.position.set(0, 1, 4.1)
+  statueGroup.add(plaque)
+
+  // Giant statue body (cyan sphere)
+  const bodyGeometry = new THREE.SphereGeometry(statueScale, 32, 32)
+  const bodyMaterial = new THREE.MeshStandardMaterial({
+    color: 0x00ffff,
+    roughness: 0.3,
+    metalness: 0.5
+  })
+  const body = new THREE.Mesh(bodyGeometry, bodyMaterial)
+  body.position.y = 2 + statueScale
+  body.castShadow = true
+  statueGroup.add(body)
+
+  // Giant eyes
+  const eyeGeometry = new THREE.SphereGeometry(statueScale * 0.15, 16, 16)
+  const eyeMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    roughness: 0.2
+  })
+
+  const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial)
+  leftEye.position.set(-statueScale * 0.3, 2 + statueScale + statueScale * 0.3, statueScale * 0.8)
+  statueGroup.add(leftEye)
+
+  const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial)
+  rightEye.position.set(statueScale * 0.3, 2 + statueScale + statueScale * 0.3, statueScale * 0.8)
+  statueGroup.add(rightEye)
+
+  // Giant pupils
+  const pupilGeometry = new THREE.SphereGeometry(statueScale * 0.08, 16, 16)
+  const pupilMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 })
+
+  const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial)
+  leftPupil.position.set(-statueScale * 0.3, 2 + statueScale + statueScale * 0.3, statueScale * 0.9)
+  statueGroup.add(leftPupil)
+
+  const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial)
+  rightPupil.position.set(statueScale * 0.3, 2 + statueScale + statueScale * 0.3, statueScale * 0.9)
+  statueGroup.add(rightPupil)
+
+  // Add spotlights pointing at statue
+  const spotlight1 = new THREE.SpotLight(0x00ffff, 1, 50, Math.PI / 6)
+  spotlight1.position.set(-10, 15, -10)
+  spotlight1.target.position.set(0, 7, 0)
+  spotlight1.castShadow = true
+  scene.add(spotlight1)
+  scene.add(spotlight1.target)
+
+  const spotlight2 = new THREE.SpotLight(0xff00ff, 1, 50, Math.PI / 6)
+  spotlight2.position.set(10, 15, 10)
+  spotlight2.target.position.set(0, 7, 0)
+  spotlight2.castShadow = true
+  scene.add(spotlight2)
+  scene.add(spotlight2.target)
+
+  // Add a glowing aura around the statue
+  const auraGeometry = new THREE.SphereGeometry(statueScale * 1.2, 32, 32)
+  const auraMaterial = new THREE.MeshBasicMaterial({
+    color: 0x00ffff,
+    transparent: true,
+    opacity: 0.2,
+    side: THREE.BackSide
+  })
+  const aura = new THREE.Mesh(auraGeometry, auraMaterial)
+  aura.position.y = 2 + statueScale
+  statueGroup.add(aura)
+
+  // Animate the aura (pulsing effect)
+  const animateAura = () => {
+    const scale = 1 + Math.sin(Date.now() * 0.002) * 0.1
+    aura.scale.set(scale, scale, scale)
+    aura.rotation.y += 0.01
+  }
+
+  // Store animation function
+  statueGroup.userData.animate = animateAura
+
+  scene.add(statueGroup)
+
+  // Store reference for animation
+  scene.userData.statue = statueGroup
 }
 
 const createTungTungNPC = () => {
@@ -533,6 +647,11 @@ const animate = () => {
   if (tungTungNPC) {
     tungTungNPC.rotation.y += 0.01
     tungTungNPC.position.y = 1 + Math.sin(Date.now() * 0.001) * 0.3
+  }
+
+  // Animate statue
+  if (scene.userData.statue) {
+    scene.userData.statue.userData.animate()
   }
 
   // Render scene
