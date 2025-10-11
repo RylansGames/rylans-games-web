@@ -3,554 +3,485 @@
     <Settings />
     <CoinDisplay />
     <button class="back-button" @click="goBack">← Back to Portal</button>
-    <div ref="gameContainer" id="phaser-game"></div>
+    <div ref="gameContainer" class="game-container">
+      <div class="hud">
+        <div class="hud-title">🧠 BRAINROT EVOLUTION 3D 🧠</div>
+        <div class="hud-info">{{ infoText }}</div>
+        <div class="hud-coins">Coins Collected: {{ coinsCollected }}</div>
+      </div>
+      <div class="controls-hint">
+        WASD: Move | Mouse: Look Around | SPACE: Jump | E: Interact
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import Phaser from 'phaser'
+import * as THREE from 'three'
 import { gameState } from '../../components/shared/GameState'
 import CoinDisplay from '../../components/shared/CoinDisplay.vue'
 import Settings from '../../components/Settings.vue'
 
 const gameContainer = ref<HTMLDivElement>()
 const router = useRouter()
-let game: Phaser.Game | null = null
+const infoText = ref('Welcome to the 3D Brainrot World! Explore and find tung tung tung tung sahur!')
+const coinsCollected = ref(0)
+
+let scene: THREE.Scene
+let camera: THREE.PerspectiveCamera
+let renderer: THREE.WebGLRenderer
+let player: THREE.Mesh
+let tungTungNPC: THREE.Group
+let coins: THREE.Mesh[] = []
+let animationId: number
+
+// Player movement
+const moveSpeed = 0.15
+const jumpPower = 0.3
+const gravity = 0.015
+let velocityY = 0
+let isJumping = false
+const playerHeight = 1.6
+
+// Controls
+const keys: Record<string, boolean> = {}
+let mouseX = 0
+let mouseY = 0
+let yaw = 0
+let pitch = 0
+
+// Game data
+interface GameData {
+  playerX: number
+  playerZ: number
+  coinsCollectedCount: number
+  hasMetTungTung: boolean
+}
+
+const gameData = ref<GameData>({
+  playerX: 0,
+  playerZ: 0,
+  coinsCollectedCount: 0,
+  hasMetTungTung: false
+})
 
 const goBack = () => {
   router.push('/')
 }
 
-// Game State Management
-interface GameData {
-  playerX: number
-  playerY: number
-  coinsCollected: number
-  evolutionsFound: number
-  hasMetTungTung: boolean
+const loadGameData = () => {
+  const saved = localStorage.getItem('brainrotEvolution3D')
+  if (saved) {
+    gameData.value = JSON.parse(saved)
+    coinsCollected.value = gameData.value.coinsCollectedCount
+  }
 }
 
-const defaultGameData: GameData = {
-  playerX: 400,
-  playerY: 300,
-  coinsCollected: 0,
-  evolutionsFound: 0,
-  hasMetTungTung: false
+const saveGameData = () => {
+  localStorage.setItem('brainrotEvolution3D', JSON.stringify(gameData.value))
 }
 
-class MainScene extends Phaser.Scene {
-  private gameData!: GameData
-  private player!: Phaser.Physics.Arcade.Sprite
-  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
-  private wasd!: any
-  private ground!: Phaser.Physics.Arcade.StaticGroup
-  private platforms!: Phaser.Physics.Arcade.StaticGroup
-  private tungTungNPC!: Phaser.GameObjects.Container
-  private collectibles!: Phaser.Physics.Arcade.Group
-  private infoText!: Phaser.GameObjects.Text
-  private titleText!: Phaser.GameObjects.Text
-  private worldWidth = 3000
-  private worldHeight = 600
-  private spaceKey!: Phaser.Input.Keyboard.Key
+const init3DScene = () => {
+  // Create scene
+  scene = new THREE.Scene()
+  scene.background = new THREE.Color(0x1a0033)
+  scene.fog = new THREE.Fog(0x330066, 10, 100)
 
-  constructor() {
-    super({ key: 'MainScene' })
+  // Create camera (first person view)
+  camera = new THREE.PerspectiveCamera(
+    75,
+    800 / 600,
+    0.1,
+    1000
+  )
+  camera.position.set(gameData.value.playerX, playerHeight, gameData.value.playerZ)
+
+  // Create renderer
+  renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer.setSize(800, 600)
+  renderer.shadowMap.enabled = true
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap
+
+  if (gameContainer.value) {
+    gameContainer.value.appendChild(renderer.domElement)
   }
 
-  init() {
-    // Load game data
-    const savedData = localStorage.getItem('brainrotEvolution')
-    if (savedData) {
-      this.gameData = JSON.parse(savedData)
-    } else {
-      this.gameData = { ...defaultGameData }
+  // Lighting
+  const ambientLight = new THREE.AmbientLight(0x6633ff, 0.5)
+  scene.add(ambientLight)
+
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
+  directionalLight.position.set(50, 100, 50)
+  directionalLight.castShadow = true
+  directionalLight.shadow.camera.left = -50
+  directionalLight.shadow.camera.right = 50
+  directionalLight.shadow.camera.top = 50
+  directionalLight.shadow.camera.bottom = -50
+  scene.add(directionalLight)
+
+  // Create ground
+  const groundGeometry = new THREE.PlaneGeometry(200, 200)
+  const groundMaterial = new THREE.MeshStandardMaterial({
+    color: 0x00ff00,
+    roughness: 0.8
+  })
+  const ground = new THREE.Mesh(groundGeometry, groundMaterial)
+  ground.rotation.x = -Math.PI / 2
+  ground.receiveShadow = true
+  scene.add(ground)
+
+  // Add grid helper
+  const gridHelper = new THREE.GridHelper(200, 40, 0x00cc00, 0x008800)
+  scene.add(gridHelper)
+
+  // Create player collision box (invisible)
+  const playerGeometry = new THREE.BoxGeometry(0.6, playerHeight * 2, 0.6)
+  const playerMaterial = new THREE.MeshBasicMaterial({
+    color: 0xff00ff,
+    transparent: true,
+    opacity: 0
+  })
+  player = new THREE.Mesh(playerGeometry, playerMaterial)
+  player.position.set(gameData.value.playerX, playerHeight, gameData.value.playerZ)
+  scene.add(player)
+
+  // Create platforms
+  createPlatforms()
+
+  // Create tung tung tung tung sahur NPC
+  createTungTungNPC()
+
+  // Create collectible coins
+  createCoins()
+
+  // Create skybox with stars
+  createStars()
+
+  // Setup controls
+  setupControls()
+
+  // Start animation loop
+  animate()
+
+  // Auto-save every 5 seconds
+  setInterval(saveGameData, 5000)
+}
+
+const createPlatforms = () => {
+  const platformData = [
+    { x: 10, y: 2, z: 0, width: 8, depth: 8 },
+    { x: 20, y: 4, z: 5, width: 6, depth: 6 },
+    { x: -15, y: 3, z: -10, width: 10, depth: 10 },
+    { x: 30, y: 5, z: -5, width: 8, depth: 8 },
+    { x: -25, y: 6, z: 15, width: 7, depth: 7 },
+    { x: 40, y: 3, z: 10, width: 12, depth: 12 },
+    { x: -35, y: 4, z: -20, width: 9, depth: 9 },
+    { x: 15, y: 7, z: 25, width: 6, depth: 6 }
+  ]
+
+  platformData.forEach(p => {
+    const geometry = new THREE.BoxGeometry(p.width, 1, p.depth)
+    const material = new THREE.MeshStandardMaterial({
+      color: 0x9f7aea,
+      roughness: 0.5
+    })
+    const platform = new THREE.Mesh(geometry, material)
+    platform.position.set(p.x, p.y, p.z)
+    platform.castShadow = true
+    platform.receiveShadow = true
+    scene.add(platform)
+  })
+}
+
+const createTungTungNPC = () => {
+  tungTungNPC = new THREE.Group()
+  tungTungNPC.position.set(30, 1, 0)
+
+  // Body (sphere)
+  const bodyGeometry = new THREE.SphereGeometry(1, 32, 32)
+  const bodyMaterial = new THREE.MeshStandardMaterial({
+    color: 0x00ffff,
+    roughness: 0.5,
+    metalness: 0.3
+  })
+  const body = new THREE.Mesh(bodyGeometry, bodyMaterial)
+  body.castShadow = true
+  tungTungNPC.add(body)
+
+  // Eyes
+  const eyeGeometry = new THREE.SphereGeometry(0.15, 16, 16)
+  const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff })
+
+  const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial)
+  leftEye.position.set(-0.3, 0.3, 0.8)
+  tungTungNPC.add(leftEye)
+
+  const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial)
+  rightEye.position.set(0.3, 0.3, 0.8)
+  tungTungNPC.add(rightEye)
+
+  // Pupils
+  const pupilGeometry = new THREE.SphereGeometry(0.08, 16, 16)
+  const pupilMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 })
+
+  const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial)
+  leftPupil.position.set(-0.3, 0.3, 0.9)
+  tungTungNPC.add(leftPupil)
+
+  const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial)
+  rightPupil.position.set(0.3, 0.3, 0.9)
+  tungTungNPC.add(rightPupil)
+
+  // Exclamation mark above head
+  const exclamationGeometry = new THREE.ConeGeometry(0.1, 0.5, 8)
+  const exclamationMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 })
+  const exclamation = new THREE.Mesh(exclamationGeometry, exclamationMaterial)
+  exclamation.position.set(0, 2, 0)
+  exclamation.visible = false
+  tungTungNPC.add(exclamation)
+  tungTungNPC.userData.exclamation = exclamation
+
+  scene.add(tungTungNPC)
+}
+
+const createCoins = () => {
+  const coinPositions = [
+    { x: 5, y: 1.5, z: 5 },
+    { x: -10, y: 1.5, z: 10 },
+    { x: 15, y: 5, z: -5 },
+    { x: -20, y: 4, z: -15 },
+    { x: 25, y: 6, z: 8 },
+    { x: 35, y: 4, z: 15 },
+    { x: -30, y: 5, z: 20 },
+    { x: 12, y: 3, z: 20 },
+    { x: 10, y: 3, z: -15 },
+    { x: -5, y: 1.5, z: -5 }
+  ]
+
+  coinPositions.forEach(pos => {
+    const geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32)
+    const material = new THREE.MeshStandardMaterial({
+      color: 0xffd700,
+      metalness: 0.8,
+      roughness: 0.2,
+      emissive: 0xffaa00,
+      emissiveIntensity: 0.3
+    })
+    const coin = new THREE.Mesh(geometry, material)
+    coin.position.set(pos.x, pos.y, pos.z)
+    coin.rotation.x = Math.PI / 2
+    coin.castShadow = true
+    coin.userData.isCollectible = true
+    coins.push(coin)
+    scene.add(coin)
+  })
+}
+
+const createStars = () => {
+  const starGeometry = new THREE.BufferGeometry()
+  const starPositions = []
+
+  for (let i = 0; i < 500; i++) {
+    const x = (Math.random() - 0.5) * 400
+    const y = Math.random() * 100 + 20
+    const z = (Math.random() - 0.5) * 400
+    starPositions.push(x, y, z)
+  }
+
+  starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3))
+
+  const starMaterial = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: 0.5,
+    transparent: true
+  })
+
+  const stars = new THREE.Points(starGeometry, starMaterial)
+  scene.add(stars)
+}
+
+const setupControls = () => {
+  // Keyboard controls
+  window.addEventListener('keydown', (e) => {
+    keys[e.key.toLowerCase()] = true
+  })
+
+  window.addEventListener('keyup', (e) => {
+    keys[e.key.toLowerCase()] = false
+  })
+
+  // Mouse controls
+  renderer.domElement.addEventListener('click', () => {
+    renderer.domElement.requestPointerLock()
+  })
+
+  document.addEventListener('mousemove', (e) => {
+    if (document.pointerLockElement === renderer.domElement) {
+      mouseX = e.movementX
+      mouseY = e.movementY
     }
+  })
+}
+
+const updatePlayer = () => {
+  // Mouse look
+  const sensitivity = 0.002
+  yaw -= mouseX * sensitivity
+  pitch -= mouseY * sensitivity
+  pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch))
+  mouseX = 0
+  mouseY = 0
+
+  // Update camera rotation
+  camera.rotation.order = 'YXZ'
+  camera.rotation.y = yaw
+  camera.rotation.x = pitch
+
+  // Movement
+  const direction = new THREE.Vector3()
+  const right = new THREE.Vector3()
+
+  camera.getWorldDirection(direction)
+  direction.y = 0
+  direction.normalize()
+
+  right.crossVectors(camera.up, direction).normalize()
+
+  if (keys['w']) {
+    player.position.add(direction.clone().multiplyScalar(moveSpeed))
+  }
+  if (keys['s']) {
+    player.position.add(direction.clone().multiplyScalar(-moveSpeed))
+  }
+  if (keys['a']) {
+    player.position.add(right.clone().multiplyScalar(moveSpeed))
+  }
+  if (keys['d']) {
+    player.position.add(right.clone().multiplyScalar(-moveSpeed))
   }
 
-  create() {
-    // Set world bounds
-    this.physics.world.setBounds(0, 0, this.worldWidth, this.worldHeight)
+  // Jumping
+  if (keys[' '] && !isJumping && player.position.y <= playerHeight + 0.1) {
+    velocityY = jumpPower
+    isJumping = true
+  }
 
-    // Background gradient
-    const bg = this.add.graphics()
-    bg.fillGradientStyle(0x1a0033, 0x1a0033, 0x330066, 0x4400ff, 1)
-    bg.fillRect(0, 0, this.worldWidth, this.worldHeight)
-    bg.setScrollFactor(0.5) // Parallax effect
+  // Apply gravity
+  velocityY -= gravity
+  player.position.y += velocityY
 
-    // Add stars/particles in background
-    this.createStarfield()
+  // Ground collision
+  if (player.position.y <= playerHeight) {
+    player.position.y = playerHeight
+    velocityY = 0
+    isJumping = false
+  }
 
-    // Title (fixed to camera)
-    this.titleText = this.add.text(400, 30, '🧠 BRAINROT EVOLUTION WORLD 🧠', {
-      fontSize: '32px',
-      color: '#ff00ff',
-      fontStyle: 'bold'
-    })
-    this.titleText.setOrigin(0.5)
-    this.titleText.setScrollFactor(0)
-    this.titleText.setStroke('#000000', 4)
-    this.titleText.setDepth(1000)
+  // Update camera position to follow player
+  camera.position.copy(player.position)
 
-    // Info text (fixed to camera)
-    this.infoText = this.add.text(400, 70, 'Use WASD or Arrow Keys to move! Explore the world!', {
-      fontSize: '16px',
-      color: '#ffffff'
-    })
-    this.infoText.setOrigin(0.5)
-    this.infoText.setScrollFactor(0)
-    this.infoText.setDepth(1000)
+  // Keep player within bounds
+  const bound = 95
+  player.position.x = Math.max(-bound, Math.min(bound, player.position.x))
+  player.position.z = Math.max(-bound, Math.min(bound, player.position.z))
 
-    // Create ground
-    this.ground = this.physics.add.staticGroup()
-    for (let x = 0; x < this.worldWidth; x += 100) {
-      const groundPiece = this.add.rectangle(x + 50, 570, 100, 60, 0x00ff00)
-      groundPiece.setStrokeStyle(3, 0x00cc00)
-      this.ground.add(groundPiece)
+  // Update game data
+  gameData.value.playerX = player.position.x
+  gameData.value.playerZ = player.position.z
+}
+
+const checkCollisions = () => {
+  // Check coin collection
+  coins.forEach((coin, index) => {
+    if (!coin.parent) return // Already collected
+
+    const distance = player.position.distanceTo(coin.position)
+    if (distance < 1.5) {
+      scene.remove(coin)
+      coins.splice(index, 1)
+      gameData.value.coinsCollectedCount++
+      coinsCollected.value++
+      gameState.addCoins(10)
+      infoText.value = '+10 coins collected! Keep exploring!'
+      setTimeout(() => {
+        infoText.value = 'Explore the 3D brainrot world!'
+      }, 2000)
     }
+  })
 
-    // Create floating platforms
-    this.platforms = this.physics.add.staticGroup()
-    this.createPlatforms()
+  // Check NPC proximity
+  if (tungTungNPC) {
+    const distance = player.position.distanceTo(tungTungNPC.position)
+    const exclamation = tungTungNPC.userData.exclamation
 
-    // Create player
-    this.createPlayer()
+    if (distance < 5) {
+      exclamation.visible = true
+      infoText.value = 'Press E to talk to tung tung tung tung sahur!'
 
-    // Create tung tung tung tung sahur NPC
-    this.createTungTungNPC()
-
-    // Create collectibles (brainrot coins)
-    this.createCollectibles()
-
-    // Camera follow player
-    this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight)
-    this.cameras.main.startFollow(this.player, true, 0.1, 0.1)
-
-    // Input controls
-    this.cursors = this.input.keyboard!.createCursorKeys()
-    this.wasd = {
-      up: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-      down: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-      left: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-      right: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D)
-    }
-
-    this.spaceKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
-
-    // Collisions
-    this.physics.add.collider(this.player, this.ground)
-    this.physics.add.collider(this.player, this.platforms)
-
-    // Collectible overlaps
-    this.physics.add.overlap(this.player, this.collectibles, this.collectItem, undefined, this)
-
-    // Save progress every 5 seconds
-    this.time.addEvent({
-      delay: 5000,
-      callback: this.saveProgress,
-      callbackScope: this,
-      loop: true
-    })
-  }
-
-  private createStarfield() {
-    // Create random stars in the background
-    for (let i = 0; i < 100; i++) {
-      const x = Math.random() * this.worldWidth
-      const y = Math.random() * 400
-      const size = Math.random() * 3 + 1
-      const star = this.add.circle(x, y, size, 0xffffff, 0.8)
-      star.setScrollFactor(0.3)
-
-      // Twinkling animation
-      this.tweens.add({
-        targets: star,
-        alpha: { from: 0.3, to: 1 },
-        duration: Math.random() * 2000 + 1000,
-        yoyo: true,
-        repeat: -1
-      })
-    }
-  }
-
-  private createPlayer() {
-    // Create player sprite
-    this.player = this.physics.add.sprite(this.gameData.playerX, this.gameData.playerY, 'player')
-
-    // Draw player (since we don't have sprites loaded)
-    const graphics = this.add.graphics()
-
-    // Player body (square with face)
-    graphics.fillStyle(0xff00ff, 1)
-    graphics.fillRect(-20, -20, 40, 40)
-    graphics.lineStyle(3, 0x000000)
-    graphics.strokeRect(-20, -20, 40, 40)
-
-    // Eyes
-    graphics.fillStyle(0xffffff, 1)
-    graphics.fillCircle(-10, -8, 5)
-    graphics.fillCircle(10, -8, 5)
-    graphics.fillStyle(0x000000, 1)
-    graphics.fillCircle(-10, -8, 3)
-    graphics.fillCircle(10, -8, 3)
-
-    // Smile
-    graphics.lineStyle(2, 0x000000)
-    graphics.beginPath()
-    graphics.arc(0, 5, 10, 0, Math.PI, false)
-    graphics.strokePath()
-
-    graphics.generateTexture('player', 40, 40)
-    graphics.destroy()
-
-    // Reset player sprite with new texture
-    this.player.setTexture('player')
-    this.player.setCollideWorldBounds(true)
-    this.player.setBounce(0.2)
-    this.player.setGravityY(500)
-    this.player.setDepth(100)
-  }
-
-  private createPlatforms() {
-    // Create various platforms throughout the world
-    const platformData = [
-      { x: 300, y: 450, width: 150, height: 20 },
-      { x: 600, y: 400, width: 200, height: 20 },
-      { x: 900, y: 350, width: 150, height: 20 },
-      { x: 1200, y: 300, width: 180, height: 20 },
-      { x: 1500, y: 400, width: 200, height: 20 },
-      { x: 1800, y: 350, width: 150, height: 20 },
-      { x: 2100, y: 300, width: 200, height: 20 },
-      { x: 2400, y: 400, width: 180, height: 20 },
-      { x: 2700, y: 350, width: 150, height: 20 }
-    ]
-
-    platformData.forEach(p => {
-      const platform = this.add.rectangle(p.x, p.y, p.width, p.height, 0x9f7aea)
-      platform.setStrokeStyle(3, 0x7c3aed)
-      this.platforms.add(platform)
-    })
-  }
-
-  private createTungTungNPC() {
-    // Create the tung tung tung tung sahur NPC at a specific location
-    const npcX = 1500
-    const npcY = 300
-
-    this.tungTungNPC = this.add.container(npcX, npcY)
-    this.tungTungNPC.setData('canInteract', false)
-
-    // NPC body
-    const body = this.add.circle(0, 0, 40, 0x00ffff)
-    body.setStrokeStyle(4, 0x000000)
-
-    // Eyes
-    const leftEye = this.add.circle(-15, -10, 6, 0xffffff)
-    leftEye.setStrokeStyle(2, 0x000000)
-    const leftPupil = this.add.circle(-15, -10, 3, 0x000000)
-
-    const rightEye = this.add.circle(15, -10, 6, 0xffffff)
-    rightEye.setStrokeStyle(2, 0x000000)
-    const rightPupil = this.add.circle(15, -10, 3, 0x000000)
-
-    // Mouth
-    const mouth = this.add.graphics()
-    mouth.lineStyle(3, 0x000000)
-    mouth.beginPath()
-    mouth.arc(0, 10, 15, 0, Math.PI, false)
-    mouth.strokePath()
-
-    // Name label
-    const nameLabel = this.add.text(0, 60, 'tung tung tung\ntung sahur', {
-      fontSize: '14px',
-      color: '#ffff00',
-      fontStyle: 'bold',
-      align: 'center',
-      backgroundColor: '#000000',
-      padding: { x: 5, y: 3 }
-    })
-    nameLabel.setOrigin(0.5)
-
-    // Exclamation mark (appears when player is near)
-    const exclamation = this.add.text(0, -60, '!', {
-      fontSize: '32px',
-      color: '#ffff00',
-      fontStyle: 'bold'
-    })
-    exclamation.setOrigin(0.5)
-    exclamation.setVisible(false)
-
-    this.tungTungNPC.add([body, leftEye, leftPupil, rightEye, rightPupil, mouth, nameLabel, exclamation])
-    this.tungTungNPC.setData('exclamation', exclamation)
-
-    // Bouncing animation
-    this.tweens.add({
-      targets: this.tungTungNPC,
-      y: npcY - 20,
-      duration: 800,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    })
-
-    // Slight rotation
-    this.tweens.add({
-      targets: this.tungTungNPC,
-      angle: { from: -5, to: 5 },
-      duration: 600,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    })
-  }
-
-  private createCollectibles() {
-    this.collectibles = this.physics.add.group()
-
-    // Place collectible brainrot coins around the world
-    const coinPositions = [
-      { x: 300, y: 400 },
-      { x: 600, y: 350 },
-      { x: 900, y: 300 },
-      { x: 1200, y: 250 },
-      { x: 1800, y: 300 },
-      { x: 2100, y: 250 },
-      { x: 2400, y: 350 },
-      { x: 2700, y: 300 },
-      { x: 500, y: 500 },
-      { x: 1000, y: 500 },
-      { x: 1500, y: 500 },
-      { x: 2000, y: 500 },
-      { x: 2500, y: 500 }
-    ]
-
-    coinPositions.forEach(pos => {
-      // Create brainrot coin (brain emoji style)
-      const coin = this.add.circle(pos.x, pos.y, 15, 0xffd700)
-      coin.setStrokeStyle(3, 0xff00ff)
-      this.collectibles.add(coin)
-
-      // Make it physics-enabled but not affected by gravity
-      const coinBody = coin.body as Phaser.Physics.Arcade.Body
-      coinBody.setAllowGravity(false)
-
-      // Floating animation
-      this.tweens.add({
-        targets: coin,
-        y: pos.y - 10,
-        duration: 1000,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut'
-      })
-
-      // Rotation
-      this.tweens.add({
-        targets: coin,
-        angle: 360,
-        duration: 2000,
-        repeat: -1
-      })
-    })
-  }
-
-  private collectItem(player: any, item: any) {
-    // Collect the brainrot coin
-    item.destroy()
-    this.gameData.coinsCollected++
-    gameState.addCoins(10)
-
-    // Show floating text
-    const floatingText = this.add.text(item.x, item.y, '+10 coins!', {
-      fontSize: '20px',
-      color: '#ffd700',
-      fontStyle: 'bold'
-    })
-    floatingText.setOrigin(0.5)
-    floatingText.setStroke('#000000', 3)
-
-    this.tweens.add({
-      targets: floatingText,
-      y: item.y - 50,
-      alpha: 0,
-      duration: 1000,
-      onComplete: () => floatingText.destroy()
-    })
-
-    // Play collection sound effect (visual feedback)
-    this.cameras.main.shake(100, 0.002)
-  }
-
-  private saveProgress() {
-    this.gameData.playerX = this.player.x
-    this.gameData.playerY = this.player.y
-    localStorage.setItem('brainrotEvolution', JSON.stringify(this.gameData))
-  }
-
-  update() {
-    if (!this.player) return
-
-    // Movement controls
-    const speed = 200
-    const jumpPower = -400
-
-    // Horizontal movement
-    if (this.cursors.left.isDown || this.wasd.left.isDown) {
-      this.player.setVelocityX(-speed)
-      this.player.setFlipX(true)
-    } else if (this.cursors.right.isDown || this.wasd.right.isDown) {
-      this.player.setVelocityX(speed)
-      this.player.setFlipX(false)
-    } else {
-      this.player.setVelocityX(0)
-    }
-
-    // Jump
-    const playerBody = this.player.body as Phaser.Physics.Arcade.Body
-    if ((this.cursors.up.isDown || this.wasd.up.isDown) && playerBody.touching.down) {
-      this.player.setVelocityY(jumpPower)
-    }
-
-    // Update title with coins collected
-    this.titleText.setText(`🧠 BRAINROT WORLD 🧠 | Coins: ${this.gameData.coinsCollected}`)
-
-    // Check NPC proximity
-    this.checkNPCProximity()
-  }
-
-  private checkNPCProximity() {
-    if (!this.player || !this.tungTungNPC) return
-
-    const distance = Phaser.Math.Distance.Between(
-      this.player.x,
-      this.player.y,
-      this.tungTungNPC.x,
-      this.tungTungNPC.y
-    )
-
-    const exclamation = this.tungTungNPC.getData('exclamation')
-
-    if (distance < 150) {
-      // Player is near - show exclamation
-      exclamation.setVisible(true)
-      this.tungTungNPC.setData('canInteract', true)
-
-      // Show interaction prompt
-      this.infoText.setText('Press SPACE to talk to tung tung tung tung sahur!')
-
-      // Check for space bar press
-      if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
-        this.interactWithTungTung()
+      if (keys['e'] && !gameData.value.hasMetTungTung) {
+        gameData.value.hasMetTungTung = true
+        gameState.addCoins(100)
+        infoText.value = 'tung tung tung tung sahur: "Welcome to 3D Brainrot World! +100 coins!"'
+        setTimeout(() => {
+          infoText.value = 'Keep exploring the world!'
+        }, 4000)
+        keys['e'] = false // Prevent spam
+      } else if (keys['e'] && gameData.value.hasMetTungTung) {
+        infoText.value = 'tung tung tung tung sahur: "Hello again friend!"'
+        setTimeout(() => {
+          infoText.value = 'Explore the 3D brainrot world!'
+        }, 2000)
+        keys['e'] = false
       }
     } else {
-      // Too far away
-      exclamation.setVisible(false)
-      this.tungTungNPC.setData('canInteract', false)
-      if (!this.gameData.hasMetTungTung) {
-        this.infoText.setText('Use WASD or Arrow Keys to move! Explore the world!')
+      exclamation.visible = false
+      if (distance > 10 && infoText.value.includes('tung tung')) {
+        infoText.value = 'Explore the 3D brainrot world!'
       }
     }
   }
+}
 
-  private interactWithTungTung() {
-    if (this.gameData.hasMetTungTung) {
-      // Already talked, show different message
-      this.showDialogue('tung tung tung tung sahur:', '"Hello again friend!\nKeep exploring the brainrot world!"', false)
-      return
-    }
+const animate = () => {
+  animationId = requestAnimationFrame(animate)
 
-    this.gameData.hasMetTungTung = true
-    this.gameData.evolutionsFound++
+  // Update player
+  updatePlayer()
 
-    // Give coins
-    gameState.addCoins(100)
+  // Check collisions
+  checkCollisions()
 
-    // Show dialogue
-    this.showDialogue('tung tung tung tung sahur:', '"Welcome to the Brainrot World!\nYou found me! Here, take 100 coins!"', true)
+  // Animate coins
+  coins.forEach(coin => {
+    coin.rotation.z += 0.02
+    coin.position.y += Math.sin(Date.now() * 0.001 + coin.position.x) * 0.005
+  })
+
+  // Animate NPC
+  if (tungTungNPC) {
+    tungTungNPC.rotation.y += 0.01
+    tungTungNPC.position.y = 1 + Math.sin(Date.now() * 0.001) * 0.3
   }
 
-  private showDialogue(speaker: string, message: string, firstTime: boolean) {
-    // Create dialogue box
-    const dialogue = this.add.container(400, 300)
-    dialogue.setScrollFactor(0)
-    dialogue.setDepth(2000)
-
-    const dialogueBg = this.add.rectangle(0, 0, 600, 200, 0x000000, 0.9)
-    dialogueBg.setStrokeStyle(4, 0x00ffff)
-
-    const dialogueText = this.add.text(0, -40, speaker, {
-      fontSize: '20px',
-      color: '#00ffff',
-      fontStyle: 'bold'
-    })
-    dialogueText.setOrigin(0.5)
-
-    const messageText = this.add.text(0, 20, message, {
-      fontSize: '18px',
-      color: '#ffffff',
-      align: 'center'
-    })
-    messageText.setOrigin(0.5)
-
-    const continueText = this.add.text(0, 70, 'Press SPACE to continue', {
-      fontSize: '14px',
-      color: '#ffff00'
-    })
-    continueText.setOrigin(0.5)
-
-    dialogue.add([dialogueBg, dialogueText, messageText, continueText])
-
-    // Blinking continue text
-    this.tweens.add({
-      targets: continueText,
-      alpha: { from: 0.3, to: 1 },
-      duration: 500,
-      yoyo: true,
-      repeat: -1
-    })
-
-    // Wait for space to close
-    const closeDialogue = () => {
-      if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
-        dialogue.destroy()
-        this.input.keyboard!.off('keydown-SPACE', closeDialogue)
-        if (firstTime) {
-          this.infoText.setText('Great job! Keep collecting coins!')
-        }
-      }
-    }
-
-    this.input.keyboard!.on('keydown-SPACE', closeDialogue)
-  }
+  // Render scene
+  renderer.render(scene, camera)
 }
 
 onMounted(() => {
-  if (gameContainer.value) {
-    const config: Phaser.Types.Core.GameConfig = {
-      type: Phaser.AUTO,
-      width: 800,
-      height: 600,
-      parent: gameContainer.value,
-      backgroundColor: '#1a0033',
-      scene: [MainScene],
-      physics: {
-        default: 'arcade',
-        arcade: {
-          gravity: { y: 800 },
-          debug: false
-        }
-      }
-    }
-
-    game = new Phaser.Game(config)
-  }
+  loadGameData()
+  init3DScene()
 })
 
 onUnmounted(() => {
-  if (game) {
-    game.destroy(true)
+  if (animationId) {
+    cancelAnimationFrame(animationId)
   }
+  if (renderer) {
+    renderer.dispose()
+  }
+  saveGameData()
 })
 </script>
 
@@ -563,6 +494,14 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.game-container {
+  position: relative;
+  width: 800px;
+  height: 600px;
+  border: 3px solid #ff00ff;
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
 }
 
 .back-button {
@@ -585,8 +524,56 @@ onUnmounted(() => {
   background: #cc0000;
 }
 
-#phaser-game {
-  border: 3px solid #ff00ff;
-  box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+.hud {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.hud-title {
+  font-size: 24px;
+  color: #ff00ff;
+  font-weight: bold;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.hud-info {
+  font-size: 16px;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 8px 12px;
+  border-radius: 5px;
+  text-align: center;
+  margin-bottom: 5px;
+}
+
+.hud-coins {
+  font-size: 18px;
+  color: #ffd700;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 8px 12px;
+  border-radius: 5px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.controls-hint {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  font-size: 14px;
+  color: #00ffff;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 8px 12px;
+  border-radius: 5px;
+  text-align: center;
+  z-index: 100;
+  pointer-events: none;
 }
 </style>
