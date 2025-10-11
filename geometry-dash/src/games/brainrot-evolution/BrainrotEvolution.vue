@@ -845,10 +845,7 @@ const hitApple = () => {
   } else {
     // Clicked but not looking at an apple
     lastAppleAttack = currentTime // Still trigger cooldown to prevent spam clicking
-    infoText.value = 'No apple in sight! 👀'
-    setTimeout(() => {
-      infoText.value = 'Explore the brainrot world! 🧠'
-    }, 1000)
+    // Don't show any message when missing
   }
 }
 
