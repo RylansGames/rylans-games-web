@@ -147,9 +147,6 @@ const init3DScene = () => {
   player.position.set(gameData.value.playerX, playerHeight, gameData.value.playerZ)
   scene.add(player)
 
-  // Create platforms
-  createPlatforms()
-
   // Create tung tung tung tung sahur NPC
   createTungTungNPC()
 
@@ -169,31 +166,6 @@ const init3DScene = () => {
   setInterval(saveGameData, 5000)
 }
 
-const createPlatforms = () => {
-  const platformData = [
-    { x: 10, y: 2, z: 0, width: 8, depth: 8 },
-    { x: 20, y: 4, z: 5, width: 6, depth: 6 },
-    { x: -15, y: 3, z: -10, width: 10, depth: 10 },
-    { x: 30, y: 5, z: -5, width: 8, depth: 8 },
-    { x: -25, y: 6, z: 15, width: 7, depth: 7 },
-    { x: 40, y: 3, z: 10, width: 12, depth: 12 },
-    { x: -35, y: 4, z: -20, width: 9, depth: 9 },
-    { x: 15, y: 7, z: 25, width: 6, depth: 6 }
-  ]
-
-  platformData.forEach(p => {
-    const geometry = new THREE.BoxGeometry(p.width, 1, p.depth)
-    const material = new THREE.MeshStandardMaterial({
-      color: 0x9f7aea,
-      roughness: 0.5
-    })
-    const platform = new THREE.Mesh(geometry, material)
-    platform.position.set(p.x, p.y, p.z)
-    platform.castShadow = true
-    platform.receiveShadow = true
-    scene.add(platform)
-  })
-}
 
 const createTungTungNPC = () => {
   tungTungNPC = new THREE.Group()
@@ -250,14 +222,19 @@ const createCoins = () => {
   const coinPositions = [
     { x: 5, y: 1.5, z: 5 },
     { x: -10, y: 1.5, z: 10 },
-    { x: 15, y: 5, z: -5 },
-    { x: -20, y: 4, z: -15 },
-    { x: 25, y: 6, z: 8 },
-    { x: 35, y: 4, z: 15 },
-    { x: -30, y: 5, z: 20 },
-    { x: 12, y: 3, z: 20 },
-    { x: 10, y: 3, z: -15 },
-    { x: -5, y: 1.5, z: -5 }
+    { x: 15, y: 1.5, z: -5 },
+    { x: -20, y: 1.5, z: -15 },
+    { x: 25, y: 1.5, z: 8 },
+    { x: 35, y: 1.5, z: 15 },
+    { x: -30, y: 1.5, z: 20 },
+    { x: 12, y: 1.5, z: 20 },
+    { x: 10, y: 1.5, z: -15 },
+    { x: -5, y: 1.5, z: -5 },
+    { x: 20, y: 1.5, z: 20 },
+    { x: -25, y: 1.5, z: -25 },
+    { x: 40, y: 1.5, z: -10 },
+    { x: -40, y: 1.5, z: 10 },
+    { x: 0, y: 1.5, z: 30 }
   ]
 
   coinPositions.forEach(pos => {
