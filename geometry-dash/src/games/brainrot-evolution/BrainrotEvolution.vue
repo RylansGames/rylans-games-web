@@ -26,7 +26,7 @@ import Settings from '../../components/Settings.vue'
 
 const gameContainer = ref<HTMLDivElement>()
 const router = useRouter()
-const infoText = ref('Welcome to the 3D Brainrot World! Explore and find tung tung tung tung sahur!')
+const infoText = ref('Benvenuto! Welcome to the Italian Brainrot World! Find tung tung tung tung sahur! 🇮🇹🤌')
 const coinsCollected = ref(0)
 
 let scene: THREE.Scene
@@ -292,10 +292,26 @@ const createStatue = () => {
   plaque.position.set(0, 1, 4.1)
   statueGroup.add(plaque)
 
-  // Giant statue body (cyan sphere)
+  // Giant statue body - ITALIAN FLAG PATTERN!
   const bodyGeometry = new THREE.SphereGeometry(statueScale, 32, 32)
+
+  // Create Italian flag texture for statue
+  const statueCanvas = document.createElement('canvas')
+  statueCanvas.width = 512
+  statueCanvas.height = 512
+  const statueCtx = statueCanvas.getContext('2d')!
+
+  // Italian flag stripes
+  statueCtx.fillStyle = '#009246' // Green
+  statueCtx.fillRect(0, 0, 170, 512)
+  statueCtx.fillStyle = '#FFFFFF' // White
+  statueCtx.fillRect(170, 0, 170, 512)
+  statueCtx.fillStyle = '#CE2B37' // Red
+  statueCtx.fillRect(340, 0, 172, 512)
+
+  const statueTexture = new THREE.CanvasTexture(statueCanvas)
   const bodyMaterial = new THREE.MeshStandardMaterial({
-    color: 0x00ffff,
+    map: statueTexture,
     roughness: 0.3,
     metalness: 0.5
   })
@@ -303,6 +319,34 @@ const createStatue = () => {
   body.position.y = 2 + statueScale
   body.castShadow = true
   statueGroup.add(body)
+
+  // Giant Chef's Hat on statue!
+  const statueHatBaseGeometry = new THREE.CylinderGeometry(statueScale * 0.6, statueScale * 0.7, statueScale * 0.3, 32)
+  const statueHatMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    roughness: 0.2,
+    metalness: 0.3
+  })
+  const statueHatBase = new THREE.Mesh(statueHatBaseGeometry, statueHatMaterial)
+  statueHatBase.position.y = 2 + statueScale + statueScale * 1.2
+  statueHatBase.castShadow = true
+  statueGroup.add(statueHatBase)
+
+  const statueHatTopGeometry = new THREE.SphereGeometry(statueScale * 0.5, 32, 32)
+  const statueHatTop = new THREE.Mesh(statueHatTopGeometry, statueHatMaterial)
+  statueHatTop.position.y = 2 + statueScale + statueScale * 1.6
+  statueHatTop.scale.y = 0.8
+  statueHatTop.castShadow = true
+  statueGroup.add(statueHatTop)
+
+  // Giant Mustache on statue!
+  const statueMustacheGeometry = new THREE.TorusGeometry(statueScale * 0.3, statueScale * 0.05, 16, 32, Math.PI)
+  const statueMustacheMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 })
+  const statueMustache = new THREE.Mesh(statueMustacheGeometry, statueMustacheMaterial)
+  statueMustache.position.set(0, 2 + statueScale + statueScale * 0.1, statueScale * 0.9)
+  statueMustache.rotation.x = Math.PI / 2
+  statueMustache.castShadow = true
+  statueGroup.add(statueMustache)
 
   // Giant eyes
   const eyeGeometry = new THREE.SphereGeometry(statueScale * 0.15, 16, 16)
@@ -378,10 +422,26 @@ const createTungTungNPC = () => {
   tungTungNPC = new THREE.Group()
   tungTungNPC.position.set(30, 1, 0)
 
-  // Body (sphere)
+  // Body (sphere) - ITALIAN COLORS: Green, White, Red stripes!
   const bodyGeometry = new THREE.SphereGeometry(1, 32, 32)
+
+  // Create Italian flag pattern on the body
+  const canvas = document.createElement('canvas')
+  canvas.width = 512
+  canvas.height = 512
+  const ctx = canvas.getContext('2d')!
+
+  // Italian flag stripes
+  ctx.fillStyle = '#009246' // Green
+  ctx.fillRect(0, 0, 170, 512)
+  ctx.fillStyle = '#FFFFFF' // White
+  ctx.fillRect(170, 0, 170, 512)
+  ctx.fillStyle = '#CE2B37' // Red
+  ctx.fillRect(340, 0, 172, 512)
+
+  const texture = new THREE.CanvasTexture(canvas)
   const bodyMaterial = new THREE.MeshStandardMaterial({
-    color: 0x00ffff,
+    map: texture,
     roughness: 0.5,
     metalness: 0.3
   })
@@ -389,16 +449,37 @@ const createTungTungNPC = () => {
   body.castShadow = true
   tungTungNPC.add(body)
 
+  // Chef's hat (Italian chef!)
+  const hatBaseGeometry = new THREE.CylinderGeometry(0.6, 0.7, 0.3, 32)
+  const hatMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff })
+  const hatBase = new THREE.Mesh(hatBaseGeometry, hatMaterial)
+  hatBase.position.set(0, 1.2, 0)
+  tungTungNPC.add(hatBase)
+
+  const hatTopGeometry = new THREE.SphereGeometry(0.5, 32, 32)
+  const hatTop = new THREE.Mesh(hatTopGeometry, hatMaterial)
+  hatTop.position.set(0, 1.6, 0)
+  hatTop.scale.y = 0.8
+  tungTungNPC.add(hatTop)
+
+  // Mustache (Italian style!)
+  const mustacheGeometry = new THREE.TorusGeometry(0.3, 0.05, 16, 32, Math.PI)
+  const mustacheMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 })
+  const mustache = new THREE.Mesh(mustacheGeometry, mustacheMaterial)
+  mustache.position.set(0, 0.1, 0.9)
+  mustache.rotation.x = Math.PI / 2
+  tungTungNPC.add(mustache)
+
   // Eyes
   const eyeGeometry = new THREE.SphereGeometry(0.15, 16, 16)
   const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff })
 
   const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial)
-  leftEye.position.set(-0.3, 0.3, 0.8)
+  leftEye.position.set(-0.3, 0.4, 0.8)
   tungTungNPC.add(leftEye)
 
   const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial)
-  rightEye.position.set(0.3, 0.3, 0.8)
+  rightEye.position.set(0.3, 0.4, 0.8)
   tungTungNPC.add(rightEye)
 
   // Pupils
@@ -406,18 +487,18 @@ const createTungTungNPC = () => {
   const pupilMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 })
 
   const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial)
-  leftPupil.position.set(-0.3, 0.3, 0.9)
+  leftPupil.position.set(-0.3, 0.4, 0.9)
   tungTungNPC.add(leftPupil)
 
   const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial)
-  rightPupil.position.set(0.3, 0.3, 0.9)
+  rightPupil.position.set(0.3, 0.4, 0.9)
   tungTungNPC.add(rightPupil)
 
   // Exclamation mark above head
   const exclamationGeometry = new THREE.ConeGeometry(0.1, 0.5, 8)
   const exclamationMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 })
   const exclamation = new THREE.Mesh(exclamationGeometry, exclamationMaterial)
-  exclamation.position.set(0, 2, 0)
+  exclamation.position.set(0, 2.5, 0)
   exclamation.visible = false
   tungTungNPC.add(exclamation)
   tungTungNPC.userData.exclamation = exclamation
@@ -602,27 +683,27 @@ const checkCollisions = () => {
 
     if (distance < 5) {
       exclamation.visible = true
-      infoText.value = 'Press E to talk to tung tung tung tung sahur!'
+      infoText.value = 'Press E to talk to Italian tung tung tung tung sahur! 🇮🇹'
 
       if (keys['e'] && !gameData.value.hasMetTungTung) {
         gameData.value.hasMetTungTung = true
         gameState.addCoins(100)
-        infoText.value = 'tung tung tung tung sahur: "Welcome to 3D Brainrot World! +100 coins!"'
+        infoText.value = '🇮🇹 tung tung tung tung sahur: "Buongiorno! Welcome to-a Brainrot World! Mamma mia, +100 coins for you! 🍝"'
         setTimeout(() => {
-          infoText.value = 'Keep exploring the world!'
+          infoText.value = 'Keep-a exploring! Magnifico!'
         }, 4000)
         keys['e'] = false // Prevent spam
       } else if (keys['e'] && gameData.value.hasMetTungTung) {
-        infoText.value = 'tung tung tung tung sahur: "Hello again friend!"'
+        infoText.value = '🇮🇹 tung tung tung tung sahur: "Ciao bella! Arrivederci amico! 🤌"'
         setTimeout(() => {
-          infoText.value = 'Explore the 3D brainrot world!'
+          infoText.value = 'Explore the Italian brainrot world! 🇮🇹'
         }, 2000)
         keys['e'] = false
       }
     } else {
       exclamation.visible = false
       if (distance > 10 && infoText.value.includes('tung tung')) {
-        infoText.value = 'Explore the 3D brainrot world!'
+        infoText.value = 'Explore the Italian brainrot world! 🇮🇹'
       }
     }
   }
