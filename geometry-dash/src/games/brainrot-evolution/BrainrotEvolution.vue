@@ -9,9 +9,6 @@
     <button class="inventory-button" @click="toggleInventory">
       🎒 Inventory
     </button>
-    <button class="reset-button" @click="resetProgress">
-      🔄 Reset Progress
-    </button>
 
     <!-- Inventory Panel -->
     <div v-if="inventoryOpen" class="inventory-panel">
@@ -144,35 +141,6 @@ const toggleInventory = () => {
     setTimeout(() => {
       drawCharacterFace()
     }, 0)
-  }
-}
-
-const resetProgress = () => {
-  if (confirm('Are you sure you want to reset all your progress? This cannot be undone!')) {
-    // Clear localStorage
-    localStorage.removeItem('brainrotEvolution3D')
-
-    // Reset all game data
-    gameData.value = {
-      playerX: 0,
-      playerZ: 0,
-      coinsCollectedCount: 0,
-      hasMetTungTung: false,
-      level: 1,
-      exp: 0
-    }
-
-    // Reset display values
-    coinsCollected.value = 0
-    playerLevel.value = 1
-    playerExp.value = 0
-
-    infoText.value = '🔄 Progress reset! Starting fresh!'
-
-    // Reload the page to fully reset the game
-    setTimeout(() => {
-      window.location.reload()
-    }, 1500)
   }
 }
 
@@ -1311,26 +1279,6 @@ onUnmounted(() => {
 
 .inventory-button:hover {
   background: #d97706;
-}
-
-.reset-button {
-  position: absolute;
-  top: 170px;
-  left: 20px;
-  padding: 10px 20px;
-  background: #dc2626;
-  color: white;
-  border: 2px solid white;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
-  z-index: 1000;
-  transition: background 0.3s;
-}
-
-.reset-button:hover {
-  background: #b91c1c;
 }
 
 .inventory-panel {
