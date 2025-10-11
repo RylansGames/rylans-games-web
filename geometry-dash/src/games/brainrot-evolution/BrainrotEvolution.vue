@@ -171,7 +171,7 @@ const init3DScene = () => {
 
 const createWalls = () => {
   const wallHeight = 10
-  const wallThickness = 1
+  const wallThickness = 30  // 30 units thick walls!
   const worldSize = 100 // Half of 200
 
   // Wall material with purple brainrot theme
