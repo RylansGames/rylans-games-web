@@ -15,6 +15,11 @@ const router = createRouter({
       component: () => import('../games/geometry-dash/GeometryDash.vue'),
     },
     {
+      path: '/games/brainrot-evolution',
+      name: 'brainrot-evolution',
+      component: () => import('../games/brainrot-evolution/BrainrotEvolution.vue'),
+    },
+    {
       path: '/about',
       name: 'about',
       component: () => import('../views/AboutView.vue'),

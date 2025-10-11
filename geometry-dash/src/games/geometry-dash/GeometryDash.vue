@@ -2782,8 +2782,8 @@ class LevelEditorScene extends Phaser.Scene {
   private deleteHighlight: any = null
   private groundSnapIndicator: any = null
   private gridSize = 40
-  private cameraSpeed = 10
-  private levelLength = 10000 // Length in pixels
+  private cameraSpeed = 20  // Faster scrolling!
+  private levelLength = 20000 // Double the length for more space
   private toolButtons: any = {}
   
   constructor() {
@@ -3105,22 +3105,47 @@ class LevelEditorScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-THREE', () => this.selectTool('stairs'))
     this.input.keyboard?.on('keydown-FOUR', () => this.selectTool('platform'))
     this.input.keyboard?.on('keydown-FIVE', () => this.selectTool('delete'))
-    this.input.keyboard?.on('keydown-D', () => this.selectTool('delete'))
-    
+    this.input.keyboard?.on('keydown-X', () => this.selectTool('delete'))  // Use X for delete instead
+
+    // Add A and D key support for scrolling
+    const keyA = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.A)
+    const keyD = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D)
+
     if (cursors) {
       this.events.on('update', () => {
         const cam = this.cameras.main
+
+        // Arrow key scrolling
         if (cursors.left.isDown && cam.scrollX > 0) {
           cam.scrollX -= this.cameraSpeed
         }
         if (cursors.right.isDown && cam.scrollX < this.levelLength - 800) {
           cam.scrollX += this.cameraSpeed
         }
-        
+
+        // A and D key scrolling
+        if (keyA?.isDown && cam.scrollX > 0) {
+          cam.scrollX -= this.cameraSpeed
+        }
+        if (keyD?.isDown && cam.scrollX < this.levelLength - 800) {
+          cam.scrollX += this.cameraSpeed
+        }
+
+        // Mouse edge scrolling - move mouse to edge to scroll
+        const pointer = this.input.activePointer
+        if (pointer.y < 500) {  // Only scroll if mouse is not over UI
+          if (pointer.x < 50 && cam.scrollX > 0) {
+            cam.scrollX -= this.cameraSpeed / 2
+          }
+          if (pointer.x > 750 && cam.scrollX < this.levelLength - 800) {
+            cam.scrollX += this.cameraSpeed / 2
+          }
+        }
+
         // Update scroll position text
         const instructions = this.children.getByName('instructions') as Phaser.GameObjects.Text
         if (instructions) {
-          instructions.setText(`Click to place/delete | Arrow keys to scroll | Keys: 1=Spike 2=Block 3=Stairs 4=Platform 5/D=Delete | Scroll: ${Math.floor(cam.scrollX)}`)
+          instructions.setText(`Click to place | Arrow/A/D=Scroll | Mouse to edge | 1=Spike 2=Block 3=Stairs 4=Platform 5/X=Delete | Pos: ${Math.floor(cam.scrollX)}`)
         }
       })
     }
@@ -3185,18 +3210,36 @@ class LevelEditorScene extends Phaser.Scene {
     // Check if object already exists at this position
     const existing = this.levelData.find(obj => obj.x === x && obj.y === y)
     if (existing) return
-    
+
     // Snap spikes to ground if placed near it
     if (this.selectedTool === 'spike' && y >= 500) {
       y = 530 // Place spike on ground (ground is at 550, spike bottom at 550, center at 530)
     }
-    
+
+    // Smart spike placement: if placing a spike and there's a block directly below, place spike on top of block
+    if (this.selectedTool === 'spike') {
+      const blockBelow = this.levelData.find(obj =>
+        obj.type === 'block' &&
+        obj.x === x &&
+        obj.y === y + 40 // Block is one grid cell below (40 pixels)
+      )
+      if (blockBelow) {
+        // Place spike on top of block perfectly aligned
+        // Block: 40x40, centered at blockBelow.y, top edge at blockBelow.y - 20
+        // Spike: triangle with bottom at y + 20
+        // For perfect alignment: spike bottom (y + 20) = block top (blockY - 20)
+        // Therefore: y = blockY - 40
+        // But accounting for 2px stroke on both, we want them to meet at the outline
+        y = blockBelow.y - 40
+      }
+    }
+
     const obj = {
       type: this.selectedTool,
       x: x,
       y: y
     }
-    
+
     this.levelData.push(obj)
     this.drawObject(obj)
   }
@@ -5813,10 +5856,10 @@ class MainScene extends Phaser.Scene {
     // After every 2 spikes, spawn a block with spike on top
     if (this.spikeCounter % 3 === 0) {
       // Create block with spike on top
+      const spikeHeight = 80  // Match regular spike height
       const blockHeight = 60
-      const spikeHeight = 40
       const totalHeight = blockHeight + spikeHeight
-      
+
       // Create the block (smooth rectangle)
       const block = this.add.rectangle(
         850,
@@ -5827,17 +5870,17 @@ class MainScene extends Phaser.Scene {
       )
       block.setStrokeStyle(3, 0x000000)
       this.obstacles.add(block)
-      
-      // Create spike on top of block
+
+      // Create spike on top of block - aligned with regular spikes
       const spike = this.add.triangle(
         850,
-        540 - blockHeight - spikeHeight/2, // Position on top of block
+        500,  // Match regular spike height - center at y=500
         0, 0, // Top point
         -20, spikeHeight, // Bottom left
         20, spikeHeight, // Bottom right
         0xff0000
       )
-      spike.setStrokeStyle(2, 0x000000)
+      spike.setStrokeStyle(3, 0x000000)  // Match regular spike outline
       this.obstacles.add(spike)
       
       // Disable gravity for both
@@ -5856,11 +5899,11 @@ class MainScene extends Phaser.Scene {
     } else {
       // Regular spike
       const type = { width: 40, height: 80, y: 460 }
-      
+
       // Create spike as a triangle
       const spike = this.add.triangle(
-        850, 
-        type.y + type.height/2,  // Position at bottom of spike
+        850,
+        500,  // Center the spike at y=500 (bottom at 540, which is ground level)
         0, 0,                    // Top point
         -type.width/2, type.height,  // Bottom left
         type.width/2, type.height,   // Bottom right
@@ -6807,7 +6850,7 @@ class MainScene extends Phaser.Scene {
     // Create all obstacles from level data
     levelData.forEach(obj => {
       let obstacle: any
-      
+
       switch (obj.type) {
         case 'spike':
           obstacle = this.add.triangle(obj.x, obj.y, 0, -20, -20, 20, 20, 20, 0xff0000)
@@ -6822,14 +6865,23 @@ class MainScene extends Phaser.Scene {
           const stair1 = this.add.rectangle(obj.x + 20, obj.y + 20, 40, 40, 0x888888)
           stair1.setStrokeStyle(2, 0x000000)
           this.obstacles.add(stair1)
-          
+          // Disable gravity for stair1
+          const stair1Body = stair1.body as Phaser.Physics.Arcade.Body
+          if (stair1Body) stair1Body.setAllowGravity(false)
+
           const stair2 = this.add.rectangle(obj.x + 60, obj.y - 20, 40, 80, 0x888888)
           stair2.setStrokeStyle(2, 0x000000)
           this.obstacles.add(stair2)
-          
+          // Disable gravity for stair2
+          const stair2Body = stair2.body as Phaser.Physics.Arcade.Body
+          if (stair2Body) stair2Body.setAllowGravity(false)
+
           const stair3 = this.add.rectangle(obj.x + 100, obj.y - 60, 40, 120, 0x888888)
           stair3.setStrokeStyle(2, 0x000000)
           this.obstacles.add(stair3)
+          // Disable gravity for stair3
+          const stair3Body = stair3.body as Phaser.Physics.Arcade.Body
+          if (stair3Body) stair3Body.setAllowGravity(false)
           return // Don't add to obstacles again
         case 'platform':
           obstacle = this.add.rectangle(obj.x + 60, obj.y, 120, 20, 0x4444ff)
@@ -6838,9 +6890,12 @@ class MainScene extends Phaser.Scene {
         default:
           return
       }
-      
+
       if (obstacle) {
         this.obstacles.add(obstacle)
+        // Disable gravity for all obstacles so they don't fall
+        const obstacleBody = obstacle.body as Phaser.Physics.Arcade.Body
+        if (obstacleBody) obstacleBody.setAllowGravity(false)
       }
     })
   }

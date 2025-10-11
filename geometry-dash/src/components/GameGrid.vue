@@ -45,13 +45,14 @@ const games: Game[] = [
     available: true
   },
   {
-    id: 'space-shooter',
-    title: 'Space Shooter',
-    description: 'Defend Earth from alien invaders in this classic arcade game!',
-    icon: '🚀',
-    thumbnailColor: '#1a202c',
-    rating: 4.5,
-    available: false
+    id: 'brainrot-evolution',
+    title: 'Brainrot Evolution',
+    description: 'Click to evolve through stages of internet brainrot! Starting with tung tung tung tung sahur!',
+    route: '/games/brainrot-evolution',
+    icon: '🧠',
+    thumbnailColor: '#9f7aea',
+    rating: 5.0,
+    available: true
   },
   {
     id: 'puzzle-master',
