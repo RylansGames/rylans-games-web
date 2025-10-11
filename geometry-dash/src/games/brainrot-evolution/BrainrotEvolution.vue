@@ -6,6 +6,24 @@
     <button class="auto-attack-button" @click="toggleAutoAttack">
       {{ autoAttackEnabled ? '🗡️ Auto Attack: ON' : '⚔️ Auto Attack: OFF' }}
     </button>
+    <button class="inventory-button" @click="toggleInventory">
+      🎒 Inventory
+    </button>
+
+    <!-- Inventory Panel -->
+    <div v-if="inventoryOpen" class="inventory-panel">
+      <div class="inventory-header">
+        <h2>🎒 Inventory</h2>
+        <button class="inventory-close" @click="toggleInventory">✕</button>
+      </div>
+      <div class="inventory-content">
+        <div class="inventory-section">
+          <h3>📍 Current World</h3>
+          <div class="world-name">Tung Tung Park</div>
+        </div>
+      </div>
+    </div>
+
     <div ref="gameContainer" class="game-container">
       <div class="hud">
         <div class="hud-title">🧠 BRAINROT EVOLUTION 3D 🧠</div>
@@ -32,6 +50,7 @@ const router = useRouter()
 const infoText = ref('Benvenuto! Welcome to the Italian Brainrot World! Find tung tung tung tung sahur! 🇮🇹🤌')
 const coinsCollected = ref(0)
 const autoAttackEnabled = ref(false)
+const inventoryOpen = ref(false)
 
 let scene: THREE.Scene
 let camera: THREE.PerspectiveCamera
@@ -90,6 +109,10 @@ const toggleAutoAttack = () => {
   setTimeout(() => {
     infoText.value = 'Explore the brainrot world! 🧠'
   }, 2000)
+}
+
+const toggleInventory = () => {
+  inventoryOpen.value = !inventoryOpen.value
 }
 
 const loadGameData = () => {
@@ -1121,6 +1144,104 @@ onUnmounted(() => {
 
 .auto-attack-button:hover {
   background: #805ad5;
+}
+
+.inventory-button {
+  position: absolute;
+  top: 120px;
+  left: 20px;
+  padding: 10px 20px;
+  background: #f59e0b;
+  color: white;
+  border: 2px solid white;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  z-index: 1000;
+  transition: background 0.3s;
+}
+
+.inventory-button:hover {
+  background: #d97706;
+}
+
+.inventory-panel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 500px;
+  min-height: 400px;
+  background: rgba(0, 0, 0, 0.95);
+  border: 3px solid #f59e0b;
+  border-radius: 10px;
+  box-shadow: 0 0 30px rgba(245, 158, 11, 0.5);
+  z-index: 2000;
+  padding: 20px;
+  color: white;
+}
+
+.inventory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #f59e0b;
+  padding-bottom: 10px;
+}
+
+.inventory-header h2 {
+  margin: 0;
+  font-size: 28px;
+  color: #f59e0b;
+}
+
+.inventory-close {
+  background: #ff0000;
+  color: white;
+  border: 2px solid white;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  font-size: 20px;
+  cursor: pointer;
+  transition: background 0.3s;
+  font-weight: bold;
+}
+
+.inventory-close:hover {
+  background: #cc0000;
+}
+
+.inventory-content {
+  padding: 10px;
+}
+
+.inventory-section {
+  margin-bottom: 20px;
+  background: rgba(245, 158, 11, 0.1);
+  padding: 15px;
+  border-radius: 8px;
+  border: 2px solid #f59e0b;
+}
+
+.inventory-section h3 {
+  margin: 0 0 10px 0;
+  font-size: 20px;
+  color: #fbbf24;
+}
+
+.world-name {
+  font-size: 24px;
+  font-weight: bold;
+  color: #ffffff;
+  text-align: center;
+  padding: 15px;
+  background: rgba(245, 158, 11, 0.2);
+  border-radius: 5px;
+  border: 2px solid #fbbf24;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .hud {
