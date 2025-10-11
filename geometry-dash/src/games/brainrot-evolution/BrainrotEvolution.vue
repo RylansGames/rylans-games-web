@@ -19,7 +19,12 @@
       <div class="inventory-content">
         <div class="inventory-section">
           <h3>📍 Current World</h3>
-          <div class="world-name">Tung Tung Park</div>
+          <div class="world-info">
+            <div class="world-name">Tung Tung Park</div>
+            <div class="world-character">
+              <canvas ref="characterCanvas" width="120" height="120" class="character-circle"></canvas>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -46,6 +51,7 @@ import CoinDisplay from '../../components/shared/CoinDisplay.vue'
 import Settings from '../../components/Settings.vue'
 
 const gameContainer = ref<HTMLDivElement>()
+const characterCanvas = ref<HTMLCanvasElement>()
 const router = useRouter()
 const infoText = ref('Benvenuto! Welcome to the Italian Brainrot World! Find tung tung tung tung sahur! 🇮🇹🤌')
 const coinsCollected = ref(0)
@@ -113,6 +119,77 @@ const toggleAutoAttack = () => {
 
 const toggleInventory = () => {
   inventoryOpen.value = !inventoryOpen.value
+
+  // Draw character face when inventory opens
+  if (inventoryOpen.value) {
+    setTimeout(() => {
+      drawCharacterFace()
+    }, 0)
+  }
+}
+
+const drawCharacterFace = () => {
+  if (!characterCanvas.value) return
+
+  const canvas = characterCanvas.value
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  // Clear canvas
+  ctx.clearRect(0, 0, 120, 120)
+
+  // Draw circular border
+  ctx.beginPath()
+  ctx.arc(60, 60, 58, 0, Math.PI * 2)
+  ctx.strokeStyle = '#fbbf24'
+  ctx.lineWidth = 4
+  ctx.stroke()
+
+  // Fill circle with wood color
+  ctx.fillStyle = '#8B4513'
+  ctx.fill()
+
+  // Add wood texture rings
+  for (let i = 0; i < 5; i++) {
+    ctx.strokeStyle = `rgba(101, 67, 33, ${0.3 + Math.random() * 0.3})`
+    ctx.lineWidth = 1 + Math.random() * 2
+    ctx.beginPath()
+    ctx.arc(60, 60, 15 + i * 8, 0, Math.PI * 2)
+    ctx.stroke()
+  }
+
+  // Draw straight face
+
+  // Left eye (black dot)
+  ctx.fillStyle = '#000000'
+  ctx.beginPath()
+  ctx.arc(48, 52, 4, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Right eye (black dot)
+  ctx.beginPath()
+  ctx.arc(72, 52, 4, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Straight mouth (horizontal line)
+  ctx.fillStyle = '#000000'
+  ctx.fillRect(48, 68, 24, 2)
+
+  // Draw mini bat on the side
+  ctx.save()
+  ctx.translate(85, 75)
+  ctx.rotate(-Math.PI / 6)
+
+  // Bat handle
+  ctx.fillStyle = '#D2691E'
+  ctx.fillRect(-1, 0, 2, 12)
+
+  // Bat barrel
+  ctx.beginPath()
+  ctx.ellipse(0, -4, 3, 6, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.restore()
 }
 
 const loadGameData = () => {
@@ -1232,7 +1309,15 @@ onUnmounted(() => {
   color: #fbbf24;
 }
 
+.world-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
 .world-name {
+  flex: 1;
   font-size: 24px;
   font-weight: bold;
   color: #ffffff;
@@ -1242,6 +1327,16 @@ onUnmounted(() => {
   border-radius: 5px;
   border: 2px solid #fbbf24;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.world-character {
+  flex-shrink: 0;
+}
+
+.character-circle {
+  border-radius: 50%;
+  box-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
+  background: #8B4513;
 }
 
 .hud {
