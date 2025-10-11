@@ -147,6 +147,9 @@ const init3DScene = () => {
   player.position.set(gameData.value.playerX, playerHeight, gameData.value.playerZ)
   scene.add(player)
 
+  // Create walls around the world
+  createWalls()
+
   // Create tung tung tung tung sahur NPC
   createTungTungNPC()
 
@@ -166,6 +169,96 @@ const init3DScene = () => {
   setInterval(saveGameData, 5000)
 }
 
+const createWalls = () => {
+  const wallHeight = 10
+  const wallThickness = 1
+  const worldSize = 100 // Half of 200
+
+  // Wall material with purple brainrot theme
+  const wallMaterial = new THREE.MeshStandardMaterial({
+    color: 0x9f7aea,
+    roughness: 0.6,
+    metalness: 0.2
+  })
+
+  // North wall (positive Z)
+  const northWall = new THREE.Mesh(
+    new THREE.BoxGeometry(worldSize * 2, wallHeight, wallThickness),
+    wallMaterial
+  )
+  northWall.position.set(0, wallHeight / 2, worldSize)
+  northWall.castShadow = true
+  northWall.receiveShadow = true
+  scene.add(northWall)
+
+  // South wall (negative Z)
+  const southWall = new THREE.Mesh(
+    new THREE.BoxGeometry(worldSize * 2, wallHeight, wallThickness),
+    wallMaterial
+  )
+  southWall.position.set(0, wallHeight / 2, -worldSize)
+  southWall.castShadow = true
+  southWall.receiveShadow = true
+  scene.add(southWall)
+
+  // East wall (positive X)
+  const eastWall = new THREE.Mesh(
+    new THREE.BoxGeometry(wallThickness, wallHeight, worldSize * 2),
+    wallMaterial
+  )
+  eastWall.position.set(worldSize, wallHeight / 2, 0)
+  eastWall.castShadow = true
+  eastWall.receiveShadow = true
+  scene.add(eastWall)
+
+  // West wall (negative X)
+  const westWall = new THREE.Mesh(
+    new THREE.BoxGeometry(wallThickness, wallHeight, worldSize * 2),
+    wallMaterial
+  )
+  westWall.position.set(-worldSize, wallHeight / 2, 0)
+  westWall.castShadow = true
+  westWall.receiveShadow = true
+  scene.add(westWall)
+
+  // Add glowing purple line at top of each wall for visibility
+  const glowMaterial = new THREE.MeshStandardMaterial({
+    color: 0xff00ff,
+    emissive: 0xff00ff,
+    emissiveIntensity: 0.5
+  })
+
+  // Top glow lines
+  const topLineHeight = 0.3
+
+  const northGlow = new THREE.Mesh(
+    new THREE.BoxGeometry(worldSize * 2, topLineHeight, wallThickness),
+    glowMaterial
+  )
+  northGlow.position.set(0, wallHeight, worldSize)
+  scene.add(northGlow)
+
+  const southGlow = new THREE.Mesh(
+    new THREE.BoxGeometry(worldSize * 2, topLineHeight, wallThickness),
+    glowMaterial
+  )
+  southGlow.position.set(0, wallHeight, -worldSize)
+  scene.add(southGlow)
+
+  const eastGlow = new THREE.Mesh(
+    new THREE.BoxGeometry(wallThickness, topLineHeight, worldSize * 2),
+    glowMaterial
+  )
+  eastGlow.position.set(worldSize, wallHeight, 0)
+  scene.add(eastGlow)
+
+  const westGlow = new THREE.Mesh(
+    new THREE.BoxGeometry(wallThickness, topLineHeight, worldSize * 2),
+    glowMaterial
+  )
+  westGlow.position.set(-worldSize, wallHeight, 0)
+  scene.add(westGlow)
+}
 
 const createTungTungNPC = () => {
   tungTungNPC = new THREE.Group()
