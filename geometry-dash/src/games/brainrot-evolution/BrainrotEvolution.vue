@@ -705,10 +705,10 @@ const updatePlayer = () => {
     player.position.add(direction.clone().multiplyScalar(-moveSpeed))
   }
   if (keys['a']) {
-    player.position.add(right.clone().multiplyScalar(moveSpeed))
+    player.position.add(right.clone().multiplyScalar(-moveSpeed))
   }
   if (keys['d']) {
-    player.position.add(right.clone().multiplyScalar(-moveSpeed))
+    player.position.add(right.clone().multiplyScalar(moveSpeed))
   }
 
   // Jumping
