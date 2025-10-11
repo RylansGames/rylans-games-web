@@ -737,8 +737,8 @@ const updatePlayer = () => {
     camera.position.copy(player.position)
   } else {
     // Third person: camera behind and above player
-    const thirdPersonDistance = 5
-    const thirdPersonHeight = 2
+    const thirdPersonDistance = 8
+    const thirdPersonHeight = 3
 
     // Calculate camera position behind the player based on yaw
     const offsetX = Math.sin(yaw) * thirdPersonDistance
@@ -749,6 +749,9 @@ const updatePlayer = () => {
       player.position.y + thirdPersonHeight,
       player.position.z - offsetZ
     )
+
+    // Make camera look at the player
+    camera.lookAt(player.position.x, player.position.y + 1, player.position.z)
   }
 
   // Keep player within bounds
