@@ -10,7 +10,7 @@
         <div class="hud-coins">Coins Collected: {{ coinsCollected }}</div>
       </div>
       <div class="controls-hint">
-        WASD: Move | Mouse: Look Around | SPACE: Jump | E: Interact
+        WASD: Move | Mouse: Look Around | SPACE: Jump | E: Interact | B: Toggle Camera
       </div>
     </div>
   </div>
@@ -51,6 +51,7 @@ let mouseX = 0
 let mouseY = 0
 let yaw = 0
 let pitch = 0
+let isFirstPerson = true // Camera mode
 
 // Game data
 interface GameData {
@@ -136,15 +137,18 @@ const init3DScene = () => {
   const gridHelper = new THREE.GridHelper(200, 40, 0x00cc00, 0x008800)
   scene.add(gridHelper)
 
-  // Create player collision box (invisible)
+  // Create player collision box (visible in third person)
   const playerGeometry = new THREE.BoxGeometry(0.6, playerHeight * 2, 0.6)
-  const playerMaterial = new THREE.MeshBasicMaterial({
+  const playerMaterial = new THREE.MeshStandardMaterial({
     color: 0xff00ff,
     transparent: true,
-    opacity: 0
+    opacity: 0.8,
+    emissive: 0xff00ff,
+    emissiveIntensity: 0.3
   })
   player = new THREE.Mesh(playerGeometry, playerMaterial)
   player.position.set(gameData.value.playerX, playerHeight, gameData.value.playerZ)
+  player.castShadow = true
   scene.add(player)
 
   // Create walls around the world
@@ -570,7 +574,17 @@ const createStars = () => {
 const setupControls = () => {
   // Keyboard controls
   window.addEventListener('keydown', (e) => {
-    keys[e.key.toLowerCase()] = true
+    const key = e.key.toLowerCase()
+    keys[key] = true
+
+    // Toggle camera view with B key
+    if (key === 'b') {
+      isFirstPerson = !isFirstPerson
+      infoText.value = isFirstPerson ? 'Switched to First Person View' : 'Switched to Third Person View'
+      setTimeout(() => {
+        infoText.value = 'Explore the Italian brainrot world! 🇮🇹'
+      }, 2000)
+    }
   })
 
   window.addEventListener('keyup', (e) => {
@@ -644,8 +658,25 @@ const updatePlayer = () => {
     isJumping = false
   }
 
-  // Update camera position to follow player
-  camera.position.copy(player.position)
+  // Update camera position based on view mode
+  if (isFirstPerson) {
+    // First person: camera at player position
+    camera.position.copy(player.position)
+  } else {
+    // Third person: camera behind and above player
+    const thirdPersonDistance = 5
+    const thirdPersonHeight = 2
+
+    // Calculate camera position behind the player based on yaw
+    const offsetX = Math.sin(yaw) * thirdPersonDistance
+    const offsetZ = Math.cos(yaw) * thirdPersonDistance
+
+    camera.position.set(
+      player.position.x - offsetX,
+      player.position.y + thirdPersonHeight,
+      player.position.z - offsetZ
+    )
+  }
 
   // Keep player within bounds
   const bound = 95
@@ -717,6 +748,11 @@ const animate = () => {
 
   // Check collisions
   checkCollisions()
+
+  // Show/hide player mesh based on camera mode
+  if (player) {
+    player.visible = !isFirstPerson
+  }
 
   // Animate coins
   coins.forEach(coin => {
