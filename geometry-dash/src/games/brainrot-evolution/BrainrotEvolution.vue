@@ -38,6 +38,15 @@
       <div class="controls-hint">
         WASD: Move | Mouse: Look Around | SPACE: Jump | E: Interact | B: Toggle Camera | Left Click: Hit Apple
       </div>
+
+      <!-- Level/EXP Bar at Bottom -->
+      <div class="level-bar">
+        <div class="level-bar-bg">
+          <div class="level-bar-fill" :style="{ width: (playerExp / maxExp * 100) + '%' }"></div>
+          <div class="level-text">Level {{ playerLevel }}</div>
+          <div class="exp-text">{{ playerExp }}/{{ maxExp }} EXP</div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -57,6 +66,9 @@ const infoText = ref('Benvenuto! Welcome to the Italian Brainrot World! Find tun
 const coinsCollected = ref(0)
 const autoAttackEnabled = ref(false)
 const inventoryOpen = ref(false)
+const playerLevel = ref(1)
+const playerExp = ref(0)
+const maxExp = ref(10)
 
 let scene: THREE.Scene
 let camera: THREE.PerspectiveCamera
@@ -92,13 +104,17 @@ interface GameData {
   playerZ: number
   coinsCollectedCount: number
   hasMetTungTung: boolean
+  level: number
+  exp: number
 }
 
 const gameData = ref<GameData>({
   playerX: 0,
   playerZ: 0,
   coinsCollectedCount: 0,
-  hasMetTungTung: false
+  hasMetTungTung: false,
+  level: 1,
+  exp: 0
 })
 
 const goBack = () => {
@@ -197,6 +213,26 @@ const loadGameData = () => {
   if (saved) {
     gameData.value = JSON.parse(saved)
     coinsCollected.value = gameData.value.coinsCollectedCount
+    playerLevel.value = gameData.value.level || 1
+    playerExp.value = gameData.value.exp || 0
+  }
+}
+
+const addExp = (amount: number) => {
+  playerExp.value += amount
+  gameData.value.exp = playerExp.value
+
+  // Check for level up
+  if (playerExp.value >= maxExp.value) {
+    playerExp.value -= maxExp.value
+    playerLevel.value += 1
+    gameData.value.level = playerLevel.value
+    gameData.value.exp = playerExp.value
+
+    infoText.value = `🎉 LEVEL UP! You are now Level ${playerLevel.value}! 🎉`
+    setTimeout(() => {
+      infoText.value = 'Explore the brainrot world! 🧠'
+    }, 3000)
   }
 }
 
@@ -919,10 +955,12 @@ const hitApple = () => {
         // Give rewards
         if (isGolden) {
           gameState.addCoins(50)
-          infoText.value = `Golden Apple destroyed! +50 coins! 💰`
+          addExp(5) // Golden apples give 5 exp (50%)
+          infoText.value = `Golden Apple destroyed! +50 coins, +5 EXP! 💰`
         } else {
           gameState.addCoins(10)
-          infoText.value = `Apple destroyed! +10 coins! 🍎`
+          addExp(2) // Normal apples give 2 exp (20%)
+          infoText.value = `Apple destroyed! +10 coins, +2 EXP! 🍎`
         }
 
         setTimeout(() => {
@@ -1379,7 +1417,7 @@ onUnmounted(() => {
 
 .controls-hint {
   position: absolute;
-  bottom: 10px;
+  bottom: 50px;
   left: 10px;
   right: 10px;
   font-size: 14px;
@@ -1390,5 +1428,58 @@ onUnmounted(() => {
   text-align: center;
   z-index: 100;
   pointer-events: none;
+}
+
+.level-bar {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.level-bar-bg {
+  position: relative;
+  width: 100%;
+  height: 30px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #ffd700;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.level-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #ffd700, #ffed4e);
+  transition: width 0.3s ease;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+}
+
+.level-text {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffffff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 1);
+  z-index: 1;
+}
+
+.exp-text {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 1);
+  z-index: 1;
 }
 </style>
