@@ -946,10 +946,7 @@ const hitApple = () => {
         // Apple destroyed
         scene.remove(apple)
         scene.remove(apple.userData.stem)
-        const index = apples.indexOf(apple)
-        if (index > -1) {
-          apples.splice(index, 1)
-        }
+
         infoText.value = `${appleType} destroyed! 💥`
 
         // Give rewards
@@ -962,6 +959,11 @@ const hitApple = () => {
           addExp(2) // Normal apples give 2 exp (20%)
           infoText.value = `Apple destroyed! +10 coins, +2 EXP! 🍎`
         }
+
+        // Respawn apple after 3 seconds
+        setTimeout(() => {
+          respawnApple(apple)
+        }, 3000)
 
         setTimeout(() => {
           infoText.value = 'Explore the brainrot world! 🧠'
@@ -985,6 +987,43 @@ const hitApple = () => {
     lastAppleAttack = currentTime // Still trigger cooldown to prevent spam clicking
     // Don't show any message when missing
   }
+}
+
+const respawnApple = (apple: THREE.Mesh) => {
+  // Reset apple HP
+  apple.userData.hp = apple.userData.maxHp
+
+  // Recreate the apple mesh
+  const isGolden = apple.userData.isGolden
+  const appleGeometry = new THREE.SphereGeometry(0.5, 16, 16)
+  const appleMaterial = new THREE.MeshStandardMaterial({
+    color: isGolden ? 0xffd700 : 0xff0000,
+    metalness: isGolden ? 0.8 : 0.2,
+    roughness: isGolden ? 0.2 : 0.6,
+    emissive: isGolden ? 0xffaa00 : 0x000000,
+    emissiveIntensity: isGolden ? 0.3 : 0
+  })
+
+  const newApple = new THREE.Mesh(appleGeometry, appleMaterial)
+  newApple.position.copy(apple.position)
+  newApple.castShadow = true
+
+  // Copy all user data
+  newApple.userData = { ...apple.userData }
+
+  // Recreate stem
+  const stemGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 8)
+  const stemMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 })
+  const newStem = new THREE.Mesh(stemGeometry, stemMaterial)
+  newStem.position.set(apple.position.x, apple.position.y + 0.3, apple.position.z)
+
+  // Store new stem reference
+  newApple.userData.stem = newStem
+
+  // Add back to scene and apples array
+  scene.add(newApple)
+  scene.add(newStem)
+  apples.push(newApple)
 }
 
 const updatePlayer = () => {
