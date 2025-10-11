@@ -22,7 +22,7 @@
           <div class="world-info">
             <div class="world-name">Tung Tung Park</div>
             <div class="world-character">
-              <canvas ref="characterCanvas" width="120" height="120" class="character-circle"></canvas>
+              <canvas ref="characterCanvas" width="80" height="80" class="character-circle"></canvas>
             </div>
           </div>
         </div>
@@ -136,13 +136,13 @@ const drawCharacterFace = () => {
   if (!ctx) return
 
   // Clear canvas
-  ctx.clearRect(0, 0, 120, 120)
+  ctx.clearRect(0, 0, 80, 80)
 
   // Draw circular border
   ctx.beginPath()
-  ctx.arc(60, 60, 58, 0, Math.PI * 2)
+  ctx.arc(40, 40, 38, 0, Math.PI * 2)
   ctx.strokeStyle = '#fbbf24'
-  ctx.lineWidth = 4
+  ctx.lineWidth = 3
   ctx.stroke()
 
   // Fill circle with wood color
@@ -150,11 +150,11 @@ const drawCharacterFace = () => {
   ctx.fill()
 
   // Add wood texture rings
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 4; i++) {
     ctx.strokeStyle = `rgba(101, 67, 33, ${0.3 + Math.random() * 0.3})`
-    ctx.lineWidth = 1 + Math.random() * 2
+    ctx.lineWidth = 1 + Math.random() * 1.5
     ctx.beginPath()
-    ctx.arc(60, 60, 15 + i * 8, 0, Math.PI * 2)
+    ctx.arc(40, 40, 10 + i * 6, 0, Math.PI * 2)
     ctx.stroke()
   }
 
@@ -163,30 +163,30 @@ const drawCharacterFace = () => {
   // Left eye (black dot)
   ctx.fillStyle = '#000000'
   ctx.beginPath()
-  ctx.arc(48, 52, 4, 0, Math.PI * 2)
+  ctx.arc(32, 35, 3, 0, Math.PI * 2)
   ctx.fill()
 
   // Right eye (black dot)
   ctx.beginPath()
-  ctx.arc(72, 52, 4, 0, Math.PI * 2)
+  ctx.arc(48, 35, 3, 0, Math.PI * 2)
   ctx.fill()
 
   // Straight mouth (horizontal line)
   ctx.fillStyle = '#000000'
-  ctx.fillRect(48, 68, 24, 2)
+  ctx.fillRect(32, 45, 16, 1.5)
 
   // Draw mini bat on the side
   ctx.save()
-  ctx.translate(85, 75)
+  ctx.translate(57, 50)
   ctx.rotate(-Math.PI / 6)
 
   // Bat handle
   ctx.fillStyle = '#D2691E'
-  ctx.fillRect(-1, 0, 2, 12)
+  ctx.fillRect(-0.5, 0, 1.5, 8)
 
   // Bat barrel
   ctx.beginPath()
-  ctx.ellipse(0, -4, 3, 6, 0, 0, Math.PI * 2)
+  ctx.ellipse(0, -3, 2, 4, 0, 0, Math.PI * 2)
   ctx.fill()
 
   ctx.restore()
