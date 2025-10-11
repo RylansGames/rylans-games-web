@@ -292,88 +292,83 @@ const createStatue = () => {
   plaque.position.set(0, 1, 4.1)
   statueGroup.add(plaque)
 
-  // Giant statue body - ITALIAN FLAG PATTERN!
-  const bodyGeometry = new THREE.SphereGeometry(statueScale, 32, 32)
+  // Giant LOG statue body with wood texture
+  const bodyGeometry = new THREE.CylinderGeometry(statueScale * 0.5, statueScale * 0.5, statueScale * 2, 32)
 
-  // Create Italian flag texture for statue
+  // Create wood texture for giant statue
   const statueCanvas = document.createElement('canvas')
   statueCanvas.width = 512
   statueCanvas.height = 512
   const statueCtx = statueCanvas.getContext('2d')!
 
-  // Italian flag stripes
-  statueCtx.fillStyle = '#009246' // Green
-  statueCtx.fillRect(0, 0, 170, 512)
-  statueCtx.fillStyle = '#FFFFFF' // White
-  statueCtx.fillRect(170, 0, 170, 512)
-  statueCtx.fillStyle = '#CE2B37' // Red
-  statueCtx.fillRect(340, 0, 172, 512)
+  // Wood color
+  statueCtx.fillStyle = '#8B4513' // Brown
+  statueCtx.fillRect(0, 0, 512, 512)
+
+  // Add wood rings
+  for (let i = 0; i < 15; i++) {
+    statueCtx.strokeStyle = `rgba(101, 67, 33, ${0.3 + Math.random() * 0.3})`
+    statueCtx.lineWidth = 3 + Math.random() * 5
+    statueCtx.beginPath()
+    statueCtx.arc(256, 256 + i * 30, 120 + i * 20, 0, Math.PI * 2)
+    statueCtx.stroke()
+  }
 
   const statueTexture = new THREE.CanvasTexture(statueCanvas)
   const bodyMaterial = new THREE.MeshStandardMaterial({
     map: statueTexture,
-    roughness: 0.3,
-    metalness: 0.5
+    roughness: 0.8,
+    metalness: 0.1
   })
   const body = new THREE.Mesh(bodyGeometry, bodyMaterial)
   body.position.y = 2 + statueScale
   body.castShadow = true
   statueGroup.add(body)
 
-  // Giant Chef's Hat on statue!
-  const statueHatBaseGeometry = new THREE.CylinderGeometry(statueScale * 0.6, statueScale * 0.7, statueScale * 0.3, 32)
-  const statueHatMaterial = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    roughness: 0.2,
-    metalness: 0.3
-  })
-  const statueHatBase = new THREE.Mesh(statueHatBaseGeometry, statueHatMaterial)
-  statueHatBase.position.y = 2 + statueScale + statueScale * 1.2
-  statueHatBase.castShadow = true
-  statueGroup.add(statueHatBase)
+  // Giant STRAIGHT FACE on statue
 
-  const statueHatTopGeometry = new THREE.SphereGeometry(statueScale * 0.5, 32, 32)
-  const statueHatTop = new THREE.Mesh(statueHatTopGeometry, statueHatMaterial)
-  statueHatTop.position.y = 2 + statueScale + statueScale * 1.6
-  statueHatTop.scale.y = 0.8
-  statueHatTop.castShadow = true
-  statueGroup.add(statueHatTop)
-
-  // Giant Mustache on statue!
-  const statueMustacheGeometry = new THREE.TorusGeometry(statueScale * 0.3, statueScale * 0.05, 16, 32, Math.PI)
-  const statueMustacheMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 })
-  const statueMustache = new THREE.Mesh(statueMustacheGeometry, statueMustacheMaterial)
-  statueMustache.position.set(0, 2 + statueScale + statueScale * 0.1, statueScale * 0.9)
-  statueMustache.rotation.x = Math.PI / 2
-  statueMustache.castShadow = true
-  statueGroup.add(statueMustache)
-
-  // Giant eyes
-  const eyeGeometry = new THREE.SphereGeometry(statueScale * 0.15, 16, 16)
-  const eyeMaterial = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    roughness: 0.2
-  })
-
-  const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial)
-  leftEye.position.set(-statueScale * 0.3, 2 + statueScale + statueScale * 0.3, statueScale * 0.8)
+  // Giant left eye (black dot)
+  const giantEyeGeometry = new THREE.CircleGeometry(statueScale * 0.08, 16)
+  const giantEyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 })
+  const leftEye = new THREE.Mesh(giantEyeGeometry, giantEyeMaterial)
+  leftEye.position.set(-statueScale * 0.2, 2 + statueScale + statueScale * 0.3, statueScale * 0.51)
   statueGroup.add(leftEye)
 
-  const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial)
-  rightEye.position.set(statueScale * 0.3, 2 + statueScale + statueScale * 0.3, statueScale * 0.8)
+  // Giant right eye (black dot)
+  const rightEye = new THREE.Mesh(giantEyeGeometry, giantEyeMaterial)
+  rightEye.position.set(statueScale * 0.2, 2 + statueScale + statueScale * 0.3, statueScale * 0.51)
   statueGroup.add(rightEye)
 
-  // Giant pupils
-  const pupilGeometry = new THREE.SphereGeometry(statueScale * 0.08, 16, 16)
-  const pupilMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 })
+  // Giant straight mouth (horizontal line)
+  const giantMouthGeometry = new THREE.BoxGeometry(statueScale * 0.3, statueScale * 0.03, 0.1)
+  const giantMouth = new THREE.Mesh(giantMouthGeometry, giantEyeMaterial)
+  giantMouth.position.set(0, 2 + statueScale, statueScale * 0.51)
+  statueGroup.add(giantMouth)
 
-  const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial)
-  leftPupil.position.set(-statueScale * 0.3, 2 + statueScale + statueScale * 0.3, statueScale * 0.9)
-  statueGroup.add(leftPupil)
+  // Giant BASEBALL BAT held by statue
+  const statueBatGroup = new THREE.Group()
 
-  const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial)
-  rightPupil.position.set(statueScale * 0.3, 2 + statueScale + statueScale * 0.3, statueScale * 0.9)
-  statueGroup.add(rightPupil)
+  // Giant bat handle
+  const statueHandleGeometry = new THREE.CylinderGeometry(statueScale * 0.05, statueScale * 0.05, statueScale * 0.6, 16)
+  const statueBatMaterial = new THREE.MeshStandardMaterial({
+    color: 0xD2691E,
+    roughness: 0.7
+  })
+  const statueHandle = new THREE.Mesh(statueHandleGeometry, statueBatMaterial)
+  statueHandle.position.y = statueScale * 0.3
+  statueBatGroup.add(statueHandle)
+
+  // Giant bat barrel
+  const statueBarrelGeometry = new THREE.CylinderGeometry(statueScale * 0.1, statueScale * 0.06, statueScale * 0.8, 16)
+  const statueBarrel = new THREE.Mesh(statueBarrelGeometry, statueBatMaterial)
+  statueBarrel.position.y = statueScale
+  statueBatGroup.add(statueBarrel)
+
+  // Position giant bat
+  statueBatGroup.position.set(statueScale * 0.7, 2 + statueScale, 0)
+  statueBatGroup.rotation.z = -Math.PI / 6
+  statueBatGroup.castShadow = true
+  statueGroup.add(statueBatGroup)
 
   // Add spotlights pointing at statue
   const spotlight1 = new THREE.SpotLight(0x00ffff, 1, 50, Math.PI / 6)
@@ -420,85 +415,90 @@ const createStatue = () => {
 
 const createTungTungNPC = () => {
   tungTungNPC = new THREE.Group()
-  tungTungNPC.position.set(30, 1, 0)
+  tungTungNPC.position.set(30, 1.5, 0)
 
-  // Body (sphere) - ITALIAN COLORS: Green, White, Red stripes!
-  const bodyGeometry = new THREE.SphereGeometry(1, 32, 32)
+  // LOG BODY - Brown wooden cylinder
+  const logGeometry = new THREE.CylinderGeometry(0.5, 0.5, 2, 32)
 
-  // Create Italian flag pattern on the body
+  // Create wood texture with rings
   const canvas = document.createElement('canvas')
   canvas.width = 512
   canvas.height = 512
   const ctx = canvas.getContext('2d')!
 
-  // Italian flag stripes
-  ctx.fillStyle = '#009246' // Green
-  ctx.fillRect(0, 0, 170, 512)
-  ctx.fillStyle = '#FFFFFF' // White
-  ctx.fillRect(170, 0, 170, 512)
-  ctx.fillStyle = '#CE2B37' // Red
-  ctx.fillRect(340, 0, 172, 512)
+  // Wood color
+  ctx.fillStyle = '#8B4513' // Brown
+  ctx.fillRect(0, 0, 512, 512)
 
-  const texture = new THREE.CanvasTexture(canvas)
-  const bodyMaterial = new THREE.MeshStandardMaterial({
-    map: texture,
-    roughness: 0.5,
-    metalness: 0.3
+  // Add wood rings
+  for (let i = 0; i < 10; i++) {
+    ctx.strokeStyle = `rgba(101, 67, 33, ${0.3 + Math.random() * 0.3})`
+    ctx.lineWidth = 2 + Math.random() * 3
+    ctx.beginPath()
+    ctx.arc(256, 256 + i * 20, 100 + i * 15, 0, Math.PI * 2)
+    ctx.stroke()
+  }
+
+  const woodTexture = new THREE.CanvasTexture(canvas)
+  const logMaterial = new THREE.MeshStandardMaterial({
+    map: woodTexture,
+    roughness: 0.8,
+    metalness: 0.1
   })
-  const body = new THREE.Mesh(bodyGeometry, bodyMaterial)
-  body.castShadow = true
-  tungTungNPC.add(body)
+  const log = new THREE.Mesh(logGeometry, logMaterial)
+  log.castShadow = true
+  tungTungNPC.add(log)
 
-  // Chef's hat (Italian chef!)
-  const hatBaseGeometry = new THREE.CylinderGeometry(0.6, 0.7, 0.3, 32)
-  const hatMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff })
-  const hatBase = new THREE.Mesh(hatBaseGeometry, hatMaterial)
-  hatBase.position.set(0, 1.2, 0)
-  tungTungNPC.add(hatBase)
+  // STRAIGHT FACE - Simple dots and line
 
-  const hatTopGeometry = new THREE.SphereGeometry(0.5, 32, 32)
-  const hatTop = new THREE.Mesh(hatTopGeometry, hatMaterial)
-  hatTop.position.set(0, 1.6, 0)
-  hatTop.scale.y = 0.8
-  tungTungNPC.add(hatTop)
-
-  // Mustache (Italian style!)
-  const mustacheGeometry = new THREE.TorusGeometry(0.3, 0.05, 16, 32, Math.PI)
-  const mustacheMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 })
-  const mustache = new THREE.Mesh(mustacheGeometry, mustacheMaterial)
-  mustache.position.set(0, 0.1, 0.9)
-  mustache.rotation.x = Math.PI / 2
-  tungTungNPC.add(mustache)
-
-  // Eyes
-  const eyeGeometry = new THREE.SphereGeometry(0.15, 16, 16)
-  const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff })
-
-  const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial)
-  leftEye.position.set(-0.3, 0.4, 0.8)
+  // Left eye (black dot)
+  const leftEyeGeometry = new THREE.CircleGeometry(0.08, 16)
+  const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 })
+  const leftEye = new THREE.Mesh(leftEyeGeometry, eyeMaterial)
+  leftEye.position.set(-0.2, 0.3, 0.51)
   tungTungNPC.add(leftEye)
 
-  const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial)
-  rightEye.position.set(0.3, 0.4, 0.8)
+  // Right eye (black dot)
+  const rightEye = new THREE.Mesh(leftEyeGeometry, eyeMaterial)
+  rightEye.position.set(0.2, 0.3, 0.51)
   tungTungNPC.add(rightEye)
 
-  // Pupils
-  const pupilGeometry = new THREE.SphereGeometry(0.08, 16, 16)
-  const pupilMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 })
+  // Straight mouth (horizontal line)
+  const mouthGeometry = new THREE.BoxGeometry(0.3, 0.03, 0.01)
+  const mouth = new THREE.Mesh(mouthGeometry, eyeMaterial)
+  mouth.position.set(0, 0, 0.51)
+  tungTungNPC.add(mouth)
 
-  const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial)
-  leftPupil.position.set(-0.3, 0.4, 0.9)
-  tungTungNPC.add(leftPupil)
+  // BASEBALL BAT - Wooden bat held by log
+  const batGroup = new THREE.Group()
 
-  const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial)
-  rightPupil.position.set(0.3, 0.4, 0.9)
-  tungTungNPC.add(rightPupil)
+  // Bat handle
+  const handleGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.6, 16)
+  const batMaterial = new THREE.MeshStandardMaterial({
+    color: 0xD2691E,
+    roughness: 0.7
+  })
+  const handle = new THREE.Mesh(handleGeometry, batMaterial)
+  handle.position.y = 0.3
+  batGroup.add(handle)
+
+  // Bat barrel (thicker part)
+  const barrelGeometry = new THREE.CylinderGeometry(0.1, 0.06, 0.8, 16)
+  const barrel = new THREE.Mesh(barrelGeometry, batMaterial)
+  barrel.position.y = 1
+  batGroup.add(barrel)
+
+  // Position bat to side of log, angled
+  batGroup.position.set(0.7, 0, 0)
+  batGroup.rotation.z = -Math.PI / 6 // Angle it
+  batGroup.castShadow = true
+  tungTungNPC.add(batGroup)
 
   // Exclamation mark above head
   const exclamationGeometry = new THREE.ConeGeometry(0.1, 0.5, 8)
   const exclamationMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 })
   const exclamation = new THREE.Mesh(exclamationGeometry, exclamationMaterial)
-  exclamation.position.set(0, 2.5, 0)
+  exclamation.position.set(0, 2, 0)
   exclamation.visible = false
   tungTungNPC.add(exclamation)
   tungTungNPC.userData.exclamation = exclamation
