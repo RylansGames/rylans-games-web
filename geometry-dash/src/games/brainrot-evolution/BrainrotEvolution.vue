@@ -137,18 +137,88 @@ const init3DScene = () => {
   const gridHelper = new THREE.GridHelper(200, 40, 0x00cc00, 0x008800)
   scene.add(gridHelper)
 
-  // Create player collision box (visible in third person)
-  const playerGeometry = new THREE.BoxGeometry(0.6, playerHeight * 2, 0.6)
-  const playerMaterial = new THREE.MeshStandardMaterial({
-    color: 0xff00ff,
-    transparent: true,
-    opacity: 0.8,
-    emissive: 0xff00ff,
-    emissiveIntensity: 0.3
+  // Create player character as tung tung tung sahur (log with straight face and bat)
+  const playerGroup = new THREE.Group()
+
+  // LOG BODY - Brown wooden cylinder
+  const playerLogGeometry = new THREE.CylinderGeometry(0.3, 0.3, 1.5, 32)
+
+  // Create wood texture with rings
+  const playerCanvas = document.createElement('canvas')
+  playerCanvas.width = 512
+  playerCanvas.height = 512
+  const playerCtx = playerCanvas.getContext('2d')!
+
+  // Wood color
+  playerCtx.fillStyle = '#8B4513' // Brown
+  playerCtx.fillRect(0, 0, 512, 512)
+
+  // Add wood rings
+  for (let i = 0; i < 10; i++) {
+    playerCtx.strokeStyle = `rgba(101, 67, 33, ${0.3 + Math.random() * 0.3})`
+    playerCtx.lineWidth = 2 + Math.random() * 3
+    playerCtx.beginPath()
+    playerCtx.arc(256, 256 + i * 20, 100 + i * 15, 0, Math.PI * 2)
+    playerCtx.stroke()
+  }
+
+  const playerWoodTexture = new THREE.CanvasTexture(playerCanvas)
+  const playerLogMaterial = new THREE.MeshStandardMaterial({
+    map: playerWoodTexture,
+    roughness: 0.8,
+    metalness: 0.1
   })
-  player = new THREE.Mesh(playerGeometry, playerMaterial)
-  player.position.set(gameData.value.playerX, playerHeight, gameData.value.playerZ)
-  player.castShadow = true
+  const playerLog = new THREE.Mesh(playerLogGeometry, playerLogMaterial)
+  playerLog.castShadow = true
+  playerGroup.add(playerLog)
+
+  // STRAIGHT FACE - Simple dots and line
+
+  // Left eye (black dot)
+  const playerLeftEyeGeometry = new THREE.CircleGeometry(0.05, 16)
+  const playerEyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 })
+  const playerLeftEye = new THREE.Mesh(playerLeftEyeGeometry, playerEyeMaterial)
+  playerLeftEye.position.set(-0.12, 0.2, 0.31)
+  playerGroup.add(playerLeftEye)
+
+  // Right eye (black dot)
+  const playerRightEye = new THREE.Mesh(playerLeftEyeGeometry, playerEyeMaterial)
+  playerRightEye.position.set(0.12, 0.2, 0.31)
+  playerGroup.add(playerRightEye)
+
+  // Straight mouth (horizontal line)
+  const playerMouthGeometry = new THREE.BoxGeometry(0.18, 0.02, 0.01)
+  const playerMouth = new THREE.Mesh(playerMouthGeometry, playerEyeMaterial)
+  playerMouth.position.set(0, 0, 0.31)
+  playerGroup.add(playerMouth)
+
+  // BASEBALL BAT - Wooden bat held by log
+  const playerBatGroup = new THREE.Group()
+
+  // Bat handle
+  const playerHandleGeometry = new THREE.CylinderGeometry(0.03, 0.03, 0.4, 16)
+  const playerBatMaterial = new THREE.MeshStandardMaterial({
+    color: 0xD2691E,
+    roughness: 0.7
+  })
+  const playerHandle = new THREE.Mesh(playerHandleGeometry, playerBatMaterial)
+  playerHandle.position.y = 0.2
+  playerBatGroup.add(playerHandle)
+
+  // Bat barrel (thicker part)
+  const playerBarrelGeometry = new THREE.CylinderGeometry(0.06, 0.04, 0.5, 16)
+  const playerBarrel = new THREE.Mesh(playerBarrelGeometry, playerBatMaterial)
+  playerBarrel.position.y = 0.65
+  playerBatGroup.add(playerBarrel)
+
+  // Position bat to side of log, angled
+  playerBatGroup.position.set(0.4, 0, 0)
+  playerBatGroup.rotation.z = -Math.PI / 6 // Angle it
+  playerBatGroup.castShadow = true
+  playerGroup.add(playerBatGroup)
+
+  playerGroup.position.set(gameData.value.playerX, playerHeight, gameData.value.playerZ)
+  player = playerGroup as any
   scene.add(player)
 
   // Create walls around the world
@@ -657,6 +727,9 @@ const updatePlayer = () => {
     velocityY = 0
     isJumping = false
   }
+
+  // Rotate player to face the direction they're looking
+  player.rotation.y = yaw
 
   // Update camera position based on view mode
   if (isFirstPerson) {
