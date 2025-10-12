@@ -956,15 +956,21 @@ const updatePlayer = () => {
   camera.rotation.y = yaw
   camera.rotation.x = pitch
 
-  // Movement
+  // Movement - calculate direction based on player's yaw, not camera
   const direction = new THREE.Vector3()
   const right = new THREE.Vector3()
 
-  camera.getWorldDirection(direction)
+  // Calculate forward direction from player's yaw
+  direction.x = -Math.sin(yaw)
   direction.y = 0
+  direction.z = -Math.cos(yaw)
   direction.normalize()
 
-  right.crossVectors(camera.up, direction).normalize()
+  // Calculate right direction (perpendicular to forward)
+  right.x = Math.cos(yaw)
+  right.y = 0
+  right.z = -Math.sin(yaw)
+  right.normalize()
 
   if (keys['w']) {
     player.position.add(direction.clone().multiplyScalar(moveSpeed))
