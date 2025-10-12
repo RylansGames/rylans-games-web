@@ -66,6 +66,7 @@ const infoText = ref('Benvenuto! Welcome to the Italian Brainrot World! Find tun
 const coinsCollected = ref(0)
 const autoAttackEnabled = ref(false)
 const inventoryOpen = ref(false)
+const autoMoveEnabled = ref(true)
 const playerLevel = ref(1)
 const playerExp = ref(0)
 const maxExp = ref(10)
@@ -971,6 +972,11 @@ const updatePlayer = () => {
   right.y = 0
   right.z = Math.sin(yaw)
   right.normalize()
+
+  // Auto-move forward if enabled
+  if (autoMoveEnabled.value) {
+    player.position.add(direction.clone().multiplyScalar(moveSpeed))
+  }
 
   if (keys['w']) {
     player.position.add(direction.clone().multiplyScalar(moveSpeed))
