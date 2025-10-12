@@ -74,7 +74,6 @@ let scene: THREE.Scene
 let camera: THREE.PerspectiveCamera
 let renderer: THREE.WebGLRenderer
 let player: THREE.Mesh
-let tungTungNPC: THREE.Group
 let coins: THREE.Mesh[] = []
 let rocks: THREE.Group[] = []
 let apples: THREE.Mesh[] = []
@@ -383,9 +382,6 @@ const init3DScene = () => {
   // Create giant statue in center
   createStatue()
 
-  // Create tung tung tung tung sahur NPC
-  createTungTungNPC()
-
   // Create collectible coins
   createCoins()
 
@@ -644,99 +640,6 @@ const createStatue = () => {
 
   // Store reference for animation
   scene.userData.statue = statueGroup
-}
-
-const createTungTungNPC = () => {
-  tungTungNPC = new THREE.Group()
-  tungTungNPC.position.set(30, 1.5, 0)
-
-  // LOG BODY - Brown wooden cylinder
-  const logGeometry = new THREE.CylinderGeometry(0.5, 0.5, 2, 32)
-
-  // Create wood texture with rings
-  const canvas = document.createElement('canvas')
-  canvas.width = 512
-  canvas.height = 512
-  const ctx = canvas.getContext('2d')!
-
-  // Wood color
-  ctx.fillStyle = '#8B4513' // Brown
-  ctx.fillRect(0, 0, 512, 512)
-
-  // Add wood rings
-  for (let i = 0; i < 10; i++) {
-    ctx.strokeStyle = `rgba(101, 67, 33, ${0.3 + Math.random() * 0.3})`
-    ctx.lineWidth = 2 + Math.random() * 3
-    ctx.beginPath()
-    ctx.arc(256, 256 + i * 20, 100 + i * 15, 0, Math.PI * 2)
-    ctx.stroke()
-  }
-
-  const woodTexture = new THREE.CanvasTexture(canvas)
-  const logMaterial = new THREE.MeshStandardMaterial({
-    map: woodTexture,
-    roughness: 0.8,
-    metalness: 0.1
-  })
-  const log = new THREE.Mesh(logGeometry, logMaterial)
-  log.castShadow = true
-  tungTungNPC.add(log)
-
-  // STRAIGHT FACE - Simple dots and line
-
-  // Left eye (black dot)
-  const leftEyeGeometry = new THREE.CircleGeometry(0.08, 16)
-  const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 })
-  const leftEye = new THREE.Mesh(leftEyeGeometry, eyeMaterial)
-  leftEye.position.set(-0.2, 0.3, 0.51)
-  tungTungNPC.add(leftEye)
-
-  // Right eye (black dot)
-  const rightEye = new THREE.Mesh(leftEyeGeometry, eyeMaterial)
-  rightEye.position.set(0.2, 0.3, 0.51)
-  tungTungNPC.add(rightEye)
-
-  // Straight mouth (horizontal line)
-  const mouthGeometry = new THREE.BoxGeometry(0.3, 0.03, 0.01)
-  const mouth = new THREE.Mesh(mouthGeometry, eyeMaterial)
-  mouth.position.set(0, 0, 0.51)
-  tungTungNPC.add(mouth)
-
-  // BASEBALL BAT - Wooden bat held by log
-  const batGroup = new THREE.Group()
-
-  // Bat handle
-  const handleGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.6, 16)
-  const batMaterial = new THREE.MeshStandardMaterial({
-    color: 0xD2691E,
-    roughness: 0.7
-  })
-  const handle = new THREE.Mesh(handleGeometry, batMaterial)
-  handle.position.y = 0.3
-  batGroup.add(handle)
-
-  // Bat barrel (thicker part)
-  const barrelGeometry = new THREE.CylinderGeometry(0.1, 0.06, 0.8, 16)
-  const barrel = new THREE.Mesh(barrelGeometry, batMaterial)
-  barrel.position.y = 1
-  batGroup.add(barrel)
-
-  // Position bat to side of log, angled
-  batGroup.position.set(0.7, 0, 0)
-  batGroup.rotation.z = -Math.PI / 6 // Angle it
-  batGroup.castShadow = true
-  tungTungNPC.add(batGroup)
-
-  // Exclamation mark above head
-  const exclamationGeometry = new THREE.ConeGeometry(0.1, 0.5, 8)
-  const exclamationMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 })
-  const exclamation = new THREE.Mesh(exclamationGeometry, exclamationMaterial)
-  exclamation.position.set(0, 2, 0)
-  exclamation.visible = false
-  tungTungNPC.add(exclamation)
-  tungTungNPC.userData.exclamation = exclamation
-
-  scene.add(tungTungNPC)
 }
 
 const createCoins = () => {
@@ -1135,49 +1038,6 @@ const checkCollisions = () => {
     }
   })
 
-  // Check NPC proximity
-  if (tungTungNPC) {
-    const distance = player.position.distanceTo(tungTungNPC.position)
-    const exclamation = tungTungNPC.userData.exclamation
-
-    if (distance < 5) {
-      exclamation.visible = true
-
-      // Check cooldown (1 second = 1000ms)
-      const currentTime = Date.now()
-      const canInteract = currentTime - lastNPCInteraction >= 1000
-
-      if (canInteract) {
-        infoText.value = 'Press E to talk to tung tung tung tung sahur! 🪵'
-      } else {
-        const timeLeft = Math.ceil((1000 - (currentTime - lastNPCInteraction)) / 1000)
-        infoText.value = `Wait ${timeLeft}s before talking again...`
-      }
-
-      if (keys['e'] && canInteract && !gameData.value.hasMetTungTung) {
-        gameData.value.hasMetTungTung = true
-        gameState.addCoins(100)
-        infoText.value = '🪵 tung tung tung tung sahur: "Greetings! Welcome to Brainrot World! +100 coins for you!"'
-        setTimeout(() => {
-          infoText.value = 'Keep exploring!'
-        }, 4000)
-        keys['e'] = false // Prevent spam
-        lastNPCInteraction = currentTime
-      } else if (keys['e'] && canInteract && gameData.value.hasMetTungTung) {
-        infoText.value = '🪵 tung tung tung tung sahur: "Hello again, friend!"'
-        setTimeout(() => {
-          infoText.value = 'Explore the brainrot world! 🧠'
-        }, 2000)
-        keys['e'] = false
-        lastNPCInteraction = currentTime
-      }
-    } else {
-      exclamation.visible = false
-      if (distance > 10 && infoText.value.includes('tung tung')) {
-        infoText.value = 'Explore the Italian brainrot world! 🇮🇹'
-      }
-    }
-  }
 }
 
 const animate = () => {
@@ -1209,12 +1069,6 @@ const animate = () => {
     coin.rotation.z += 0.02
     coin.position.y += Math.sin(Date.now() * 0.001 + coin.position.x) * 0.005
   })
-
-  // Animate NPC
-  if (tungTungNPC) {
-    tungTungNPC.rotation.y += 0.01
-    tungTungNPC.position.y = 1 + Math.sin(Date.now() * 0.001) * 0.3
-  }
 
   // Animate statue
   if (scene.userData.statue) {
