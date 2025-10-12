@@ -9,6 +9,9 @@
     <button class="inventory-button" @click="toggleInventory">
       🎒 Inventory
     </button>
+    <button class="auto-walk-button" @click="toggleAutoWalk">
+      {{ autoMoveEnabled ? '🚶 Auto Walk: ON' : '🛑 Auto Walk: OFF' }}
+    </button>
 
     <!-- Inventory Panel -->
     <div v-if="inventoryOpen" class="inventory-panel">
@@ -142,6 +145,18 @@ const toggleInventory = () => {
       drawCharacterFace()
     }, 0)
   }
+}
+
+const toggleAutoWalk = () => {
+  autoMoveEnabled.value = !autoMoveEnabled.value
+  if (autoMoveEnabled.value) {
+    infoText.value = 'Auto Walk enabled! 🚶'
+  } else {
+    infoText.value = 'Auto Walk disabled! 🛑'
+  }
+  setTimeout(() => {
+    infoText.value = 'Explore the brainrot world! 🧠'
+  }, 2000)
 }
 
 const drawCharacterFace = () => {
@@ -1197,6 +1212,26 @@ onUnmounted(() => {
 
 .inventory-button:hover {
   background: #d97706;
+}
+
+.auto-walk-button {
+  position: absolute;
+  top: 170px;
+  left: 20px;
+  padding: 10px 20px;
+  background: #10b981;
+  color: white;
+  border: 2px solid white;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  z-index: 1000;
+  transition: background 0.3s;
+}
+
+.auto-walk-button:hover {
+  background: #059669;
 }
 
 .inventory-panel {
