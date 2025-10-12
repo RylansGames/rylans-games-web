@@ -36,7 +36,7 @@
         <div class="hud-coins">Coins Collected: {{ coinsCollected }}</div>
       </div>
       <div class="controls-hint">
-        WASD: Move | Mouse: Look Around | SPACE: Jump | E: Interact | B: Toggle Camera | Left Click: Hit Apple
+        WASD/Arrows: Move | Mouse: Look Around | SPACE: Jump | B: Toggle Camera | Left Click: Hit Apple
       </div>
 
       <!-- Level/EXP Bar at Bottom -->
@@ -978,16 +978,16 @@ const updatePlayer = () => {
     player.position.add(direction.clone().multiplyScalar(moveSpeed))
   }
 
-  if (keys['w']) {
+  if (keys['w'] || keys['arrowup']) {
     player.position.add(direction.clone().multiplyScalar(moveSpeed))
   }
-  if (keys['s']) {
+  if (keys['s'] || keys['arrowdown']) {
     player.position.add(direction.clone().multiplyScalar(-moveSpeed))
   }
-  if (keys['a']) {
+  if (keys['a'] || keys['arrowleft']) {
     player.position.add(right.clone().multiplyScalar(-moveSpeed))
   }
-  if (keys['d']) {
+  if (keys['d'] || keys['arrowright']) {
     player.position.add(right.clone().multiplyScalar(moveSpeed))
   }
 
