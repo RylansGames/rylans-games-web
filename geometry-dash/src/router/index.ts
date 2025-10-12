@@ -20,6 +20,16 @@ const router = createRouter({
       component: () => import('../games/brainrot-evolution/BrainrotEvolution.vue'),
     },
     {
+      path: '/games/brainrot-admin',
+      name: 'brainrot-admin',
+      component: () => import('../games/brainrot-evolution/BrainrotAdmin.vue'),
+    },
+    {
+      path: '/games/scary-shushi',
+      name: 'scary-shushi',
+      component: () => import('../games/scary-shushi/ScaryShushi.vue'),
+    },
+    {
       path: '/about',
       name: 'about',
       component: () => import('../views/AboutView.vue'),

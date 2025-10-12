@@ -9,8 +9,14 @@
     <button class="inventory-button" @click="toggleInventory">
       🎒 Inventory
     </button>
-    <button class="auto-walk-button" @click="toggleAutoWalk">
-      {{ autoMoveEnabled ? '🚶 Auto Walk: ON' : '🛑 Auto Walk: OFF' }}
+    <button class="pet-button" @click="togglePets">
+      🐾 Pets
+    </button>
+    <button class="fullscreen-button" @click="toggleFullscreen">
+      {{ isFullscreen ? '🗗 Exit Fullscreen' : '🗖 Fullscreen' }}
+    </button>
+    <button class="restart-button" @click="restartGame">
+      🔄 Restart
     </button>
 
     <!-- Inventory Panel -->
@@ -32,11 +38,109 @@
       </div>
     </div>
 
+    <!-- Egg Opening Panel -->
+    <div v-if="showEggPanel" class="egg-panel">
+      <div class="egg-panel-header">
+        <h3>🥚 Common Egg - 10 coins each</h3>
+      </div>
+      <div class="egg-panel-buttons">
+        <button class="egg-open-button" @click="openMultipleEggs(1)">
+          Open 1<br><span class="egg-cost">10 coins</span>
+        </button>
+        <button class="egg-open-button" @click="openMultipleEggs(2)">
+          Open 2<br><span class="egg-cost">20 coins</span>
+        </button>
+        <button class="egg-open-button" @click="openMultipleEggs(3)">
+          Open 3<br><span class="egg-cost">30 coins</span>
+        </button>
+      </div>
+      <div v-if="eggResults.length > 0" class="egg-results">
+        <h4>You got:</h4>
+        <div v-for="(pet, index) in eggResults" :key="index" class="egg-result-item">
+          {{ pet.name }} ({{ pet.rarity }}) - {{ pet.damage }}x damage
+        </div>
+      </div>
+    </div>
+
+    <!-- Pets Panel -->
+    <div v-if="petsOpen" class="pets-panel">
+      <div class="pets-panel-header">
+        <h2>🐾 Your Pets</h2>
+        <button class="pets-close" @click="togglePets">✕</button>
+      </div>
+      <div class="pets-content">
+        <div v-if="gameData.activePets && gameData.activePets.length > 0" class="active-pet-section">
+          <h3>Active Pets ({{ gameData.activePets.length }}/3):</h3>
+          <div class="active-pets-grid">
+            <div v-for="pet in gameData.activePets" :key="pet.id" class="active-pet-card">
+              <div class="pet-name">{{ pet.name }}</div>
+              <div class="pet-rarity">{{ pet.rarity }}</div>
+              <div class="pet-damage">{{ pet.damage }}x Damage</div>
+              <button @click="equipPet(pet)" class="unequip-button">Unequip</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="pet-collection-section">
+          <div class="collection-header">
+            <h3>Pet Collection ({{ gameData.pets?.length || 0 }} pets):</h3>
+            <button v-if="gameData.pets && gameData.pets.length > 0" @click="equipBestPets" class="equip-best-button">
+              ⭐ Equip Best Pets
+            </button>
+          </div>
+
+          <!-- Rarity Delete Buttons -->
+          <div v-if="gameData.pets && gameData.pets.length > 0" class="rarity-delete-section">
+            <h4>🗑️ Delete by Rarity:</h4>
+            <div class="rarity-buttons">
+              <button @click="deletePetsByRarity('Common')" class="rarity-delete-btn common">
+                Common
+              </button>
+              <button @click="deletePetsByRarity('Rare')" class="rarity-delete-btn rare">
+                Rare
+              </button>
+              <button @click="deletePetsByRarity('Epic')" class="rarity-delete-btn epic">
+                Epic
+              </button>
+              <button @click="deletePetsByRarity('Legendary')" class="rarity-delete-btn legendary">
+                Legendary
+              </button>
+              <button @click="deletePetsByRarity('Mythic')" class="rarity-delete-btn mythic">
+                Mythic
+              </button>
+              <button @click="deletePetsByRarity('MODERATOR')" class="rarity-delete-btn moderator">
+                MODERATOR
+              </button>
+            </div>
+          </div>
+
+          <div v-if="!gameData.pets || gameData.pets.length === 0" class="no-pets">
+            No pets yet! Open eggs to get pets! 🥚
+          </div>
+          <div v-else class="pet-grid">
+            <div v-for="pet in gameData.pets" :key="pet.id" class="pet-card" :class="{ 'is-active': gameData.activePets?.some(p => p.id === pet.id) }">
+              <div class="pet-card-name">{{ pet.name }}</div>
+              <div class="pet-card-rarity" :class="'rarity-' + pet.rarity.toLowerCase()">{{ pet.rarity }}</div>
+              <div class="pet-card-damage">{{ pet.damage }}x damage</div>
+              <button v-if="!gameData.activePets?.some(p => p.id === pet.id)" @click="equipPet(pet)" class="equip-button">Equip</button>
+              <div v-else class="equipped-badge">✓ Equipped</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div ref="gameContainer" class="game-container">
       <div class="hud">
         <div class="hud-title">🧠 BRAINROT EVOLUTION 3D 🧠</div>
         <div class="hud-info">{{ infoText }}</div>
-        <div class="hud-coins">Coins Collected: {{ coinsCollected }}</div>
+        <div class="hud-coins">Coins: {{ gameState.getCoins() }}</div>
+        <div v-if="gameData.activePets && gameData.activePets.length > 0" class="hud-pets">
+          Active Pets ({{ gameData.activePets.length }}/3):
+          <div v-for="pet in gameData.activePets" :key="pet.id" class="hud-pet-item">
+            {{ pet.name }} ({{ pet.damage }}x)
+          </div>
+        </div>
       </div>
       <div class="controls-hint">
         WASD/Arrows: Move | Mouse: Look Around | SPACE: Jump | B: Toggle Camera | Left Click: Hit Apple
@@ -76,11 +180,17 @@ const infoText = ref('Benvenuto! Welcome to the Italian Brainrot World! Find tun
 const coinsCollected = ref(0)
 const autoAttackEnabled = ref(false)
 const inventoryOpen = ref(false)
-const autoMoveEnabled = ref(true)
+const petsOpen = ref(false)
+const isFullscreen = ref(false)
+const showEggPanel = ref(false)
+const eggResults = ref<Pet[]>([])
 const playerLevel = ref(1)
 const playerExp = ref(0)
 const maxExp = ref(10)
 const showLevelUpShark = ref(false)
+
+// Background music
+let backgroundMusic: HTMLAudioElement | null = null
 
 let scene: THREE.Scene
 let camera: THREE.PerspectiveCamera
@@ -89,6 +199,8 @@ let player: THREE.Mesh
 let coins: THREE.Mesh[] = []
 let rocks: THREE.Group[] = []
 let apples: THREE.Mesh[] = []
+let oranges: THREE.Mesh[] = []
+let eggs: THREE.Mesh[] = []
 let animationId: number
 let isSharkForm = false
 
@@ -110,6 +222,14 @@ let isFirstPerson = true // Camera mode
 let lastNPCInteraction = 0 // Cooldown timer for NPC interaction
 let lastAppleAttack = 0 // Cooldown timer for apple attacks
 
+// Pet data
+interface Pet {
+  id: string
+  name: string
+  damage: number
+  rarity: string
+}
+
 // Game data
 interface GameData {
   playerX: number
@@ -118,6 +238,9 @@ interface GameData {
   hasMetTungTung: boolean
   level: number
   exp: number
+  orangeHP?: number[] // Track HP for each of the 5 oranges
+  pets?: Pet[] // Player's pet collection
+  activePets?: Pet[] // Up to 3 currently equipped pets
 }
 
 const gameData = ref<GameData>({
@@ -126,7 +249,9 @@ const gameData = ref<GameData>({
   coinsCollectedCount: 0,
   hasMetTungTung: false,
   level: 1,
-  exp: 0
+  exp: 0,
+  pets: [],
+  activePets: []
 })
 
 const goBack = () => {
@@ -156,16 +281,272 @@ const toggleInventory = () => {
   }
 }
 
-const toggleAutoWalk = () => {
-  autoMoveEnabled.value = !autoMoveEnabled.value
-  if (autoMoveEnabled.value) {
-    infoText.value = 'Auto Walk enabled! 🚶'
-  } else {
-    infoText.value = 'Auto Walk disabled! 🛑'
+const togglePets = () => {
+  petsOpen.value = !petsOpen.value
+}
+
+const equipBestPets = () => {
+  if (!gameData.value.pets || gameData.value.pets.length === 0) {
+    infoText.value = 'No pets to equip! 🐾'
+    setTimeout(() => {
+      infoText.value = 'Explore the brainrot world! 🧠'
+    }, 2000)
+    return
   }
+
+  // Sort pets by damage (highest first)
+  const sortedPets = [...gameData.value.pets].sort((a, b) => b.damage - a.damage)
+
+  // Take top 3 pets
+  const bestPets = sortedPets.slice(0, 3)
+
+  // Equip the best pets
+  gameData.value.activePets = bestPets
+
+  saveGameData()
+
+  // Show success message
+  const petNames = bestPets.map(p => p.name).join(', ')
+  infoText.value = `Equipped best pets: ${petNames}! 🌟`
+  setTimeout(() => {
+    infoText.value = 'Explore the brainrot world! 🧠'
+  }, 3000)
+}
+
+const deletePetsByRarity = (rarity: string) => {
+  if (!gameData.value.pets || gameData.value.pets.length === 0) {
+    infoText.value = 'No pets to delete! 🐾'
+    setTimeout(() => {
+      infoText.value = 'Explore the brainrot world! 🧠'
+    }, 2000)
+    return
+  }
+
+  // Count how many pets of this rarity exist
+  const petsToDelete = gameData.value.pets.filter(p => p.rarity === rarity)
+  const count = petsToDelete.length
+
+  if (count === 0) {
+    infoText.value = `No ${rarity} pets found! 🔍`
+    setTimeout(() => {
+      infoText.value = 'Explore the brainrot world! 🧠'
+    }, 2000)
+    return
+  }
+
+  // Confirm deletion
+  if (!confirm(`Delete all ${count} ${rarity} pet(s)? This cannot be undone!`)) {
+    return
+  }
+
+  // Remove pets of this rarity from collection
+  gameData.value.pets = gameData.value.pets.filter(p => p.rarity !== rarity)
+
+  // Remove any of these pets from active pets
+  if (gameData.value.activePets) {
+    gameData.value.activePets = gameData.value.activePets.filter(p => p.rarity !== rarity)
+  }
+
+  saveGameData()
+
+  // Show success message
+  infoText.value = `Deleted ${count} ${rarity} pet(s)! 🗑️`
+  setTimeout(() => {
+    infoText.value = 'Explore the brainrot world! 🧠'
+  }, 3000)
+}
+
+const equipPet = (pet: Pet) => {
+  if (!gameData.value.activePets) {
+    gameData.value.activePets = []
+  }
+
+  // Check if pet is already equipped
+  const isEquipped = gameData.value.activePets.some(p => p.id === pet.id)
+
+  if (isEquipped) {
+    // Unequip the pet
+    gameData.value.activePets = gameData.value.activePets.filter(p => p.id !== pet.id)
+    infoText.value = `Unequipped ${pet.name}! 🐾`
+  } else if (gameData.value.activePets.length < 3) {
+    // Equip the pet if less than 3
+    gameData.value.activePets.push(pet)
+    infoText.value = `Equipped ${pet.name}! (${gameData.value.activePets.length}/3 pets active) 🐾`
+  } else {
+    // Can't equip more than 3
+    infoText.value = `Max 3 pets! Unequip one first! 🐾`
+  }
+
+  saveGameData()
   setTimeout(() => {
     infoText.value = 'Explore the brainrot world! 🧠'
   }, 2000)
+}
+
+const toggleFullscreen = () => {
+  const elem = document.documentElement
+
+  if (!document.fullscreenElement) {
+    elem.requestFullscreen().then(() => {
+      isFullscreen.value = true
+    }).catch(err => {
+      console.error('Error attempting to enable fullscreen:', err)
+    })
+  } else {
+    document.exitFullscreen().then(() => {
+      isFullscreen.value = false
+    }).catch(err => {
+      console.error('Error attempting to exit fullscreen:', err)
+    })
+  }
+}
+
+const restartGame = () => {
+  if (confirm('Are you sure you want to restart? This will reset your level back to 1 and clear all progress!')) {
+    // Reset game data to starting values
+    gameData.value = {
+      playerX: 0,
+      playerZ: 0,
+      coinsCollectedCount: 0,
+      hasMetTungTung: false,
+      level: 1,
+      exp: 0,
+      orangeHP: [200, 200, 200, 200, 200],
+      pets: [],
+      activePets: []
+    }
+
+    // Reset player level and exp
+    playerLevel.value = 1
+    playerExp.value = 0
+    maxExp.value = 10
+    coinsCollected.value = 0
+
+    // Save the reset data
+    saveGameData()
+
+    // Reload the page to restart the game
+    location.reload()
+  }
+}
+
+const restartProgress = () => {
+  // Clear saved game data
+  localStorage.removeItem('brainrotEvolution3D')
+  // Reload the page to restart
+  window.location.reload()
+}
+
+const openCommonEgg = (): Pet => {
+  // Common egg pet pool with chances
+  const random = Math.random() * 100 // 0-100
+
+  // Dog: 45% (0-45)
+  if (random < 45) {
+    return {
+      id: `dog-${Date.now()}-${Math.random()}`,
+      name: 'Dog',
+      damage: 1,
+      rarity: 'Common'
+    }
+  }
+  // Cat: 15% (45-60) - RARE
+  else if (random < 60) {
+    return {
+      id: `cat-${Date.now()}-${Math.random()}`,
+      name: 'Cat',
+      damage: 1.25,
+      rarity: 'Rare'
+    }
+  }
+  // Cat Vampire: 5% (60-65) - EPIC
+  else if (random < 65) {
+    return {
+      id: `catvampire-${Date.now()}-${Math.random()}`,
+      name: 'Cat Vampire',
+      damage: 1.50,
+      rarity: 'Epic'
+    }
+  }
+  // Mushroom Head: 1% (65-66) - LEGENDARY
+  else if (random < 66) {
+    return {
+      id: `mushroomhead-${Date.now()}-${Math.random()}`,
+      name: 'Mushroom Head',
+      damage: 1.75,
+      rarity: 'Legendary'
+    }
+  }
+  // Dragon: 0.25% (66-66.25) - MYTHIC
+  else if (random < 66.25) {
+    return {
+      id: `dragon-${Date.now()}-${Math.random()}`,
+      name: 'Dragon',
+      damage: 2,
+      rarity: 'Mythic'
+    }
+  }
+  // Fallback to Dog (remaining 33.75%)
+  else {
+    return {
+      id: `dog-${Date.now()}-${Math.random()}`,
+      name: 'Dog',
+      damage: 1,
+      rarity: 'Common'
+    }
+  }
+}
+
+const openMultipleEggs = (count: number) => {
+  const price = 10 * count
+  const currentCoins = gameState.getCoins()
+
+  console.log(`Trying to open ${count} eggs. Price: ${price}, Current coins: ${currentCoins}`)
+
+  if (currentCoins < price) {
+    infoText.value = `Not enough coins! Need ${price}, have ${currentCoins} 💰`
+    setTimeout(() => {
+      infoText.value = 'Explore the brainrot world! 🧠'
+    }, 2000)
+    return
+  }
+
+  // Deduct coins
+  gameState.spendCoins(price)
+
+  // Open eggs and collect results
+  const results: Pet[] = []
+  for (let i = 0; i < count; i++) {
+    const newPet = openCommonEgg()
+
+    // Add pet to collection
+    if (!gameData.value.pets) {
+      gameData.value.pets = []
+    }
+    gameData.value.pets.push(newPet)
+
+    // Auto-equip if less than 3 active pets
+    if (!gameData.value.activePets) {
+      gameData.value.activePets = []
+    }
+    if (gameData.value.activePets.length < 3) {
+      gameData.value.activePets.push(newPet)
+    }
+
+    results.push(newPet)
+  }
+
+  // Show results
+  eggResults.value = results
+
+  // Save game data
+  saveGameData()
+
+  infoText.value = `Opened ${count} egg${count > 1 ? 's' : ''}! Check the panel for results! 🎉`
+
+  setTimeout(() => {
+    infoText.value = 'Explore the brainrot world! 🧠'
+  }, 3000)
 }
 
 const drawCharacterFace = () => {
@@ -235,14 +616,51 @@ const drawCharacterFace = () => {
 const loadGameData = () => {
   const saved = localStorage.getItem('brainrotEvolution3D')
   if (saved) {
-    gameData.value = JSON.parse(saved)
+    const loadedData = JSON.parse(saved)
+
+    // Migrate old activePet to activePets array
+    let activePets = loadedData.activePets || []
+    if (loadedData.activePet && !loadedData.activePets) {
+      // Old save format - convert single pet to array
+      activePets = [loadedData.activePet]
+    }
+
+    gameData.value = {
+      ...loadedData,
+      pets: loadedData.pets || [],
+      activePets: activePets
+    }
     coinsCollected.value = gameData.value.coinsCollectedCount
     playerLevel.value = gameData.value.level || 1
     playerExp.value = gameData.value.exp || 0
+
+    // Set maxExp based on loaded level
+    if (playerLevel.value === 1) maxExp.value = 10
+    else if (playerLevel.value === 2) maxExp.value = 30
+    else if (playerLevel.value === 3) maxExp.value = 50
+    else if (playerLevel.value === 4) maxExp.value = 75
+    else if (playerLevel.value === 5) maxExp.value = 100
+    else if (playerLevel.value === 6) maxExp.value = 150
+    else if (playerLevel.value === 7) maxExp.value = 200
+    else if (playerLevel.value >= 8) maxExp.value = 200 // Max level
+
+    // Log pets for debugging
+    console.log('Loaded pets:', gameData.value.pets)
+    console.log('Active pets:', gameData.value.activePets)
+    console.log('Loaded level:', playerLevel.value, 'maxExp:', maxExp.value)
   }
 }
 
 const addExp = (amount: number) => {
+  // Don't add exp if already at max level
+  if (playerLevel.value >= 8) {
+    infoText.value = '⭐ MAX LEVEL REACHED! Level 8 ⭐'
+    setTimeout(() => {
+      infoText.value = 'Explore the brainrot world! 🧠'
+    }, 2000)
+    return
+  }
+
   playerExp.value += amount
   gameData.value.exp = playerExp.value
 
@@ -253,12 +671,34 @@ const addExp = (amount: number) => {
     gameData.value.level = playerLevel.value
     gameData.value.exp = playerExp.value
 
+    // Cap at level 8
+    if (playerLevel.value > 8) {
+      playerLevel.value = 8
+      gameData.value.level = 8
+      playerExp.value = 0
+      gameData.value.exp = 0
+    }
+
     // Update max exp based on level
     if (playerLevel.value === 2) {
       maxExp.value = 30 // Level 2 requires 30 exp to reach level 3
+    } else if (playerLevel.value === 3) {
+      maxExp.value = 50 // Level 3 requires 50 exp
+    } else if (playerLevel.value === 4) {
+      maxExp.value = 75 // Level 4 requires 75 exp
+    } else if (playerLevel.value === 5) {
+      maxExp.value = 100 // Level 5 requires 100 exp
+    } else if (playerLevel.value === 6) {
+      maxExp.value = 150 // Level 6 requires 150 exp
+    } else if (playerLevel.value === 7) {
+      maxExp.value = 200 // Level 7 requires 200 exp
     }
 
     infoText.value = `🎉 LEVEL UP! You are now Level ${playerLevel.value}! 🎉`
+
+    if (playerLevel.value === 8) {
+      infoText.value = `🎉 LEVEL UP! MAX LEVEL REACHED! Level 8! 🎉⭐`
+    }
 
     // Show the shark!
     showLevelUpShark.value = true
@@ -390,6 +830,8 @@ const drawLevelUpShark = () => {
 }
 
 const saveGameData = () => {
+  // Save orange HP
+  gameData.value.orangeHP = oranges.map(orange => orange.userData.hp)
   localStorage.setItem('brainrotEvolution3D', JSON.stringify(gameData.value))
 }
 
@@ -541,6 +983,15 @@ const init3DScene = () => {
 
   // Create rocks and apples
   createRocksAndApples()
+
+  // Create oranges
+  createOranges()
+
+  // Create eggs at spawn
+  createEggs()
+
+  // Create cute elephant-cactus at corner
+  createElephantCactus()
 
   // Create skybox with stars
   createStars()
@@ -993,6 +1444,102 @@ const createRocksAndApples = () => {
   })
 }
 
+const createOranges = () => {
+  // 5 orange locations scattered around the map
+  const orangePositions = [
+    { x: 60, y: 2, z: 30 },
+    { x: -60, y: 2, z: -30 },
+    { x: 30, y: 2, z: -60 },
+    { x: -30, y: 2, z: 60 },
+    { x: 0, y: 2, z: -80 }
+  ]
+
+  orangePositions.forEach((pos, index) => {
+    // Orange body (sphere)
+    const orangeGeometry = new THREE.SphereGeometry(1.5, 16, 16)
+    const orangeMaterial = new THREE.MeshStandardMaterial({
+      color: 0xff8c00, // Dark orange
+      metalness: 0.3,
+      roughness: 0.5
+    })
+    const orange = new THREE.Mesh(orangeGeometry, orangeMaterial)
+    orange.position.set(pos.x, pos.y, pos.z)
+    orange.castShadow = true
+
+    // Add stem on top
+    const stemGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.4, 8)
+    const stemMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 })
+    const stem = new THREE.Mesh(stemGeometry, stemMaterial)
+    stem.position.set(pos.x, pos.y + 1.7, pos.z)
+    scene.add(stem)
+
+    // Store orange data - load saved HP or default to 200
+    const savedHP = gameData.value.orangeHP?.[index] ?? 200
+    orange.userData.isOrange = true
+    orange.userData.hp = savedHP
+    orange.userData.maxHp = 200
+    orange.userData.stem = stem
+    orange.userData.index = index
+
+    oranges.push(orange)
+    scene.add(orange)
+  })
+}
+
+const createEggs = () => {
+  // Three eggs at spawn point in a row
+  const eggData = [
+    { x: -3, z: 3, price: 10, color: 0xffffff, name: 'Common Egg' },
+    { x: 0, z: 3, price: 35, color: 0x3b82f6, name: 'Rare Egg' },
+    { x: 3, z: 3, price: 250, color: 0x9333ea, name: 'Epic Egg' }
+  ]
+
+  eggData.forEach((data, index) => {
+    // Create egg shape (ellipsoid)
+    const eggGeometry = new THREE.SphereGeometry(0.8, 16, 16)
+    const eggMaterial = new THREE.MeshStandardMaterial({
+      color: data.color,
+      metalness: 0.3,
+      roughness: 0.4
+    })
+    const egg = new THREE.Mesh(eggGeometry, eggMaterial)
+    egg.scale.set(0.8, 1.2, 0.8) // Make it egg-shaped
+    egg.position.set(data.x, 1, data.z)
+    egg.castShadow = true
+
+    // Store egg data
+    egg.userData.isEgg = true
+    egg.userData.price = data.price
+    egg.userData.name = data.name
+    egg.userData.index = index
+
+    eggs.push(egg)
+    scene.add(egg)
+
+    // Add price label above egg (using a simple plane with text texture)
+    const canvas = document.createElement('canvas')
+    canvas.width = 256
+    canvas.height = 128
+    const ctx = canvas.getContext('2d')!
+    ctx.fillStyle = 'white'
+    ctx.font = 'bold 48px Arial'
+    ctx.textAlign = 'center'
+    ctx.fillText(`${data.price} coins`, 128, 64)
+
+    const texture = new THREE.CanvasTexture(canvas)
+    const labelGeometry = new THREE.PlaneGeometry(2, 1)
+    const labelMaterial = new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      side: THREE.DoubleSide
+    })
+    const label = new THREE.Mesh(labelGeometry, labelMaterial)
+    label.position.set(data.x, 2.5, data.z)
+    scene.add(label)
+    egg.userData.label = label
+  })
+}
+
 const createStars = () => {
   const starGeometry = new THREE.BufferGeometry()
   const starPositions = []
@@ -1014,6 +1561,175 @@ const createStars = () => {
 
   const stars = new THREE.Points(starGeometry, starMaterial)
   scene.add(stars)
+}
+
+const createElephantCactus = () => {
+  // Create a cute elephant-cactus hybrid with 2 feet at the corner of the map
+  const elephantGroup = new THREE.Group()
+
+  // Position at corner of map
+  elephantGroup.position.set(90, 0, 90)
+
+  // Make it BIG!
+  elephantGroup.scale.set(3, 3, 3)
+
+  // Cactus body (green cylinder for main body)
+  const bodyGeometry = new THREE.CylinderGeometry(1.5, 1.8, 4, 16)
+  const bodyMaterial = new THREE.MeshStandardMaterial({
+    color: 0x2d5016, // Dark cactus green
+    roughness: 0.8
+  })
+  const body = new THREE.Mesh(bodyGeometry, bodyMaterial)
+  body.position.y = 3
+  body.castShadow = true
+  elephantGroup.add(body)
+
+  // Cactus arms (cylinder segments sticking out)
+  const armGeometry = new THREE.CylinderGeometry(0.6, 0.7, 2, 12)
+  const armMaterial = new THREE.MeshStandardMaterial({
+    color: 0x2d5016,
+    roughness: 0.8
+  })
+
+  // Left arm
+  const leftArm = new THREE.Mesh(armGeometry, armMaterial)
+  leftArm.position.set(-1.8, 3.5, 0)
+  leftArm.rotation.z = Math.PI / 2
+  leftArm.castShadow = true
+  elephantGroup.add(leftArm)
+
+  // Right arm
+  const rightArm = new THREE.Mesh(armGeometry, armMaterial)
+  rightArm.position.set(1.8, 3.5, 0)
+  rightArm.rotation.z = -Math.PI / 2
+  rightArm.castShadow = true
+  elephantGroup.add(rightArm)
+
+  // Elephant trunk (curved cylinder coming from front)
+  const trunkGeometry = new THREE.CylinderGeometry(0.4, 0.5, 2.5, 12)
+  const trunk = new THREE.Mesh(trunkGeometry, bodyMaterial)
+  trunk.position.set(0, 4, 1.5)
+  trunk.rotation.x = Math.PI / 4
+  trunk.castShadow = true
+  elephantGroup.add(trunk)
+
+  // Elephant ears (flat circles on sides)
+  const earGeometry = new THREE.CircleGeometry(1, 16)
+  const earMaterial = new THREE.MeshStandardMaterial({
+    color: 0x2d5016,
+    side: THREE.DoubleSide
+  })
+
+  const leftEar = new THREE.Mesh(earGeometry, earMaterial)
+  leftEar.position.set(-1.5, 4.5, 0)
+  leftEar.rotation.y = Math.PI / 4
+  elephantGroup.add(leftEar)
+
+  const rightEar = new THREE.Mesh(earGeometry, earMaterial)
+  rightEar.position.set(1.5, 4.5, 0)
+  rightEar.rotation.y = -Math.PI / 4
+  elephantGroup.add(rightEar)
+
+  // Cute face
+  // Eyes (white spheres with black pupils)
+  const eyeWhiteGeometry = new THREE.SphereGeometry(0.3, 16, 16)
+  const eyeWhiteMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff })
+
+  const leftEyeWhite = new THREE.Mesh(eyeWhiteGeometry, eyeWhiteMaterial)
+  leftEyeWhite.position.set(-0.5, 4.5, 1.3)
+  elephantGroup.add(leftEyeWhite)
+
+  const rightEyeWhite = new THREE.Mesh(eyeWhiteGeometry, eyeWhiteMaterial)
+  rightEyeWhite.position.set(0.5, 4.5, 1.3)
+  elephantGroup.add(rightEyeWhite)
+
+  // Pupils (black)
+  const pupilGeometry = new THREE.SphereGeometry(0.15, 16, 16)
+  const pupilMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 })
+
+  const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial)
+  leftPupil.position.set(-0.5, 4.5, 1.5)
+  elephantGroup.add(leftPupil)
+
+  const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial)
+  rightPupil.position.set(0.5, 4.5, 1.5)
+  elephantGroup.add(rightPupil)
+
+  // Cute smile (curved line made with torus)
+  const smileGeometry = new THREE.TorusGeometry(0.5, 0.1, 8, 16, Math.PI)
+  const smileMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 })
+  const smile = new THREE.Mesh(smileGeometry, smileMaterial)
+  smile.position.set(0, 3.8, 1.4)
+  smile.rotation.x = Math.PI
+  smile.rotation.z = Math.PI
+  elephantGroup.add(smile)
+
+  // Rosy cheeks (pink spheres)
+  const cheekGeometry = new THREE.SphereGeometry(0.25, 16, 16)
+  const cheekMaterial = new THREE.MeshStandardMaterial({
+    color: 0xff69b4,
+    emissive: 0xff69b4,
+    emissiveIntensity: 0.2
+  })
+
+  const leftCheek = new THREE.Mesh(cheekGeometry, cheekMaterial)
+  leftCheek.position.set(-0.9, 4, 1.2)
+  elephantGroup.add(leftCheek)
+
+  const rightCheek = new THREE.Mesh(cheekGeometry, cheekMaterial)
+  rightCheek.position.set(0.9, 4, 1.2)
+  elephantGroup.add(rightCheek)
+
+  // 2 Feet (cylinders at bottom)
+  const footGeometry = new THREE.CylinderGeometry(0.6, 0.7, 1, 16)
+  const footMaterial = new THREE.MeshStandardMaterial({
+    color: 0x3a6b1f, // Slightly lighter green
+    roughness: 0.9
+  })
+
+  const leftFoot = new THREE.Mesh(footGeometry, footMaterial)
+  leftFoot.position.set(-0.8, 0.5, 0)
+  leftFoot.castShadow = true
+  elephantGroup.add(leftFoot)
+
+  const rightFoot = new THREE.Mesh(footGeometry, footMaterial)
+  rightFoot.position.set(0.8, 0.5, 0)
+  rightFoot.castShadow = true
+  elephantGroup.add(rightFoot)
+
+  // Add cactus spikes (small cones)
+  const spikeGeometry = new THREE.ConeGeometry(0.1, 0.4, 8)
+  const spikeMaterial = new THREE.MeshStandardMaterial({
+    color: 0x1a3d0c, // Darker green for spikes
+    roughness: 0.9
+  })
+
+  // Add random spikes around the body
+  for (let i = 0; i < 15; i++) {
+    const spike = new THREE.Mesh(spikeGeometry, spikeMaterial)
+    const angle = (Math.PI * 2 * i) / 15
+    const radius = 1.6
+    spike.position.set(
+      Math.cos(angle) * radius,
+      2 + Math.random() * 2,
+      Math.sin(angle) * radius
+    )
+    spike.rotation.z = -angle
+    spike.rotation.x = Math.PI / 2
+    elephantGroup.add(spike)
+  }
+
+  scene.add(elephantGroup)
+
+  // Make it gently sway
+  elephantGroup.userData.animate = () => {
+    const time = Date.now() * 0.001
+    elephantGroup.rotation.y = Math.sin(time * 0.5) * 0.1
+    elephantGroup.position.y = Math.sin(time) * 0.2
+  }
+
+  // Store reference for animation
+  scene.userData.elephantCactus = elephantGroup
 }
 
 const setupControls = () => {
@@ -1084,62 +1800,145 @@ const hitApple = () => {
     raycaster.set(player.position, direction)
   }
 
-  // Check if we're looking at any apples
-  const intersects = raycaster.intersectObjects(apples)
+  // Check if we're looking at any apples, oranges, or eggs
+  const targets = [...apples, ...oranges, ...eggs]
+  const intersects = raycaster.intersectObjects(targets)
 
   if (intersects.length > 0) {
-    const apple = intersects[0].object as THREE.Mesh
-    if (apple.userData.isApple && apple.userData.hp > 0) {
-      // Hit the apple - deal more damage at level 2+
-      const damage = playerLevel.value >= 2 ? 2 : 1
-      apple.userData.hp -= damage
+    const target = intersects[0].object as THREE.Mesh
+    const isApple = target.userData.isApple
+    const isOrange = target.userData.isOrange
+    const isEgg = target.userData.isEgg
+
+    // Handle egg click
+    if (isEgg) {
+      // For Common Egg, show the panel with open 1/2/3 buttons
+      if (target.userData.name === 'Common Egg') {
+        showEggPanel.value = !showEggPanel.value
+        eggResults.value = [] // Clear previous results when toggling panel
+        infoText.value = showEggPanel.value ? 'Choose how many eggs to open! 🥚' : 'Explore the brainrot world! 🧠'
+      } else {
+        // For Rare and Epic eggs, use old system (direct purchase)
+        const price = target.userData.price
+        const currentCoins = gameState.getCoins()
+
+        if (currentCoins >= price) {
+          gameState.spendCoins(price)
+
+          // Open the egg
+          const newPet = openCommonEgg()
+
+          // Add pet to collection
+          if (!gameData.value.pets) {
+            gameData.value.pets = []
+          }
+          gameData.value.pets.push(newPet)
+
+          // Auto-equip if less than 3 active pets
+          if (!gameData.value.activePets) {
+            gameData.value.activePets = []
+          }
+          if (gameData.value.activePets.length < 3) {
+            gameData.value.activePets.push(newPet)
+          }
+
+          // Save game data
+          saveGameData()
+
+          infoText.value = `Got ${newPet.name} (${newPet.rarity})! +${newPet.damage} damage! 🎉`
+
+          setTimeout(() => {
+            infoText.value = 'Explore the brainrot world! 🧠'
+          }, 3000)
+        } else {
+          infoText.value = `Not enough coins! Need ${price}, have ${currentCoins} 💰`
+          setTimeout(() => {
+            infoText.value = 'Explore the brainrot world! 🧠'
+          }, 2000)
+        }
+      }
+      return
+    }
+
+    if ((isApple || isOrange) && target.userData.hp > 0) {
+      // Hit the target - deal more damage at level 2+
+      let baseDamage = playerLevel.value >= 2 ? 2 : 1
+
+      // Apply pet damage bonus - multiply all active pets' damage together
+      let petBonus = 1
+      if (gameData.value.activePets && gameData.value.activePets.length > 0) {
+        gameData.value.activePets.forEach(pet => {
+          petBonus *= pet.damage
+        })
+      }
+      const damage = baseDamage * petBonus
+
+      target.userData.hp -= damage
       lastAppleAttack = currentTime // Update cooldown timer
 
-      const isGolden = apple.userData.isGolden
-      const appleType = isGolden ? 'Golden Apple' : 'Apple'
+      let targetType = 'Target'
+      if (isApple) {
+        const isGolden = target.userData.isGolden
+        targetType = isGolden ? 'Golden Apple' : 'Apple'
+      } else if (isOrange) {
+        targetType = 'Orange'
+      }
 
-      if (apple.userData.hp <= 0) {
-        // Apple destroyed
-        scene.remove(apple)
-        scene.remove(apple.userData.stem)
+      if (target.userData.hp <= 0) {
+        // Target destroyed
+        scene.remove(target)
+        scene.remove(target.userData.stem)
 
-        infoText.value = `${appleType} destroyed! 💥`
+        infoText.value = `${targetType} destroyed! 💥`
 
         // Give rewards
-        if (isGolden) {
-          gameState.addCoins(50)
-          addExp(5) // Golden apples give 5 exp (50%)
-          infoText.value = `Golden Apple destroyed! +50 coins, +5 EXP! 💰`
-        } else {
-          gameState.addCoins(10)
-          addExp(2) // Normal apples give 2 exp (20%)
-          infoText.value = `Apple destroyed! +10 coins, +2 EXP! 🍎`
-        }
+        if (isApple) {
+          const isGolden = target.userData.isGolden
+          if (isGolden) {
+            gameState.addCoins(50)
+            addExp(5) // Golden apples give 5 exp (50%)
+            infoText.value = `Golden Apple destroyed! +50 coins, +5 EXP! 💰`
+          } else {
+            gameState.addCoins(10)
+            addExp(2) // Normal apples give 2 exp (20%)
+            infoText.value = `Apple destroyed! +10 coins, +2 EXP! 🍎`
+          }
 
-        // Respawn apple after 3 seconds
-        setTimeout(() => {
-          respawnApple(apple)
-        }, 3000)
+          // Respawn apple after 3 seconds
+          setTimeout(() => {
+            respawnApple(target)
+          }, 3000)
+        } else if (isOrange) {
+          // Oranges give more rewards since they have more HP
+          gameState.addCoins(30)
+          addExp(10) // Oranges give 10 exp
+          infoText.value = `Orange destroyed! +30 coins, +10 EXP! 🍊`
+
+          // Respawn orange after 5 seconds
+          setTimeout(() => {
+            respawnOrange(target)
+          }, 5000)
+        }
 
         setTimeout(() => {
           infoText.value = 'Explore the brainrot world! 🧠'
         }, 2000)
       } else {
-        // Apple hit but not destroyed
-        infoText.value = `${appleType} HP: ${apple.userData.hp}/${apple.userData.maxHp}`
+        // Target hit but not destroyed
+        infoText.value = `${targetType} HP: ${target.userData.hp}/${target.userData.maxHp}`
 
-        // Make apple flash red when hit
-        const originalEmissive = (apple.material as THREE.MeshStandardMaterial).emissive.clone()
-        ;(apple.material as THREE.MeshStandardMaterial).emissive.set(0xff0000)
+        // Make target flash red when hit
+        const originalEmissive = (target.material as THREE.MeshStandardMaterial).emissive.clone()
+        ;(target.material as THREE.MeshStandardMaterial).emissive.set(0xff0000)
         setTimeout(() => {
-          if (apple.parent) { // Check if still exists
-            ;(apple.material as THREE.MeshStandardMaterial).emissive.copy(originalEmissive)
+          if (target.parent) { // Check if still exists
+            ;(target.material as THREE.MeshStandardMaterial).emissive.copy(originalEmissive)
           }
         }, 100)
       }
     }
   } else {
-    // Clicked but not looking at an apple
+    // Clicked but not looking at a target
     lastAppleAttack = currentTime // Still trigger cooldown to prevent spam clicking
     // Don't show any message when missing
   }
@@ -1182,6 +1981,40 @@ const respawnApple = (apple: THREE.Mesh) => {
   apples.push(newApple)
 }
 
+const respawnOrange = (orange: THREE.Mesh) => {
+  // Reset orange HP
+  orange.userData.hp = orange.userData.maxHp
+
+  // Recreate the orange mesh
+  const orangeGeometry = new THREE.SphereGeometry(1.5, 16, 16)
+  const orangeMaterial = new THREE.MeshStandardMaterial({
+    color: 0xff8c00, // Dark orange
+    metalness: 0.3,
+    roughness: 0.5
+  })
+
+  const newOrange = new THREE.Mesh(orangeGeometry, orangeMaterial)
+  newOrange.position.copy(orange.position)
+  newOrange.castShadow = true
+
+  // Copy all user data
+  newOrange.userData = { ...orange.userData }
+
+  // Recreate stem
+  const stemGeometry = new THREE.CylinderGeometry(0.1, 0.15, 0.4, 8)
+  const stemMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 })
+  const newStem = new THREE.Mesh(stemGeometry, stemMaterial)
+  newStem.position.set(orange.position.x, orange.position.y + 1.5, orange.position.z)
+
+  // Store new stem reference
+  newOrange.userData.stem = newStem
+
+  // Add back to scene and oranges array
+  scene.add(newOrange)
+  scene.add(newStem)
+  oranges.push(newOrange)
+}
+
 const updatePlayer = () => {
   // Mouse look
   const sensitivity = 0.002
@@ -1211,11 +2044,6 @@ const updatePlayer = () => {
   right.y = 0
   right.z = Math.sin(yaw)
   right.normalize()
-
-  // Auto-move forward if enabled
-  if (autoMoveEnabled.value) {
-    player.position.add(direction.clone().multiplyScalar(moveSpeed))
-  }
 
   if (keys['w'] || keys['arrowup']) {
     player.position.add(direction.clone().multiplyScalar(moveSpeed))
@@ -1313,6 +2141,22 @@ const animate = () => {
   // Check collisions
   checkCollisions()
 
+  // Check distance to eggs - close panel if too far away
+  if (showEggPanel.value && camera) {
+    const eggPosition = new THREE.Vector3(-3, 1.5, 3) // Common egg position
+    const playerPosition = new THREE.Vector3(camera.position.x, 0, camera.position.z)
+    const distance = playerPosition.distanceTo(new THREE.Vector3(eggPosition.x, 0, eggPosition.z))
+
+    // Close panel if player is more than 5 units away
+    if (distance > 5) {
+      showEggPanel.value = false
+      eggResults.value = []
+      if (infoText.value === 'Choose how many eggs to open! 🥚') {
+        infoText.value = 'Explore the brainrot world! 🧠'
+      }
+    }
+  }
+
   // Auto-attack logic
   if (autoAttackEnabled.value) {
     const currentTime = Date.now()
@@ -1339,6 +2183,11 @@ const animate = () => {
     scene.userData.statue.userData.animate()
   }
 
+  // Animate elephant-cactus
+  if (scene.userData.elephantCactus) {
+    scene.userData.elephantCactus.userData.animate()
+  }
+
   // Render scene
   renderer.render(scene, camera)
 }
@@ -1346,6 +2195,31 @@ const animate = () => {
 onMounted(() => {
   loadGameData()
   init3DScene()
+
+  // Initialize background music - "The Natural Kingdom" by Afro Musique
+  backgroundMusic = new Audio('https://www.bensound.com/bensound-music/bensound-thelounge.mp3')
+  backgroundMusic.loop = true
+  backgroundMusic.volume = 0.3
+
+  // Play music on first user interaction (browsers require user interaction to play audio)
+  const playMusic = () => {
+    if (backgroundMusic) {
+      backgroundMusic.play().catch(err => {
+        console.log('Audio playback failed:', err)
+      })
+    }
+    // Remove listener after first interaction
+    document.removeEventListener('click', playMusic)
+    document.removeEventListener('keydown', playMusic)
+  }
+
+  document.addEventListener('click', playMusic)
+  document.addEventListener('keydown', playMusic)
+
+  // Listen for fullscreen changes (e.g., when user presses ESC)
+  document.addEventListener('fullscreenchange', () => {
+    isFullscreen.value = !!document.fullscreenElement
+  })
 })
 
 onUnmounted(() => {
@@ -1354,6 +2228,10 @@ onUnmounted(() => {
   }
   if (renderer) {
     renderer.dispose()
+  }
+  if (backgroundMusic) {
+    backgroundMusic.pause()
+    backgroundMusic = null
   }
   saveGameData()
 })
@@ -1438,12 +2316,12 @@ onUnmounted(() => {
   background: #d97706;
 }
 
-.auto-walk-button {
+.pet-button {
   position: absolute;
   top: 170px;
   left: 20px;
   padding: 10px 20px;
-  background: #10b981;
+  background: #ec4899;
   color: white;
   border: 2px solid white;
   border-radius: 5px;
@@ -1454,8 +2332,474 @@ onUnmounted(() => {
   transition: background 0.3s;
 }
 
-.auto-walk-button:hover {
-  background: #059669;
+.pet-button:hover {
+  background: #db2777;
+}
+
+.fullscreen-button {
+  position: absolute;
+  top: 220px;
+  left: 20px;
+  padding: 10px 20px;
+  background: #8b5cf6;
+  color: white;
+  border: 2px solid white;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  z-index: 1000;
+  transition: background 0.3s;
+}
+
+.fullscreen-button:hover {
+  background: #7c3aed;
+}
+
+.restart-button {
+  position: absolute;
+  top: 270px;
+  left: 20px;
+  padding: 10px 20px;
+  background: #f59e0b;
+  color: white;
+  border: 2px solid white;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  z-index: 1000;
+  transition: background 0.3s;
+}
+
+.restart-button:hover {
+  background: #d97706;
+}
+
+.egg-panel {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 450px;
+  background: rgba(0, 0, 0, 0.95);
+  border: 3px solid #ec4899;
+  border-radius: 10px;
+  box-shadow: 0 0 30px rgba(236, 72, 153, 0.5);
+  z-index: 2000;
+  padding: 20px;
+  color: white;
+}
+
+.egg-panel-header {
+  text-align: center;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #ec4899;
+  padding-bottom: 10px;
+}
+
+.egg-panel-header h3 {
+  margin: 0;
+  font-size: 24px;
+  color: #ec4899;
+}
+
+.egg-panel-buttons {
+  display: flex;
+  justify-content: space-around;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.egg-open-button {
+  flex: 1;
+  padding: 15px 10px;
+  background: linear-gradient(135deg, #ec4899, #db2777);
+  color: white;
+  border: 2px solid white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: bold;
+  transition: all 0.3s;
+}
+
+.egg-open-button:hover {
+  background: linear-gradient(135deg, #db2777, #be185d);
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(236, 72, 153, 0.6);
+}
+
+.egg-cost {
+  font-size: 14px;
+  color: #ffd700;
+}
+
+.egg-results {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 2px solid #ec4899;
+}
+
+.egg-results h4 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  color: #ec4899;
+  text-align: center;
+}
+
+.egg-result-item {
+  background: rgba(236, 72, 153, 0.2);
+  padding: 8px 12px;
+  margin: 5px 0;
+  border-radius: 5px;
+  border-left: 3px solid #ec4899;
+  font-size: 16px;
+}
+
+.pets-panel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.95);
+  border: 3px solid #ec4899;
+  border-radius: 10px;
+  box-shadow: 0 0 30px rgba(236, 72, 153, 0.5);
+  z-index: 2000;
+  padding: 20px;
+  color: white;
+}
+
+.pets-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #ec4899;
+  padding-bottom: 10px;
+}
+
+.pets-panel-header h2 {
+  margin: 0;
+  font-size: 28px;
+  color: #ec4899;
+}
+
+.pets-close {
+  background: #ec4899;
+  color: white;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  transition: background 0.3s;
+}
+
+.pets-close:hover {
+  background: #db2777;
+}
+
+.pets-content {
+  color: white;
+}
+
+.active-pet-section {
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #ec4899;
+}
+
+.active-pet-section h3 {
+  color: #ec4899;
+  margin-bottom: 10px;
+}
+
+.active-pets-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.active-pet-card {
+  background: linear-gradient(135deg, #ec4899, #db2777);
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 0 20px rgba(236, 72, 153, 0.4);
+}
+
+.unequip-button {
+  margin-top: 10px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid white;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s;
+}
+
+.unequip-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.pet-name {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.pet-rarity {
+  font-size: 18px;
+  margin-bottom: 5px;
+  opacity: 0.9;
+}
+
+.pet-damage {
+  font-size: 20px;
+  font-weight: bold;
+  color: #ffd700;
+}
+
+.collection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.pet-collection-section h3 {
+  color: #ec4899;
+  margin: 0;
+}
+
+.equip-best-button {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  color: #000;
+  border: 2px solid #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  transition: all 0.3s;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+.equip-best-button:hover {
+  background: linear-gradient(135deg, #ffed4e, #ffd700);
+  transform: scale(1.05);
+  box-shadow: 0 0 25px rgba(255, 215, 0, 0.8);
+}
+
+.rarity-delete-section {
+  margin: 20px 0;
+  padding: 15px;
+  background: rgba(255, 0, 0, 0.1);
+  border: 2px solid rgba(255, 0, 0, 0.3);
+  border-radius: 10px;
+}
+
+.rarity-delete-section h4 {
+  color: #ff6b6b;
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.rarity-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rarity-delete-btn {
+  padding: 8px 16px;
+  border: 2px solid white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 13px;
+  transition: all 0.3s;
+  color: white;
+}
+
+.rarity-delete-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px currentColor;
+}
+
+.rarity-delete-btn.common {
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
+}
+
+.rarity-delete-btn.rare {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.rarity-delete-btn.epic {
+  background: linear-gradient(135deg, #a855f7, #9333ea);
+}
+
+.rarity-delete-btn.legendary {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.rarity-delete-btn.mythic {
+  background: linear-gradient(135deg, #ff0080, #ff6b6b);
+  animation: mythic-glow 2s ease-in-out infinite;
+}
+
+.rarity-delete-btn.moderator {
+  background: linear-gradient(135deg, #ffd700, #ffed4e, #ffa500);
+  background-size: 300% 300%;
+  color: #000;
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+  border: 2px solid #fff;
+  animation: moderator-button-glow 2s ease-in-out infinite, moderator-rainbow 3s ease-in-out infinite;
+}
+
+@keyframes mythic-glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 0, 128, 0.5); }
+  50% { box-shadow: 0 0 25px rgba(255, 0, 128, 1); }
+}
+
+@keyframes moderator-button-glow {
+  0%, 100% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.8); }
+  50% { box-shadow: 0 0 30px rgba(255, 215, 0, 1); }
+}
+
+.no-pets {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+  color: #aaa;
+}
+
+.pet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.pet-card {
+  background: rgba(236, 72, 153, 0.15);
+  border: 2px solid #ec4899;
+  border-radius: 8px;
+  padding: 15px;
+  text-align: center;
+  transition: all 0.3s;
+}
+
+.pet-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 20px rgba(236, 72, 153, 0.4);
+}
+
+.pet-card.is-active {
+  border-color: #ffd700;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+.pet-card-name {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: white;
+}
+
+.pet-card-rarity {
+  font-size: 14px;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.rarity-common {
+  background: #9ca3af;
+  color: white;
+}
+
+.rarity-rare {
+  background: #3b82f6;
+  color: white;
+}
+
+.rarity-epic {
+  background: #a855f7;
+  color: white;
+}
+
+.rarity-legendary {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  font-weight: bold;
+}
+
+.rarity-mythic {
+  background: linear-gradient(135deg, #ff0080, #ff6b6b);
+  color: white;
+  font-weight: bold;
+  animation: mythic-glow 2s ease-in-out infinite;
+}
+
+.rarity-moderator {
+  background: linear-gradient(135deg, #ffd700, #ffed4e, #ffa500, #ffd700);
+  background-size: 300% 300%;
+  color: #000;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+  animation: moderator-rainbow 3s ease-in-out infinite, moderator-shine 2s ease-in-out infinite;
+  border: 3px solid #fff;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+}
+
+@keyframes moderator-rainbow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes moderator-shine {
+  0%, 100% { filter: brightness(1.2) drop-shadow(0 0 10px gold); }
+  50% { filter: brightness(1.5) drop-shadow(0 0 20px gold); }
+}
+
+.pet-card-damage {
+  font-size: 16px;
+  color: #ffd700;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.equip-button {
+  background: #ec4899;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.3s;
+}
+
+.equip-button:hover {
+  background: #db2777;
+}
+
+.equipped-badge {
+  color: #ffd700;
+  font-weight: bold;
+  font-size: 14px;
 }
 
 .inventory-panel {
@@ -1590,6 +2934,23 @@ onUnmounted(() => {
   border-radius: 5px;
   text-align: center;
   font-weight: bold;
+}
+
+.hud-pets {
+  font-size: 16px;
+  color: #ec4899;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 8px 12px;
+  border-radius: 5px;
+  margin-top: 5px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.hud-pet-item {
+  font-size: 14px;
+  color: #fbbf24;
+  margin-top: 4px;
 }
 
 .controls-hint {

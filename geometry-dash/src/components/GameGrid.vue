@@ -4,7 +4,7 @@
     <h1 class="portal-title">Rylan's Game Portal</h1>
     <div class="game-grid">
       <GameCard
-        v-for="game in games"
+        v-for="game in visibleGames"
         :key="game.id"
         :title="game.title"
         :description="game.description"
@@ -19,8 +19,11 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
 import GameCard from './GameCard.vue'
 import Settings from './Settings.vue'
+
+const showAdmin = ref(false)
 
 interface Game {
   id: string
@@ -45,6 +48,16 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'brainrot-admin',
+    title: 'Brainrot Admin Panel',
+    description: 'Admin controls for Brainrot Evolution - manage coins, pets, and progress!',
+    route: '/games/brainrot-admin',
+    icon: '⚙️',
+    thumbnailColor: '#ef4444',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'brainrot-evolution',
     title: 'Brainrot Evolution',
     description: 'Click to evolve through stages of internet brainrot! Starting with tung tung tung tung sahur!',
@@ -55,13 +68,14 @@ const games: Game[] = [
     available: true
   },
   {
-    id: 'puzzle-master',
-    title: 'Puzzle Master',
-    description: 'Test your brain with challenging puzzles and riddles!',
-    icon: '🧩',
-    thumbnailColor: '#9f7aea',
-    rating: 4.6,
-    available: false
+    id: 'scary-shushi',
+    title: 'Scary Shushi',
+    description: 'Survive the haunted sushi restaurant! Spooky and delicious!',
+    route: '/games/scary-shushi',
+    icon: '🍣',
+    thumbnailColor: '#ff4444',
+    rating: 4.8,
+    available: true
   },
   {
     id: 'racing-pro',
@@ -91,6 +105,24 @@ const games: Game[] = [
     available: false
   }
 ]
+
+// Filter games to hide admin panel unless authenticated
+const visibleGames = computed(() => {
+  return games.filter(game => {
+    if (game.id === 'brainrot-admin') {
+      return showAdmin.value
+    }
+    return true
+  })
+})
+
+onMounted(() => {
+  // Check if user is authenticated as admin
+  const adminAuth = localStorage.getItem('adminAuth')
+  if (adminAuth === 'true') {
+    showAdmin.value = true
+  }
+})
 </script>
 
 <style scoped>

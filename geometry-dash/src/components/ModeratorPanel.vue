@@ -18,6 +18,9 @@
           <button @click="showGeometryDashAdmin = !showGeometryDashAdmin" class="game-admin-btn">
             🎮 Geometry Dash Admin
           </button>
+          <button @click="showBrainrotAdmin = !showBrainrotAdmin" class="game-admin-btn brainrot-btn">
+            🧠 Brainrot Evolution Admin
+          </button>
         </div>
         
         <div v-if="showGeometryDashAdmin" class="admin-commands">
@@ -70,7 +73,74 @@
             </div>
           </div>
         </div>
-        
+
+        <div v-if="showBrainrotAdmin" class="admin-commands">
+          <h3>🧠 Brainrot Evolution Admin Commands</h3>
+          <div class="command-grid">
+            <div class="command-card">
+              <h4>💰 Coin Controls</h4>
+              <button @click="giveCoins(10000)" class="admin-action-btn">
+                💵 Give 10,000 Coins
+              </button>
+              <button @click="giveCoins(100000)" class="admin-action-btn">
+                💎 Give 100,000 Coins
+              </button>
+              <button @click="giveCoins(1000000)" class="admin-action-btn">
+                💰 Give 1 Million
+              </button>
+              <button @click="giveCoins(1000000000)" class="admin-action-btn">
+                🤑 Give 1 Billion
+              </button>
+            </div>
+            <div class="command-card">
+              <h4>🐾 Pet Controls</h4>
+              <button @click="giveBrainrotPet('Dog', 1, 'Common')" class="admin-action-btn">
+                🐕 Give Dog (1x Common)
+              </button>
+              <button @click="giveBrainrotPet('Cat', 1.25, 'Rare')" class="admin-action-btn">
+                🐱 Give Cat (1.25x Rare)
+              </button>
+              <button @click="giveBrainrotPet('Cat Vampire', 1.50, 'Epic')" class="admin-action-btn">
+                🧛 Give Cat Vampire (1.50x Epic)
+              </button>
+              <button @click="giveBrainrotPet('Mushroom Head', 1.75, 'Legendary')" class="admin-action-btn">
+                🍄 Give Mushroom Head (1.75x Legendary)
+              </button>
+              <button @click="giveBrainrotPet('Dragon', 2, 'Mythic')" class="admin-action-btn special-dragon">
+                🐉 Give Dragon (2x Mythic)
+              </button>
+              <button @click="giveBrainrotPet('Moderator God', 100000000000000000000000000000000000000, 'MODERATOR')" class="admin-action-btn special-moderator">
+                👑 Give Moderator God (∞ MODERATOR ONLY)
+              </button>
+            </div>
+            <div class="command-card">
+              <h4>⭐ Level Controls</h4>
+              <button @click="setBrainrotLevel(1)" class="admin-action-btn">
+                Set Level 1
+              </button>
+              <button @click="setBrainrotLevel(3)" class="admin-action-btn">
+                Set Level 3
+              </button>
+              <button @click="setBrainrotLevel(5)" class="admin-action-btn">
+                Set Level 5
+              </button>
+              <button @click="setBrainrotLevel(8)" class="admin-action-btn">
+                Set Level 8 (MAX)
+              </button>
+              <button @click="giveBrainrotExp(100)" class="admin-action-btn">
+                ⚡ Give 100 EXP
+              </button>
+            </div>
+            <div class="command-card">
+              <h4>🔄 Reset Controls</h4>
+              <button @click="resetBrainrotProgress" class="admin-action-btn special-reset">
+                ⚠️ Reset All Progress
+              </button>
+              <p class="warning-text">This will reset all Brainrot Evolution progress!</p>
+            </div>
+          </div>
+        </div>
+
         <div class="stats-row">
           <div class="stat-box">
             <div class="stat-number">{{ onlineCount }}</div>
@@ -182,6 +252,7 @@ const showPanel = ref(false)
 const isModerator = ref(false)
 const secretCode = ref('')
 const showGeometryDashAdmin = ref(false)
+const showBrainrotAdmin = ref(false)
 const powersGranted = ref(false)
 const scoreSet = ref(false)
 const selectedPlayer = ref<Player | null>(null)
@@ -405,6 +476,252 @@ const giveCoinsToPlayer = (player: Player, amount: number) => {
   setTimeout(() => {
     giftMessage.value = ''
   }, 3000)
+}
+
+// Brainrot Evolution admin functions
+interface Pet {
+  id: string
+  name: string
+  damage: number
+  rarity: string
+}
+
+interface GameData {
+  playerX: number
+  playerZ: number
+  coinsCollectedCount: number
+  hasMetTungTung: boolean
+  level: number
+  exp: number
+  orangeHP?: number[]
+  pets?: Pet[]
+  activePets?: Pet[]
+}
+
+const giveBrainrotPet = (name: string, damage: number, rarity: string) => {
+  // Load current game data
+  const saved = localStorage.getItem('brainrotEvolution3D')
+  let gameData: GameData
+
+  if (saved) {
+    gameData = JSON.parse(saved)
+  } else {
+    gameData = {
+      playerX: 0,
+      playerZ: 0,
+      coinsCollectedCount: 0,
+      hasMetTungTung: false,
+      level: 1,
+      exp: 0,
+      orangeHP: [200, 200, 200, 200, 200],
+      pets: [],
+      activePets: []
+    }
+  }
+
+  // Ensure pets array exists
+  if (!gameData.pets) {
+    gameData.pets = []
+  }
+
+  // Ensure activePets array exists
+  if (!gameData.activePets) {
+    gameData.activePets = []
+  }
+
+  // Create new pet
+  const newPet: Pet = {
+    id: `${name.toLowerCase().replace(/\s/g, '')}-${Date.now()}-${Math.random()}`,
+    name,
+    damage,
+    rarity
+  }
+
+  gameData.pets.push(newPet)
+
+  // Auto-equip if less than 3 active pets
+  if (gameData.activePets.length < 3) {
+    gameData.activePets.push(newPet)
+  }
+
+  // Save back to localStorage
+  localStorage.setItem('brainrotEvolution3D', JSON.stringify(gameData))
+
+  // Debug logging
+  console.log('=== GAVE PET DEBUG ===')
+  console.log('Pet given:', newPet)
+  console.log('Total pets now:', gameData.pets.length)
+  console.log('Active pets now:', gameData.activePets.length)
+  console.log('Saved to localStorage:', localStorage.getItem('brainrotEvolution3D'))
+  console.log('=== END DEBUG ===')
+
+  // Show success message
+  const successMsg = document.createElement('div')
+  successMsg.innerHTML = `<div style="font-size: 32px;">🐾</div><div>Gave ${name} pet!</div><div style="font-size: 14px;">${damage}x damage (${rarity})</div><div style="font-size: 12px; margin-top: 10px; color: #ffed4e;">Reload Brainrot Evolution to see it!</div>`
+  successMsg.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: linear-gradient(45deg, #9f7aea, #667eea); color: white; padding: 30px; border-radius: 15px; font-size: 24px; font-weight: bold; text-align: center; z-index: 10000; box-shadow: 0 0 30px rgba(159, 122, 234, 0.8);'
+  document.body.appendChild(successMsg)
+
+  successMsg.animate([
+    { transform: 'translate(-50%, -50%) scale(0.8)', opacity: 0 },
+    { transform: 'translate(-50%, -50%) scale(1.1)', opacity: 1 },
+    { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 }
+  ], {
+    duration: 500,
+    easing: 'ease-out'
+  })
+
+  setTimeout(() => {
+    successMsg.animate([
+      { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
+      { transform: 'translate(-50%, -50%) scale(0.8)', opacity: 0 }
+    ], {
+      duration: 300,
+      easing: 'ease-in'
+    }).onfinish = () => document.body.removeChild(successMsg)
+  }, 2500)
+}
+
+const setBrainrotLevel = (level: number) => {
+  // Load current game data
+  const saved = localStorage.getItem('brainrotEvolution3D')
+  let gameData: GameData
+
+  if (saved) {
+    gameData = JSON.parse(saved)
+  } else {
+    gameData = {
+      playerX: 0,
+      playerZ: 0,
+      coinsCollectedCount: 0,
+      hasMetTungTung: false,
+      level: 1,
+      exp: 0,
+      orangeHP: [200, 200, 200, 200, 200],
+      pets: [],
+      activePets: []
+    }
+  }
+
+  gameData.level = level
+  gameData.exp = 0 // Reset exp when setting level
+
+  localStorage.setItem('brainrotEvolution3D', JSON.stringify(gameData))
+
+  // Show success message
+  const successMsg = document.createElement('div')
+  successMsg.innerHTML = `<div style="font-size: 32px;">⭐</div><div>Level set to ${level}!</div><div style="font-size: 16px; margin-top: 10px;">Reload the game to see changes</div>`
+  successMsg.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: linear-gradient(45deg, #ffd700, #ff6347); color: white; padding: 30px; border-radius: 15px; font-size: 24px; font-weight: bold; text-align: center; z-index: 10000; box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);'
+  document.body.appendChild(successMsg)
+
+  successMsg.animate([
+    { transform: 'translate(-50%, -50%) scale(0.8)', opacity: 0 },
+    { transform: 'translate(-50%, -50%) scale(1.1)', opacity: 1 },
+    { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 }
+  ], {
+    duration: 500,
+    easing: 'ease-out'
+  })
+
+  setTimeout(() => {
+    successMsg.animate([
+      { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
+      { transform: 'translate(-50%, -50%) scale(0.8)', opacity: 0 }
+    ], {
+      duration: 300,
+      easing: 'ease-in'
+    }).onfinish = () => document.body.removeChild(successMsg)
+  }, 3000)
+}
+
+const giveBrainrotExp = (amount: number) => {
+  // Load current game data
+  const saved = localStorage.getItem('brainrotEvolution3D')
+  let gameData: GameData
+
+  if (saved) {
+    gameData = JSON.parse(saved)
+  } else {
+    gameData = {
+      playerX: 0,
+      playerZ: 0,
+      coinsCollectedCount: 0,
+      hasMetTungTung: false,
+      level: 1,
+      exp: 0,
+      orangeHP: [200, 200, 200, 200, 200],
+      pets: [],
+      activePets: []
+    }
+  }
+
+  gameData.exp += amount
+
+  localStorage.setItem('brainrotEvolution3D', JSON.stringify(gameData))
+
+  // Show success message
+  const successMsg = document.createElement('div')
+  successMsg.innerHTML = `<div style="font-size: 32px;">⚡</div><div>+${amount} EXP!</div>`
+  successMsg.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: linear-gradient(45deg, #00ffff, #00ff00); color: black; padding: 30px; border-radius: 15px; font-size: 24px; font-weight: bold; text-align: center; z-index: 10000; box-shadow: 0 0 30px rgba(0, 255, 255, 0.8);'
+  document.body.appendChild(successMsg)
+
+  successMsg.animate([
+    { transform: 'translate(-50%, -50%) scale(0.8)', opacity: 0 },
+    { transform: 'translate(-50%, -50%) scale(1.1)', opacity: 1 },
+    { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 }
+  ], {
+    duration: 500,
+    easing: 'ease-out'
+  })
+
+  setTimeout(() => {
+    successMsg.animate([
+      { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
+      { transform: 'translate(-50%, -50%) scale(0.8)', opacity: 0 }
+    ], {
+      duration: 300,
+      easing: 'ease-in'
+    }).onfinish = () => document.body.removeChild(successMsg)
+  }, 2500)
+}
+
+const resetBrainrotProgress = () => {
+  if (!confirm('Are you SURE you want to reset ALL Brainrot Evolution progress? This cannot be undone!')) {
+    return
+  }
+
+  // Clear all Brainrot Evolution data
+  localStorage.removeItem('brainrotEvolution3D')
+
+  // Also clear the gameCoins if you want to reset coins too
+  const currentCoins = gameState.getCoins()
+  if (currentCoins > 0) {
+    gameState.spendCoins(currentCoins)
+  }
+
+  // Show success message
+  const successMsg = document.createElement('div')
+  successMsg.innerHTML = `<div style="font-size: 48px;">🔄</div><div>Progress Reset!</div><div style="font-size: 14px;">All Brainrot Evolution data cleared</div>`
+  successMsg.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: linear-gradient(45deg, #ff0000, #ff6347); color: white; padding: 40px; border-radius: 15px; font-size: 28px; font-weight: bold; text-align: center; z-index: 10000; box-shadow: 0 0 30px rgba(255, 0, 0, 0.8);'
+  document.body.appendChild(successMsg)
+
+  successMsg.animate([
+    { transform: 'translate(-50%, -50%) scale(0.8)', opacity: 0 },
+    { transform: 'translate(-50%, -50%) scale(1.1)', opacity: 1 },
+    { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 }
+  ], {
+    duration: 500,
+    easing: 'ease-out'
+  })
+
+  setTimeout(() => {
+    successMsg.animate([
+      { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
+      { transform: 'translate(-50%, -50%) scale(0.8)', opacity: 0 }
+    ], {
+      duration: 300,
+      easing: 'ease-in'
+    }).onfinish = () => document.body.removeChild(successMsg)
+  }, 2500)
 }
 
 // Randomly update player statuses
@@ -936,5 +1253,82 @@ onUnmounted(() => {
 
 .close-profile-btn:hover {
   background: #cc0000;
+}
+
+.brainrot-btn {
+  background: #9f7aea;
+  border: 2px solid #667eea;
+}
+
+.brainrot-btn:hover {
+  background: #b794f4;
+  box-shadow: 0 0 20px rgba(159, 122, 234, 0.5);
+}
+
+.special-dragon {
+  background: linear-gradient(45deg, #ff6b6b, #ff0000, #ff6b6b);
+  color: white;
+  font-weight: bold;
+  animation: dragon-glow 2s ease-in-out infinite;
+}
+
+.special-dragon:hover {
+  background: linear-gradient(45deg, #ff0000, #ff6b6b, #ff0000);
+  transform: scale(1.15);
+  box-shadow: 0 0 25px rgba(255, 0, 0, 0.8);
+}
+
+@keyframes dragon-glow {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.3); }
+}
+
+.special-moderator {
+  background: linear-gradient(45deg, #ffd700, #ffed4e, #ffa500, #ffd700);
+  background-size: 300% 300%;
+  color: #000;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+  animation: moderator-rainbow 3s ease-in-out infinite, moderator-glow 2s ease-in-out infinite;
+  border: 3px solid #fff;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.special-moderator:hover {
+  background: linear-gradient(45deg, #ffed4e, #ffd700, #ffa500, #ffed4e);
+  background-size: 300% 300%;
+  transform: scale(1.15);
+  box-shadow: 0 0 40px rgba(255, 215, 0, 1), inset 0 0 30px rgba(255, 255, 255, 0.5);
+}
+
+@keyframes moderator-rainbow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes moderator-glow {
+  0%, 100% { filter: brightness(1.2) drop-shadow(0 0 10px gold); }
+  50% { filter: brightness(1.5) drop-shadow(0 0 20px gold); }
+}
+
+.special-reset {
+  background: linear-gradient(45deg, #ff0000, #cc0000);
+  color: white;
+  font-weight: bold;
+}
+
+.special-reset:hover {
+  background: linear-gradient(45deg, #cc0000, #ff0000);
+  transform: scale(1.1);
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+}
+
+.warning-text {
+  color: #ff6666;
+  font-size: 12px;
+  margin-top: 10px;
+  text-align: center;
+  font-style: italic;
 }
 </style>
