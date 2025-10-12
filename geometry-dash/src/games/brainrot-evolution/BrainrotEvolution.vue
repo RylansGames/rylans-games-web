@@ -639,8 +639,8 @@ const loadGameData = () => {
     if (playerLevel.value === 1) maxExp.value = 10
     else if (playerLevel.value === 2) maxExp.value = 30
     else if (playerLevel.value === 3) maxExp.value = 50
-    else if (playerLevel.value === 4) maxExp.value = 75
-    else if (playerLevel.value === 5) maxExp.value = 100
+    else if (playerLevel.value === 4) maxExp.value = 100
+    else if (playerLevel.value === 5) maxExp.value = 150
     else if (playerLevel.value === 6) maxExp.value = 150
     else if (playerLevel.value === 7) maxExp.value = 200
     else if (playerLevel.value >= 8) maxExp.value = 200 // Max level
@@ -686,9 +686,9 @@ const addExp = (amount: number) => {
     } else if (playerLevel.value === 3) {
       maxExp.value = 50 // Level 3 requires 50 exp
     } else if (playerLevel.value === 4) {
-      maxExp.value = 75 // Level 4 requires 75 exp
+      maxExp.value = 100 // Level 4 requires 100 exp (chimpanzini bananini!)
     } else if (playerLevel.value === 5) {
-      maxExp.value = 100 // Level 5 requires 100 exp
+      maxExp.value = 150 // Level 5 requires 150 exp
     } else if (playerLevel.value === 6) {
       maxExp.value = 150 // Level 6 requires 150 exp
     } else if (playerLevel.value === 7) {
