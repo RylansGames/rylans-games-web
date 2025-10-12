@@ -961,15 +961,15 @@ const updatePlayer = () => {
   const right = new THREE.Vector3()
 
   // Calculate forward direction from player's yaw
-  direction.x = -Math.sin(yaw)
+  direction.x = Math.sin(yaw)
   direction.y = 0
-  direction.z = -Math.cos(yaw)
+  direction.z = Math.cos(yaw)
   direction.normalize()
 
   // Calculate right direction (perpendicular to forward)
-  right.x = Math.cos(yaw)
+  right.x = -Math.cos(yaw)
   right.y = 0
-  right.z = -Math.sin(yaw)
+  right.z = Math.sin(yaw)
   right.normalize()
 
   if (keys['w']) {
