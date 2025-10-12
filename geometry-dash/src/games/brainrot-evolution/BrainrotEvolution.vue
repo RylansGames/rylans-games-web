@@ -50,6 +50,12 @@
           <div class="exp-text">{{ playerExp }}/{{ maxExp }} EXP</div>
         </div>
       </div>
+
+      <!-- Level Up Shark -->
+      <div v-if="showLevelUpShark" class="level-up-shark">
+        <canvas ref="sharkCanvas" width="400" height="400" class="shark-canvas"></canvas>
+        <div class="shark-name">tralalero tralala</div>
+      </div>
     </div>
   </div>
 </template>
@@ -64,6 +70,7 @@ import Settings from '../../components/Settings.vue'
 
 const gameContainer = ref<HTMLDivElement>()
 const characterCanvas = ref<HTMLCanvasElement>()
+const sharkCanvas = ref<HTMLCanvasElement>()
 const router = useRouter()
 const infoText = ref('Benvenuto! Welcome to the Italian Brainrot World! Find tung tung tung tung sahur! 🇮🇹🤌')
 const coinsCollected = ref(0)
@@ -73,6 +80,7 @@ const autoMoveEnabled = ref(true)
 const playerLevel = ref(1)
 const playerExp = ref(0)
 const maxExp = ref(10)
+const showLevelUpShark = ref(false)
 
 let scene: THREE.Scene
 let camera: THREE.PerspectiveCamera
@@ -245,10 +253,126 @@ const addExp = (amount: number) => {
     gameData.value.exp = playerExp.value
 
     infoText.value = `🎉 LEVEL UP! You are now Level ${playerLevel.value}! 🎉`
+
+    // Show the shark!
+    showLevelUpShark.value = true
     setTimeout(() => {
+      drawLevelUpShark()
+    }, 0)
+
+    // Hide shark after 3 seconds
+    setTimeout(() => {
+      showLevelUpShark.value = false
       infoText.value = 'Explore the brainrot world! 🧠'
     }, 3000)
   }
+}
+
+const drawLevelUpShark = () => {
+  if (!sharkCanvas.value) return
+
+  const canvas = sharkCanvas.value
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  // Clear canvas
+  ctx.clearRect(0, 0, 400, 400)
+
+  // Draw shark body (gray)
+  ctx.fillStyle = '#808080'
+  ctx.beginPath()
+  ctx.ellipse(200, 180, 120, 60, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Draw shark head
+  ctx.beginPath()
+  ctx.ellipse(280, 180, 60, 50, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Draw shark mouth (open)
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath()
+  ctx.arc(310, 190, 25, 0, Math.PI)
+  ctx.fill()
+
+  // Draw teeth
+  ctx.fillStyle = '#ffffff'
+  for (let i = 0; i < 6; i++) {
+    ctx.beginPath()
+    ctx.moveTo(290 + i * 10, 190)
+    ctx.lineTo(295 + i * 10, 200)
+    ctx.lineTo(300 + i * 10, 190)
+    ctx.fill()
+  }
+
+  // Draw eyes
+  ctx.fillStyle = '#000000'
+  ctx.beginPath()
+  ctx.arc(290, 160, 8, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Draw dorsal fin
+  ctx.fillStyle = '#808080'
+  ctx.beginPath()
+  ctx.moveTo(180, 130)
+  ctx.lineTo(200, 80)
+  ctx.lineTo(220, 130)
+  ctx.fill()
+
+  // Draw 3 LEGS with NIKES!
+
+  // Leg 1 (front left)
+  ctx.fillStyle = '#808080'
+  ctx.fillRect(160, 240, 15, 60)
+  // Nike shoe 1
+  ctx.fillStyle = '#000000'
+  ctx.fillRect(155, 300, 25, 20)
+  // Nike swoosh
+  ctx.strokeStyle = '#ffffff'
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.moveTo(158, 310)
+  ctx.lineTo(165, 305)
+  ctx.lineTo(175, 315)
+  ctx.stroke()
+
+  // Leg 2 (middle)
+  ctx.fillStyle = '#808080'
+  ctx.fillRect(195, 240, 15, 60)
+  // Nike shoe 2
+  ctx.fillStyle = '#000000'
+  ctx.fillRect(190, 300, 25, 20)
+  // Nike swoosh
+  ctx.strokeStyle = '#ffffff'
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.moveTo(193, 310)
+  ctx.lineTo(200, 305)
+  ctx.lineTo(210, 315)
+  ctx.stroke()
+
+  // Leg 3 (back right)
+  ctx.fillStyle = '#808080'
+  ctx.fillRect(230, 240, 15, 60)
+  // Nike shoe 3
+  ctx.fillStyle = '#000000'
+  ctx.fillRect(225, 300, 25, 20)
+  // Nike swoosh
+  ctx.strokeStyle = '#ffffff'
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.moveTo(228, 310)
+  ctx.lineTo(235, 305)
+  ctx.lineTo(245, 315)
+  ctx.stroke()
+
+  // Draw tail
+  ctx.fillStyle = '#808080'
+  ctx.beginPath()
+  ctx.moveTo(80, 180)
+  ctx.lineTo(50, 150)
+  ctx.lineTo(50, 210)
+  ctx.fill()
 }
 
 const saveGameData = () => {
@@ -1434,5 +1558,43 @@ onUnmounted(() => {
   color: #ffd700;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 1);
   z-index: 1;
+}
+
+.level-up-shark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3000;
+  text-align: center;
+  animation: sharkBounce 0.5s ease-in-out infinite;
+}
+
+@keyframes sharkBounce {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -55%) scale(1.05);
+  }
+}
+
+.shark-canvas {
+  border: 5px solid #ffd700;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+}
+
+.shark-name {
+  margin-top: 10px;
+  font-size: 32px;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.7);
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 3px solid #ffd700;
 }
 </style>
