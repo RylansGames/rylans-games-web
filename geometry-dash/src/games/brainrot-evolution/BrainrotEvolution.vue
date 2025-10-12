@@ -90,6 +90,7 @@ let coins: THREE.Mesh[] = []
 let rocks: THREE.Group[] = []
 let apples: THREE.Mesh[] = []
 let animationId: number
+let isSharkForm = false
 
 // Player movement
 const moveSpeed = 0.15
@@ -260,10 +261,18 @@ const addExp = (amount: number) => {
       drawLevelUpShark()
     }, 0)
 
-    // Hide shark after 3 seconds
+    // Transform player into shark!
+    if (!isSharkForm) {
+      setTimeout(() => {
+        transformToShark()
+        infoText.value = `You have transformed into tralalero tralala! 🦈`
+      }, 1500)
+    }
+
+    // Hide shark popup after 3 seconds
     setTimeout(() => {
       showLevelUpShark.value = false
-      infoText.value = 'Explore the brainrot world! 🧠'
+      infoText.value = 'Explore the brainrot world as tralalero tralala! 🦈'
     }, 3000)
   }
 }
@@ -539,6 +548,91 @@ const init3DScene = () => {
 
   // Auto-save every 5 seconds
   setInterval(saveGameData, 5000)
+}
+
+const transformToShark = () => {
+  // Remove old player model
+  scene.remove(player)
+
+  // Create shark player
+  const sharkGroup = new THREE.Group()
+
+  // Shark body (gray ellipse)
+  const bodyGeometry = new THREE.SphereGeometry(1, 16, 16)
+  const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 })
+  const body = new THREE.Mesh(bodyGeometry, bodyMaterial)
+  body.scale.set(1.2, 0.6, 0.6)
+  body.castShadow = true
+  sharkGroup.add(body)
+
+  // Shark head
+  const headGeometry = new THREE.SphereGeometry(0.6, 16, 16)
+  const head = new THREE.Mesh(headGeometry, bodyMaterial)
+  head.position.set(1, 0, 0)
+  head.scale.set(1, 0.8, 0.8)
+  head.castShadow = true
+  sharkGroup.add(head)
+
+  // Eye
+  const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8)
+  const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 })
+  const eye = new THREE.Mesh(eyeGeometry, eyeMaterial)
+  eye.position.set(1.2, 0.2, 0.3)
+  sharkGroup.add(eye)
+
+  // Dorsal fin
+  const finGeometry = new THREE.ConeGeometry(0.3, 0.8, 4)
+  const fin = new THREE.Mesh(finGeometry, bodyMaterial)
+  fin.position.set(0, 1, 0)
+  fin.rotation.x = Math.PI
+  fin.castShadow = true
+  sharkGroup.add(fin)
+
+  // Tail
+  const tailGeometry = new THREE.ConeGeometry(0.4, 0.8, 3)
+  const tail = new THREE.Mesh(tailGeometry, bodyMaterial)
+  tail.position.set(-1.5, 0, 0)
+  tail.rotation.z = Math.PI / 2
+  tail.castShadow = true
+  sharkGroup.add(tail)
+
+  // 3 LEGS with NIKES!
+  const legPositions = [
+    { x: 0.3, z: -0.5 },  // Front
+    { x: -0.2, z: -0.5 }, // Middle
+    { x: -0.7, z: -0.5 }  // Back
+  ]
+
+  legPositions.forEach(pos => {
+    // Leg
+    const legGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.8, 8)
+    const leg = new THREE.Mesh(legGeometry, bodyMaterial)
+    leg.position.set(pos.x, -0.8, pos.z)
+    leg.castShadow = true
+    sharkGroup.add(leg)
+
+    // Nike shoe
+    const shoeGeometry = new THREE.BoxGeometry(0.25, 0.15, 0.35)
+    const shoeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 })
+    const shoe = new THREE.Mesh(shoeGeometry, shoeMaterial)
+    shoe.position.set(pos.x, -1.3, pos.z)
+    shoe.castShadow = true
+    sharkGroup.add(shoe)
+
+    // Nike swoosh (white stripe)
+    const swooshGeometry = new THREE.PlaneGeometry(0.15, 0.05)
+    const swooshMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff })
+    const swoosh = new THREE.Mesh(swooshGeometry, swooshMaterial)
+    swoosh.position.set(pos.x, -1.25, pos.z + 0.18)
+    swoosh.rotation.z = -0.3
+    sharkGroup.add(swoosh)
+  })
+
+  sharkGroup.position.copy(player.position)
+  sharkGroup.rotation.copy(player.rotation)
+  player = sharkGroup as any
+  scene.add(player)
+  isSharkForm = true
 }
 
 const createWalls = () => {
