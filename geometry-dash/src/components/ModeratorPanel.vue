@@ -109,8 +109,8 @@
               <button @click="giveBrainrotPet('Dragon', 2, 'Mythic')" class="admin-action-btn special-dragon">
                 🐉 Give Dragon (2x Mythic)
               </button>
-              <button @click="giveBrainrotPet('Moderator God', 100000000000000000000000000000000000000, 'MODERATOR')" class="admin-action-btn special-moderator">
-                👑 Give Moderator God (∞ MODERATOR ONLY)
+              <button @click="giveBrainrotPet('Moderator God', 999999999, 'MODERATOR')" class="admin-action-btn special-moderator">
+                👑 Give Moderator God (999999999x MODERATOR ONLY)
               </button>
             </div>
             <div class="command-card">

@@ -700,25 +700,42 @@ const addExp = (amount: number) => {
       infoText.value = `🎉 LEVEL UP! MAX LEVEL REACHED! Level 8! 🎉⭐`
     }
 
-    // Show the shark!
-    showLevelUpShark.value = true
-    setTimeout(() => {
-      drawLevelUpShark()
-    }, 0)
-
-    // Transform player into shark!
-    if (!isSharkForm) {
+    // Handle transformations based on level
+    if (playerLevel.value === 2) {
+      // Level 2: Transform into shark
+      showLevelUpShark.value = true
       setTimeout(() => {
-        transformToShark()
-        infoText.value = `You have transformed into tralalero tralala! 🦈 You now deal 2 damage!`
-      }, 1500)
-    }
+        drawLevelUpShark()
+      }, 0)
 
-    // Hide shark popup after 3 seconds
-    setTimeout(() => {
-      showLevelUpShark.value = false
-      infoText.value = 'Explore the brainrot world as tralalero tralala! 🦈'
-    }, 3000)
+      if (!isSharkForm) {
+        setTimeout(() => {
+          transformToShark()
+          infoText.value = `You have transformed into tralalero tralala! 🦈 You now deal 2 damage!`
+        }, 1500)
+      }
+
+      setTimeout(() => {
+        showLevelUpShark.value = false
+        infoText.value = 'Explore the brainrot world as tralalero tralala! 🦈'
+      }, 3000)
+    } else if (playerLevel.value === 3) {
+      // Level 3: Transform into military airplane with crocodile head
+      showLevelUpShark.value = true
+      setTimeout(() => {
+        drawCrocodilePlane()
+      }, 0)
+
+      setTimeout(() => {
+        transformToCrocodilePlane()
+        infoText.value = `You have transformed into a military crocodile plane! 🐊✈️ You now deal 3 damage!`
+      }, 1500)
+
+      setTimeout(() => {
+        showLevelUpShark.value = false
+        infoText.value = 'Explore the brainrot world as a crocodile fighter jet! 🐊✈️'
+      }, 3000)
+    }
   }
 }
 
@@ -826,6 +843,154 @@ const drawLevelUpShark = () => {
   ctx.moveTo(80, 180)
   ctx.lineTo(50, 150)
   ctx.lineTo(50, 210)
+  ctx.fill()
+}
+
+const drawCrocodilePlane = () => {
+  if (!sharkCanvas.value) return
+
+  const canvas = sharkCanvas.value
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  // Clear canvas
+  ctx.clearRect(0, 0, 400, 400)
+
+  // Draw military plane body (green camouflage)
+  ctx.fillStyle = '#4a5d23'
+  ctx.beginPath()
+  ctx.ellipse(200, 200, 140, 40, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Camouflage pattern
+  ctx.fillStyle = '#3a4d13'
+  ctx.beginPath()
+  ctx.arc(160, 190, 20, 0, Math.PI * 2)
+  ctx.arc(220, 210, 25, 0, Math.PI * 2)
+  ctx.arc(180, 205, 15, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Draw wings (military green)
+  ctx.fillStyle = '#4a5d23'
+  // Left wing
+  ctx.beginPath()
+  ctx.moveTo(200, 180)
+  ctx.lineTo(120, 160)
+  ctx.lineTo(120, 200)
+  ctx.lineTo(200, 200)
+  ctx.fill()
+  // Right wing
+  ctx.beginPath()
+  ctx.moveTo(200, 200)
+  ctx.lineTo(120, 200)
+  ctx.lineTo(120, 240)
+  ctx.lineTo(200, 220)
+  ctx.fill()
+
+  // Draw tail fins
+  ctx.fillStyle = '#4a5d23'
+  // Top tail fin
+  ctx.beginPath()
+  ctx.moveTo(60, 200)
+  ctx.lineTo(50, 160)
+  ctx.lineTo(70, 190)
+  ctx.fill()
+  // Bottom tail fin
+  ctx.beginPath()
+  ctx.moveTo(60, 200)
+  ctx.lineTo(50, 240)
+  ctx.lineTo(70, 210)
+  ctx.fill()
+
+  // Draw CROCODILE HEAD at front!
+  // Crocodile snout (long green)
+  ctx.fillStyle = '#5d7a29'
+  ctx.fillRect(340, 185, 60, 30)
+
+  // Crocodile mouth line
+  ctx.strokeStyle = '#000000'
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.moveTo(340, 200)
+  ctx.lineTo(400, 200)
+  ctx.stroke()
+
+  // Crocodile teeth (pointy!)
+  ctx.fillStyle = '#ffffff'
+  for (let i = 0; i < 5; i++) {
+    // Top teeth
+    ctx.beginPath()
+    ctx.moveTo(350 + i * 10, 200)
+    ctx.lineTo(345 + i * 10, 190)
+    ctx.lineTo(355 + i * 10, 200)
+    ctx.fill()
+    // Bottom teeth
+    ctx.beginPath()
+    ctx.moveTo(350 + i * 10, 200)
+    ctx.lineTo(345 + i * 10, 210)
+    ctx.lineTo(355 + i * 10, 200)
+    ctx.fill()
+  }
+
+  // Crocodile head (main part)
+  ctx.fillStyle = '#5d7a29'
+  ctx.beginPath()
+  ctx.arc(330, 200, 35, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Crocodile eye (angry red!)
+  ctx.fillStyle = '#ff0000'
+  ctx.beginPath()
+  ctx.arc(335, 190, 8, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Crocodile pupil (vertical slit like a reptile!)
+  ctx.fillStyle = '#000000'
+  ctx.fillRect(333, 185, 4, 10)
+
+  // Crocodile scales (bumpy texture)
+  ctx.fillStyle = '#4a5d23'
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath()
+    ctx.arc(320 + i * 10, 210, 5, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  // Draw jet engines under wings
+  ctx.fillStyle = '#808080'
+  ctx.fillRect(140, 195, 20, 25)
+  ctx.fillRect(140, 175, 20, 25)
+
+  // Engine flames (rocket boosters!)
+  ctx.fillStyle = '#ff4500'
+  ctx.beginPath()
+  ctx.moveTo(140, 202)
+  ctx.lineTo(120, 195)
+  ctx.lineTo(120, 210)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.moveTo(140, 182)
+  ctx.lineTo(120, 175)
+  ctx.lineTo(120, 190)
+  ctx.fill()
+
+  // Cockpit window
+  ctx.fillStyle = '#4da6ff'
+  ctx.beginPath()
+  ctx.arc(260, 200, 15, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Military star emblem on wing
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath()
+  for (let i = 0; i < 5; i++) {
+    const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2
+    const x = 150 + Math.cos(angle) * 12
+    const y = 215 + Math.sin(angle) * 12
+    if (i === 0) ctx.moveTo(x, y)
+    else ctx.lineTo(x, y)
+  }
+  ctx.closePath()
   ctx.fill()
 }
 
@@ -1089,6 +1254,175 @@ const transformToShark = () => {
   player = sharkGroup as any
   scene.add(player)
   isSharkForm = true
+}
+
+const transformToCrocodilePlane = () => {
+  // Remove old player model
+  scene.remove(player)
+
+  // Create crocodile plane
+  const planeGroup = new THREE.Group()
+
+  // Plane body (military green with camouflage)
+  const bodyGeometry = new THREE.CylinderGeometry(0.4, 0.4, 3, 16)
+  const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x4a5d23 })
+  const body = new THREE.Mesh(bodyGeometry, bodyMaterial)
+  body.rotation.z = Math.PI / 2
+  body.castShadow = true
+  planeGroup.add(body)
+
+  // Camouflage spots
+  const camoGeometry = new THREE.SphereGeometry(0.2, 8, 8)
+  const camoMaterial = new THREE.MeshStandardMaterial({ color: 0x3a4d13 })
+  const camoSpots = [
+    { x: 0.5, y: 0.3, z: 0 },
+    { x: -0.8, y: -0.2, z: 0 },
+    { x: 0, y: 0.2, z: 0.3 }
+  ]
+  camoSpots.forEach(pos => {
+    const spot = new THREE.Mesh(camoGeometry, camoMaterial)
+    spot.position.set(pos.x, pos.y, pos.z)
+    planeGroup.add(spot)
+  })
+
+  // Wings (large military wings)
+  const wingGeometry = new THREE.BoxGeometry(0.1, 3, 1.2)
+  const wingMaterial = new THREE.MeshStandardMaterial({ color: 0x4a5d23 })
+  const leftWing = new THREE.Mesh(wingGeometry, wingMaterial)
+  leftWing.position.set(0, 1.5, 0)
+  leftWing.castShadow = true
+  planeGroup.add(leftWing)
+
+  const rightWing = new THREE.Mesh(wingGeometry, wingMaterial)
+  rightWing.position.set(0, -1.5, 0)
+  rightWing.castShadow = true
+  planeGroup.add(rightWing)
+
+  // Tail fins
+  const tailFinGeometry = new THREE.BoxGeometry(0.1, 0.8, 0.8)
+  const tailFin1 = new THREE.Mesh(tailFinGeometry, wingMaterial)
+  tailFin1.position.set(-1.5, 0.5, 0)
+  tailFin1.rotation.z = Math.PI / 4
+  tailFin1.castShadow = true
+  planeGroup.add(tailFin1)
+
+  const tailFin2 = new THREE.Mesh(tailFinGeometry, wingMaterial)
+  tailFin2.position.set(-1.5, -0.5, 0)
+  tailFin2.rotation.z = -Math.PI / 4
+  tailFin2.castShadow = true
+  planeGroup.add(tailFin2)
+
+  // CROCODILE HEAD at front!
+  // Crocodile head (main sphere)
+  const headGeometry = new THREE.SphereGeometry(0.5, 16, 16)
+  const headMaterial = new THREE.MeshStandardMaterial({ color: 0x5d7a29 })
+  const head = new THREE.Mesh(headGeometry, headMaterial)
+  head.position.set(1.8, 0, 0)
+  head.castShadow = true
+  planeGroup.add(head)
+
+  // Crocodile snout (long pointy)
+  const snoutGeometry = new THREE.CylinderGeometry(0.2, 0.3, 0.8, 8)
+  const snout = new THREE.Mesh(snoutGeometry, headMaterial)
+  snout.rotation.z = Math.PI / 2
+  snout.position.set(2.4, 0, 0)
+  snout.castShadow = true
+  planeGroup.add(snout)
+
+  // Crocodile teeth (sharp!)
+  const toothGeometry = new THREE.ConeGeometry(0.05, 0.15, 4)
+  const toothMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff })
+  for (let i = 0; i < 8; i++) {
+    const tooth = new THREE.Mesh(toothGeometry, toothMaterial)
+    const angle = (i / 8) * Math.PI * 2
+    tooth.position.set(2.4 + Math.cos(angle) * 0.25, Math.sin(angle) * 0.25, 0)
+    tooth.rotation.x = angle
+    planeGroup.add(tooth)
+  }
+
+  // Crocodile eyes (angry red!)
+  const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8)
+  const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.5 })
+  const eye1 = new THREE.Mesh(eyeGeometry, eyeMaterial)
+  eye1.position.set(2, 0, 0.3)
+  planeGroup.add(eye1)
+
+  const eye2 = new THREE.Mesh(eyeGeometry, eyeMaterial)
+  eye2.position.set(2, 0, -0.3)
+  planeGroup.add(eye2)
+
+  // Crocodile pupils (vertical slits!)
+  const pupilGeometry = new THREE.PlaneGeometry(0.03, 0.12)
+  const pupilMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 })
+  const pupil1 = new THREE.Mesh(pupilGeometry, pupilMaterial)
+  pupil1.position.set(2.05, 0, 0.3)
+  pupil1.rotation.y = Math.PI / 2
+  planeGroup.add(pupil1)
+
+  const pupil2 = new THREE.Mesh(pupilGeometry, pupilMaterial)
+  pupil2.position.set(2.05, 0, -0.3)
+  pupil2.rotation.y = Math.PI / 2
+  planeGroup.add(pupil2)
+
+  // Crocodile scales (bumpy texture on head)
+  const scaleGeometry = new THREE.SphereGeometry(0.08, 6, 6)
+  const scaleMaterial = new THREE.MeshStandardMaterial({ color: 0x4a5d23 })
+  for (let i = 0; i < 5; i++) {
+    const scale = new THREE.Mesh(scaleGeometry, scaleMaterial)
+    scale.position.set(1.5 + i * 0.15, 0.25, 0)
+    planeGroup.add(scale)
+  }
+
+  // Jet engines (under wings)
+  const engineGeometry = new THREE.CylinderGeometry(0.15, 0.15, 0.6, 8)
+  const engineMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 })
+  const engine1 = new THREE.Mesh(engineGeometry, engineMaterial)
+  engine1.position.set(0.5, 1.5, -0.5)
+  engine1.rotation.x = Math.PI / 2
+  engine1.castShadow = true
+  planeGroup.add(engine1)
+
+  const engine2 = new THREE.Mesh(engineGeometry, engineMaterial)
+  engine2.position.set(0.5, -1.5, -0.5)
+  engine2.rotation.x = Math.PI / 2
+  engine2.castShadow = true
+  planeGroup.add(engine2)
+
+  // Engine flames (rocket boosters!)
+  const flameGeometry = new THREE.ConeGeometry(0.15, 0.4, 8)
+  const flameMaterial = new THREE.MeshStandardMaterial({ color: 0xff4500, emissive: 0xff4500, emissiveIntensity: 0.8 })
+  const flame1 = new THREE.Mesh(flameGeometry, flameMaterial)
+  flame1.position.set(0.5, 1.5, -1)
+  flame1.rotation.x = -Math.PI / 2
+  planeGroup.add(flame1)
+
+  const flame2 = new THREE.Mesh(flameGeometry, flameMaterial)
+  flame2.position.set(0.5, -1.5, -1)
+  flame2.rotation.x = -Math.PI / 2
+  planeGroup.add(flame2)
+
+  // Cockpit window (blue tinted)
+  const cockpitGeometry = new THREE.SphereGeometry(0.3, 16, 16)
+  const cockpitMaterial = new THREE.MeshStandardMaterial({ color: 0x4da6ff, transparent: true, opacity: 0.7, metalness: 0.8 })
+  const cockpit = new THREE.Mesh(cockpitGeometry, cockpitMaterial)
+  cockpit.position.set(0.8, 0, 0.45)
+  planeGroup.add(cockpit)
+
+  // Military star emblem on wing
+  const starGeometry = new THREE.CircleGeometry(0.2, 5)
+  const starMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff })
+  const star = new THREE.Mesh(starGeometry, starMaterial)
+  star.position.set(0, 1.5, 0.05)
+  star.rotation.x = Math.PI / 2
+  planeGroup.add(star)
+
+  planeGroup.position.copy(player.position)
+  planeGroup.rotation.copy(player.rotation)
+  // Rotate to face forward properly
+  planeGroup.rotation.y = Math.PI / 2
+  player = planeGroup as any
+  scene.add(player)
+  isSharkForm = false // No longer shark
 }
 
 const createWalls = () => {
