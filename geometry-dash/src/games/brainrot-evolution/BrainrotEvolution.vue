@@ -738,6 +738,23 @@ const addExp = (amount: number) => {
         showLevelUpShark.value = false
         infoText.value = 'Explore the brainrot world as bombardido crocodilo! 🐊✈️'
       }, 3000)
+    } else if (playerLevel.value === 4) {
+      // Level 4: Transform into banana with chimpanzee
+      transformationName.value = 'chimpanzini'
+      showLevelUpShark.value = true
+      setTimeout(() => {
+        drawChimpanzini()
+      }, 0)
+
+      setTimeout(() => {
+        transformToChimpanzini()
+        infoText.value = `You have transformed into chimpanzini! 🍌🐵 You now deal 4 damage!`
+      }, 1500)
+
+      setTimeout(() => {
+        showLevelUpShark.value = false
+        infoText.value = 'Explore the brainrot world as chimpanzini! 🍌🐵'
+      }, 3000)
     }
   }
 }
@@ -995,6 +1012,203 @@ const drawCrocodilePlane = () => {
   }
   ctx.closePath()
   ctx.fill()
+}
+
+const drawChimpanzini = () => {
+  if (!sharkCanvas.value) return
+
+  const canvas = sharkCanvas.value
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  // Clear canvas
+  ctx.clearRect(0, 0, 400, 400)
+
+  // Draw GIANT BANANA body
+  // Banana body (curved yellow shape)
+  ctx.fillStyle = '#ffe135'
+  ctx.beginPath()
+  ctx.moveTo(150, 150)
+  ctx.quadraticCurveTo(120, 200, 150, 250)
+  ctx.quadraticCurveTo(180, 280, 220, 280)
+  ctx.quadraticCurveTo(260, 270, 280, 240)
+  ctx.quadraticCurveTo(290, 200, 260, 160)
+  ctx.quadraticCurveTo(230, 140, 150, 150)
+  ctx.fill()
+
+  // Banana highlights (lighter yellow)
+  ctx.fillStyle = '#ffed4e'
+  ctx.beginPath()
+  ctx.moveTo(170, 170)
+  ctx.quadraticCurveTo(160, 200, 180, 230)
+  ctx.quadraticCurveTo(200, 250, 220, 250)
+  ctx.quadraticCurveTo(240, 240, 250, 200)
+  ctx.quadraticCurveTo(250, 170, 230, 160)
+  ctx.lineTo(170, 170)
+  ctx.fill()
+
+  // Banana brown spots
+  ctx.fillStyle = '#8B4513'
+  const spots = [
+    { x: 180, y: 180, r: 8 },
+    { x: 210, y: 200, r: 10 },
+    { x: 240, y: 190, r: 7 },
+    { x: 190, y: 230, r: 9 },
+    { x: 230, y: 240, r: 8 }
+  ]
+  spots.forEach(spot => {
+    ctx.beginPath()
+    ctx.ellipse(spot.x, spot.y, spot.r, spot.r * 0.7, Math.random() * Math.PI, 0, Math.PI * 2)
+    ctx.fill()
+  })
+
+  // Banana stem (brown at top)
+  ctx.fillStyle = '#654321'
+  ctx.beginPath()
+  ctx.moveTo(150, 150)
+  ctx.lineTo(140, 130)
+  ctx.lineTo(145, 125)
+  ctx.lineTo(155, 145)
+  ctx.fill()
+
+  // CHIMPANZEE sitting on/in the banana!
+  // Chimp body (brown)
+  ctx.fillStyle = '#654321'
+  ctx.beginPath()
+  ctx.arc(200, 200, 40, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Chimp head (brown, slightly lighter)
+  ctx.fillStyle = '#8B6F47'
+  ctx.beginPath()
+  ctx.arc(200, 170, 35, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Chimp face (tan/peach color)
+  ctx.fillStyle = '#daa06d'
+  ctx.beginPath()
+  ctx.ellipse(200, 175, 25, 22, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Chimp ears (large and round)
+  ctx.fillStyle = '#8B6F47'
+  ctx.beginPath()
+  ctx.arc(170, 165, 12, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(230, 165, 12, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Inner ear (tan)
+  ctx.fillStyle = '#daa06d'
+  ctx.beginPath()
+  ctx.arc(170, 165, 6, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(230, 165, 6, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Chimp eyes (big and expressive)
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath()
+  ctx.arc(190, 170, 8, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(210, 170, 8, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Pupils (brown)
+  ctx.fillStyle = '#654321'
+  ctx.beginPath()
+  ctx.arc(190, 170, 4, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(210, 170, 4, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Chimp nose (two nostrils)
+  ctx.fillStyle = '#654321'
+  ctx.beginPath()
+  ctx.arc(195, 182, 3, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(205, 182, 3, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Chimp mouth (big smile!)
+  ctx.strokeStyle = '#654321'
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.arc(200, 185, 12, 0, Math.PI)
+  ctx.stroke()
+
+  // Chimp teeth (showing excitement!)
+  ctx.fillStyle = '#ffffff'
+  for (let i = 0; i < 6; i++) {
+    ctx.fillRect(188 + i * 4, 185, 3, 5)
+  }
+
+  // Chimp arms (one holding banana)
+  ctx.strokeStyle = '#654321'
+  ctx.lineWidth = 8
+  // Left arm holding banana
+  ctx.beginPath()
+  ctx.moveTo(175, 210)
+  ctx.lineTo(160, 240)
+  ctx.lineTo(150, 220)
+  ctx.stroke()
+
+  // Right arm
+  ctx.beginPath()
+  ctx.moveTo(225, 210)
+  ctx.lineTo(250, 230)
+  ctx.stroke()
+
+  // Chimp hands (grabbing banana)
+  ctx.fillStyle = '#8B6F47'
+  ctx.beginPath()
+  ctx.arc(150, 220, 10, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(250, 230, 10, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Chimp legs
+  ctx.strokeStyle = '#654321'
+  ctx.lineWidth = 10
+  ctx.beginPath()
+  ctx.moveTo(185, 235)
+  ctx.lineTo(180, 270)
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.moveTo(215, 235)
+  ctx.lineTo(220, 270)
+  ctx.stroke()
+
+  // Chimp feet
+  ctx.fillStyle = '#8B6F47'
+  ctx.beginPath()
+  ctx.ellipse(180, 275, 12, 8, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.ellipse(220, 275, 12, 8, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Small bananas around (banana bunch theme!)
+  ctx.fillStyle = '#ffe135'
+  const smallBananas = [
+    { x: 280, y: 150, rot: 0.3 },
+    { x: 120, y: 180, rot: -0.5 },
+    { x: 300, y: 250, rot: 0.8 }
+  ]
+
+  smallBananas.forEach(banana => {
+    ctx.save()
+    ctx.translate(banana.x, banana.y)
+    ctx.rotate(banana.rot)
+    ctx.fillRect(-5, -15, 10, 30)
+    ctx.restore()
+  })
 }
 
 const saveGameData = () => {
@@ -1426,6 +1640,203 @@ const transformToCrocodilePlane = () => {
   player = planeGroup as any
   scene.add(player)
   isSharkForm = false // No longer shark
+}
+
+const transformToChimpanzini = () => {
+  // Remove old player model
+  scene.remove(player)
+
+  // Create chimpanzini (banana with chimp)
+  const chimpGroup = new THREE.Group()
+
+  // GIANT BANANA body (curved)
+  const bananaGeometry = new THREE.CylinderGeometry(0.5, 0.3, 2.5, 16)
+  const bananaMaterial = new THREE.MeshStandardMaterial({ color: 0xffe135 })
+  const banana = new THREE.Mesh(bananaGeometry, bananaMaterial)
+  banana.rotation.z = Math.PI / 6 // Curved banana
+  banana.castShadow = true
+  chimpGroup.add(banana)
+
+  // Banana highlights (lighter yellow stripes)
+  const highlightMaterial = new THREE.MeshStandardMaterial({ color: 0xffed4e })
+  for (let i = 0; i < 3; i++) {
+    const highlight = new THREE.Mesh(
+      new THREE.BoxGeometry(0.15, 2, 0.3),
+      highlightMaterial
+    )
+    const angle = (i / 3) * Math.PI * 2
+    highlight.position.set(Math.cos(angle) * 0.5, 0, Math.sin(angle) * 0.5)
+    highlight.rotation.z = Math.PI / 6
+    chimpGroup.add(highlight)
+  }
+
+  // Banana brown spots
+  const spotMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 })
+  const spotPositions = [
+    { x: 0.3, y: 0.5 }, { x: -0.3, y: -0.3 }, { x: 0.2, y: -0.8 }
+  ]
+  spotPositions.forEach(pos => {
+    const spot = new THREE.Mesh(
+      new THREE.SphereGeometry(0.15, 8, 8),
+      spotMaterial
+    )
+    spot.position.set(pos.x, pos.y, 0.5)
+    chimpGroup.add(spot)
+  })
+
+  // Banana stem (brown at top)
+  const stemGeometry = new THREE.ConeGeometry(0.1, 0.3, 8)
+  const stemMaterial = new THREE.MeshStandardMaterial({ color: 0x654321 })
+  const stem = new THREE.Mesh(stemGeometry, stemMaterial)
+  stem.position.set(-0.3, 1.5, 0)
+  stem.rotation.z = -Math.PI / 3
+  chimpGroup.add(stem)
+
+  // CHIMPANZEE sitting on banana!
+  // Chimp body
+  const chimpBodyGeometry = new THREE.SphereGeometry(0.4, 16, 16)
+  const chimpBodyMaterial = new THREE.MeshStandardMaterial({ color: 0x654321 })
+  const chimpBody = new THREE.Mesh(chimpBodyGeometry, chimpBodyMaterial)
+  chimpBody.position.set(0, 0.3, 0)
+  chimpBody.scale.set(1, 1.2, 0.8)
+  chimpBody.castShadow = true
+  chimpGroup.add(chimpBody)
+
+  // Chimp head
+  const chimpHeadGeometry = new THREE.SphereGeometry(0.35, 16, 16)
+  const chimpHeadMaterial = new THREE.MeshStandardMaterial({ color: 0x8B6F47 })
+  const chimpHead = new THREE.Mesh(chimpHeadGeometry, chimpHeadMaterial)
+  chimpHead.position.set(0, 0.8, 0.1)
+  chimpHead.castShadow = true
+  chimpGroup.add(chimpHead)
+
+  // Chimp face (tan)
+  const faceGeometry = new THREE.CircleGeometry(0.25, 16)
+  const faceMaterial = new THREE.MeshStandardMaterial({ color: 0xdaa06d })
+  const face = new THREE.Mesh(faceGeometry, faceMaterial)
+  face.position.set(0, 0.75, 0.35)
+  face.rotation.y = Math.PI
+  chimpGroup.add(face)
+
+  // Chimp ears
+  const earGeometry = new THREE.SphereGeometry(0.12, 12, 12)
+  const ear1 = new THREE.Mesh(earGeometry, chimpHeadMaterial)
+  ear1.position.set(-0.3, 0.85, 0.1)
+  ear1.scale.set(0.6, 1, 0.3)
+  chimpGroup.add(ear1)
+
+  const ear2 = new THREE.Mesh(earGeometry, chimpHeadMaterial)
+  ear2.position.set(0.3, 0.85, 0.1)
+  ear2.scale.set(0.6, 1, 0.3)
+  chimpGroup.add(ear2)
+
+  // Chimp eyes (big and white)
+  const eyeGeometry = new THREE.SphereGeometry(0.08, 12, 12)
+  const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff })
+  const eye1 = new THREE.Mesh(eyeGeometry, eyeMaterial)
+  eye1.position.set(-0.1, 0.8, 0.35)
+  chimpGroup.add(eye1)
+
+  const eye2 = new THREE.Mesh(eyeGeometry, eyeMaterial)
+  eye2.position.set(0.1, 0.8, 0.35)
+  chimpGroup.add(eye2)
+
+  // Pupils
+  const pupilGeometry = new THREE.SphereGeometry(0.04, 8, 8)
+  const pupilMaterial = new THREE.MeshStandardMaterial({ color: 0x654321 })
+  const pupil1 = new THREE.Mesh(pupilGeometry, pupilMaterial)
+  pupil1.position.set(-0.1, 0.8, 0.4)
+  chimpGroup.add(pupil1)
+
+  const pupil2 = new THREE.Mesh(pupilGeometry, pupilMaterial)
+  pupil2.position.set(0.1, 0.8, 0.4)
+  chimpGroup.add(pupil2)
+
+  // Chimp nose
+  const noseGeometry = new THREE.SphereGeometry(0.05, 8, 8)
+  const nose = new THREE.Mesh(noseGeometry, new THREE.MeshStandardMaterial({ color: 0x654321 }))
+  nose.position.set(0, 0.72, 0.37)
+  nose.scale.set(0.8, 0.6, 1)
+  chimpGroup.add(nose)
+
+  // Chimp mouth (smiling!)
+  const mouthGeometry = new THREE.TorusGeometry(0.08, 0.02, 8, 16, Math.PI)
+  const mouthMaterial = new THREE.MeshStandardMaterial({ color: 0x654321 })
+  const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial)
+  mouth.position.set(0, 0.65, 0.36)
+  mouth.rotation.z = Math.PI
+  chimpGroup.add(mouth)
+
+  // Chimp arms (holding banana)
+  const armGeometry = new THREE.CylinderGeometry(0.08, 0.06, 0.6, 8)
+  const armMaterial = new THREE.MeshStandardMaterial({ color: 0x654321 })
+
+  const leftArm = new THREE.Mesh(armGeometry, armMaterial)
+  leftArm.position.set(-0.35, 0.1, 0)
+  leftArm.rotation.z = Math.PI / 3
+  leftArm.castShadow = true
+  chimpGroup.add(leftArm)
+
+  const rightArm = new THREE.Mesh(armGeometry, armMaterial)
+  rightArm.position.set(0.35, 0.1, 0)
+  rightArm.rotation.z = -Math.PI / 3
+  rightArm.castShadow = true
+  chimpGroup.add(rightArm)
+
+  // Chimp hands
+  const handGeometry = new THREE.SphereGeometry(0.1, 12, 12)
+  const hand1 = new THREE.Mesh(handGeometry, chimpHeadMaterial)
+  hand1.position.set(-0.55, -0.2, 0)
+  chimpGroup.add(hand1)
+
+  const hand2 = new THREE.Mesh(handGeometry, chimpHeadMaterial)
+  hand2.position.set(0.55, -0.2, 0)
+  chimpGroup.add(hand2)
+
+  // Chimp legs
+  const legGeometry = new THREE.CylinderGeometry(0.1, 0.08, 0.5, 8)
+  const leg1 = new THREE.Mesh(legGeometry, armMaterial)
+  leg1.position.set(-0.15, -0.25, 0)
+  leg1.castShadow = true
+  chimpGroup.add(leg1)
+
+  const leg2 = new THREE.Mesh(legGeometry, armMaterial)
+  leg2.position.set(0.15, -0.25, 0)
+  leg2.castShadow = true
+  chimpGroup.add(leg2)
+
+  // Chimp feet
+  const footGeometry = new THREE.SphereGeometry(0.12, 12, 12)
+  const foot1 = new THREE.Mesh(footGeometry, chimpHeadMaterial)
+  foot1.position.set(-0.15, -0.55, 0.05)
+  foot1.scale.set(1, 0.6, 1.2)
+  chimpGroup.add(foot1)
+
+  const foot2 = new THREE.Mesh(footGeometry, chimpHeadMaterial)
+  foot2.position.set(0.15, -0.55, 0.05)
+  foot2.scale.set(1, 0.6, 1.2)
+  chimpGroup.add(foot2)
+
+  // Small bananas floating around (banana power!)
+  const smallBananaGeometry = new THREE.CylinderGeometry(0.1, 0.05, 0.5, 8)
+  const smallBananaPositions = [
+    { x: 1, y: 0.8, z: 0.5, rot: 0.5 },
+    { x: -1, y: 0.5, z: -0.5, rot: -0.3 },
+    { x: 0.8, y: -0.3, z: -0.8, rot: 0.8 }
+  ]
+
+  smallBananaPositions.forEach(pos => {
+    const smallBanana = new THREE.Mesh(smallBananaGeometry, bananaMaterial)
+    smallBanana.position.set(pos.x, pos.y, pos.z)
+    smallBanana.rotation.z = pos.rot
+    chimpGroup.add(smallBanana)
+  })
+
+  chimpGroup.position.copy(player.position)
+  chimpGroup.rotation.copy(player.rotation)
+  player = chimpGroup as any
+  scene.add(player)
+  isSharkForm = false
 }
 
 const createWalls = () => {
