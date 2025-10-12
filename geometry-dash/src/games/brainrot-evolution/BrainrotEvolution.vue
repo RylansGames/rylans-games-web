@@ -158,7 +158,7 @@
       <!-- Level Up Shark -->
       <div v-if="showLevelUpShark" class="level-up-shark">
         <canvas ref="sharkCanvas" width="400" height="400" class="shark-canvas"></canvas>
-        <div class="shark-name">tralalero tralala</div>
+        <div class="shark-name">{{ transformationName }}</div>
       </div>
     </div>
   </div>
@@ -188,6 +188,7 @@ const playerLevel = ref(1)
 const playerExp = ref(0)
 const maxExp = ref(10)
 const showLevelUpShark = ref(false)
+const transformationName = ref('tralalero tralala')
 
 // Background music
 let backgroundMusic: HTMLAudioElement | null = null
@@ -703,6 +704,7 @@ const addExp = (amount: number) => {
     // Handle transformations based on level
     if (playerLevel.value === 2) {
       // Level 2: Transform into shark
+      transformationName.value = 'tralalero tralala'
       showLevelUpShark.value = true
       setTimeout(() => {
         drawLevelUpShark()
@@ -721,6 +723,7 @@ const addExp = (amount: number) => {
       }, 3000)
     } else if (playerLevel.value === 3) {
       // Level 3: Transform into military airplane with crocodile head
+      transformationName.value = 'bombardido crocodilo'
       showLevelUpShark.value = true
       setTimeout(() => {
         drawCrocodilePlane()
@@ -728,12 +731,12 @@ const addExp = (amount: number) => {
 
       setTimeout(() => {
         transformToCrocodilePlane()
-        infoText.value = `You have transformed into a military crocodile plane! 🐊✈️ You now deal 3 damage!`
+        infoText.value = `You have transformed into bombardido crocodilo! 🐊✈️ You now deal 3 damage!`
       }, 1500)
 
       setTimeout(() => {
         showLevelUpShark.value = false
-        infoText.value = 'Explore the brainrot world as a crocodile fighter jet! 🐊✈️'
+        infoText.value = 'Explore the brainrot world as bombardido crocodilo! 🐊✈️'
       }, 3000)
     }
   }
