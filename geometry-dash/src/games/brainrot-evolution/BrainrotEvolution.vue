@@ -12,9 +12,6 @@
     <button class="auto-walk-button" @click="toggleAutoWalk">
       {{ autoMoveEnabled ? '🚶 Auto Walk: ON' : '🛑 Auto Walk: OFF' }}
     </button>
-    <button class="restart-button" @click="restartProgress">
-      🔄 Restart Progress
-    </button>
 
     <!-- Inventory Panel -->
     <div v-if="inventoryOpen" class="inventory-panel">
@@ -169,21 +166,6 @@ const toggleAutoWalk = () => {
   setTimeout(() => {
     infoText.value = 'Explore the brainrot world! 🧠'
   }, 2000)
-}
-
-const restartProgress = () => {
-  if (confirm('Are you sure you want to restart all your progress? This cannot be undone!')) {
-    // Clear localStorage
-    localStorage.removeItem('brainrotEvolution3D')
-
-    // Show restart message
-    infoText.value = '🔄 Progress reset! Reloading...'
-
-    // Reload the page after a short delay
-    setTimeout(() => {
-      window.location.reload()
-    }, 1000)
-  }
 }
 
 const drawCharacterFace = () => {
@@ -1474,26 +1456,6 @@ onUnmounted(() => {
 
 .auto-walk-button:hover {
   background: #059669;
-}
-
-.restart-button {
-  position: absolute;
-  top: 220px;
-  left: 20px;
-  padding: 10px 20px;
-  background: #dc2626;
-  color: white;
-  border: 2px solid white;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
-  z-index: 1000;
-  transition: background 0.3s;
-}
-
-.restart-button:hover {
-  background: #b91c1c;
 }
 
 .inventory-panel {
