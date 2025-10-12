@@ -830,7 +830,20 @@ const hitApple = () => {
 
   // Create a raycaster to detect what we're looking at
   const raycaster = new THREE.Raycaster()
-  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera) // Center of screen
+
+  // In third person, raycast from player's looking direction, not camera
+  if (isFirstPerson) {
+    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera) // Center of screen
+  } else {
+    // Cast from player position in the direction they're facing
+    const direction = new THREE.Vector3()
+    direction.x = -Math.sin(yaw) * Math.cos(pitch)
+    direction.y = Math.sin(pitch)
+    direction.z = -Math.cos(yaw) * Math.cos(pitch)
+    direction.normalize()
+
+    raycaster.set(player.position, direction)
+  }
 
   // Check if we're looking at any apples
   const intersects = raycaster.intersectObjects(apples)
