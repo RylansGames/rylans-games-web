@@ -253,6 +253,11 @@ const addExp = (amount: number) => {
     gameData.value.level = playerLevel.value
     gameData.value.exp = playerExp.value
 
+    // Update max exp based on level
+    if (playerLevel.value === 2) {
+      maxExp.value = 30 // Level 2 requires 30 exp to reach level 3
+    }
+
     infoText.value = `🎉 LEVEL UP! You are now Level ${playerLevel.value}! 🎉`
 
     // Show the shark!
@@ -265,7 +270,7 @@ const addExp = (amount: number) => {
     if (!isSharkForm) {
       setTimeout(() => {
         transformToShark()
-        infoText.value = `You have transformed into tralalero tralala! 🦈`
+        infoText.value = `You have transformed into tralalero tralala! 🦈 You now deal 2 damage!`
       }, 1500)
     }
 
@@ -1085,8 +1090,9 @@ const hitApple = () => {
   if (intersects.length > 0) {
     const apple = intersects[0].object as THREE.Mesh
     if (apple.userData.isApple && apple.userData.hp > 0) {
-      // Hit the apple
-      apple.userData.hp -= 1
+      // Hit the apple - deal more damage at level 2+
+      const damage = playerLevel.value >= 2 ? 2 : 1
+      apple.userData.hp -= damage
       lastAppleAttack = currentTime // Update cooldown timer
 
       const isGolden = apple.userData.isGolden
