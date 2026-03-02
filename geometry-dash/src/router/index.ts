@@ -25,9 +25,19 @@ const router = createRouter({
       component: () => import('../games/brainrot-evolution/BrainrotAdmin.vue'),
     },
     {
-      path: '/games/scary-shushi',
-      name: 'scary-shushi',
-      component: () => import('../games/scary-shushi/ScaryShushi.vue'),
+      path: '/games/organize-the-fridge',
+      name: 'organize-the-fridge',
+      component: () => import('../games/organize-the-fridge/OrganizeTheFridge.vue'),
+    },
+    {
+      path: '/games/music-beats',
+      name: 'music-beats',
+      component: () => import('../games/music-beats/MusicBeats.vue'),
+    },
+    {
+      path: '/games/camera-watch',
+      name: 'camera-watch',
+      component: () => import('../games/camera-watch/CameraWatch.vue'),
     },
     {
       path: '/about',

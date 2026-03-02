@@ -1,148 +1,194 @@
 <template>
-  <div class="admin-wrapper">
-    <Settings />
-    <CoinDisplay />
+  <div class="owner-wrapper">
     <button class="back-button" @click="goBack">← Back to Portal</button>
 
-    <!-- Password Screen -->
-    <div v-if="!isAuthenticated" class="password-screen">
-      <div class="password-box">
-        <h1>🔒 Admin Access Required</h1>
-        <p>Enter the admin password to continue</p>
-        <input
-          v-model="passwordInput"
-          type="password"
-          placeholder="Enter password"
-          @keyup.enter="checkPassword"
-          class="password-input"
-          autofocus
-        />
-        <button @click="checkPassword" class="password-btn">Unlock</button>
-        <p v-if="wrongPassword" class="error-message">❌ Incorrect password!</p>
-      </div>
-    </div>
-
-    <div v-else class="admin-container">
-      <div class="admin-header">
-        <h1 class="admin-title">⚙️ Brainrot Evolution Admin Panel</h1>
-        <button class="logout-button" @click="logout">🚪 Logout</button>
+    <div class="owner-container">
+      <div class="owner-header">
+        <h1 class="owner-title">OWNER PANEL</h1>
       </div>
 
-      <div class="admin-grid">
-        <!-- Coin Management -->
-        <div class="admin-card">
-          <h2>💰 Coin Management</h2>
+      <!-- Active Players Section -->
+      <div class="section players-section">
+        <h2 class="section-title">ALL PLAYERS ({{ activePlayers.length }})</h2>
+        <div v-if="activePlayers.length === 0" class="no-players">
+          <p>No players currently online</p>
+        </div>
+        <div v-else class="players-list">
+          <div v-for="player in activePlayers" :key="player.id" class="player-card">
+            <div class="player-info">
+              <div class="player-name">{{ player.playerName }}</div>
+              <div class="player-stats">
+                <span class="stat">Coins: {{ player.coins }}</span>
+                <span class="stat">Lvl {{ player.level }}</span>
+                <span class="stat">{{ player.exp }} EXP</span>
+                <span class="stat">{{ player.petsCount }} pets</span>
+              </div>
+              <span class="game-badge" :style="{ background: gameBadgeColor(player.currentGame) }">
+                {{ player.currentGame || 'Portal' }}
+              </span>
+            </div>
+            <div class="player-actions">
+              <button @click="giveCoins(player.id, 100)" class="btn btn-green btn-sm">+100 Coins</button>
+              <button @click="giveCoins(player.id, 100000000)" class="btn btn-green btn-sm">+100M Coins</button>
+              <button @click="giveCoins(player.id, 1e21)" class="btn btn-gold btn-sm">+100 Sextillion</button>
+              <button @click="warnPlayer(player.id)" class="btn btn-yellow btn-sm">WARN</button>
+              <button @click="kickPlayer(player.id)" class="btn btn-orange btn-sm">KICK</button>
+              <button @click="banPlayer(player.id)" class="btn btn-darkred btn-sm">BAN</button>
+              <button @click="unbanPlayer(player.id)" class="btn btn-blue btn-sm">UNBAN</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Camera Watch Section -->
+      <div class="section camera-section">
+        <h2 class="section-title">CAMERA WATCH</h2>
+        <p class="camera-desc">Spawn anomalies in the Camera Watch game!</p>
+        <div class="anomaly-grid">
+          <button @click="spawnAnomaly('Preacher')" class="btn btn-anomaly btn-preacher">PREACHER</button>
+          <button @click="spawnAnomaly('Cloak')" class="btn btn-anomaly btn-cloak">CLOAK</button>
+          <button @click="spawnAnomaly('Corpse')" class="btn btn-anomaly btn-corpse">CORPSE</button>
+          <button @click="spawnAnomaly('Displacement')" class="btn btn-anomaly btn-displacement">DISPLACEMENT</button>
+          <button @click="spawnAnomaly('Imagery')" class="btn btn-anomaly btn-imagery">IMAGERY</button>
+          <button @click="spawnAllAnomalies()" class="btn btn-red btn-full btn-big">SPAWN ALL AT ONCE</button>
+        </div>
+      </div>
+
+      <!-- Two Column Layout for GD + Brainrot -->
+      <div class="panels-grid">
+        <!-- Geometry Dash Section -->
+        <div class="section gd-section">
+          <h2 class="section-title">GEOMETRY DASH</h2>
+          <div class="button-group">
+            <button @click="giveAllPowers()" class="btn btn-blue btn-full">Give All Powers</button>
+          </div>
+          <div class="button-group">
+            <button @click="showGdTimerPicker = true" class="btn btn-red btn-full btn-big">
+              START ADMIN ABUSE
+            </button>
+          </div>
+          <div class="talk-section">
+            <div class="talk-label">Talk to People</div>
+            <form @submit.prevent="sendMessage" class="talk-form">
+              <input
+                v-model="chatMessage"
+                type="text"
+                class="talk-input"
+                placeholder="Type a message..."
+                maxlength="100"
+              />
+              <button type="submit" class="btn btn-green">Send</button>
+            </form>
+          </div>
+
+          <!-- Admin Abuse Effects -->
+          <div class="effects-section">
+            <div class="effects-label">ABUSE EFFECTS</div>
+            <div class="effects-grid">
+              <button @click="startEffect('screen_shake')" class="btn btn-red">SCREEN SHAKE</button>
+              <button @click="startEffect('rainbow')" class="btn btn-rainbow">RAINBOW MODE</button>
+              <button @click="startEffect('upside_down')" class="btn btn-purple">UPSIDE DOWN</button>
+              <button @click="startAllEffects()" class="btn btn-gold btn-full btn-big">ALL EFFECTS AT ONCE</button>
+              <button @click="stopAllEffects()" class="btn btn-gray btn-full">STOP EFFECTS</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Brainrot Evolution Section -->
+        <div class="section brainrot-section">
+          <h2 class="section-title">BRAINROT EVOLUTION</h2>
+
           <div class="current-value">
-            Current Coins: <span class="value">{{ currentCoins }}</span>
+            Level: <span class="value">{{ brainrotData.level }}</span> |
+            EXP: <span class="value">{{ brainrotData.exp }}</span> |
+            Coins: <span class="value">{{ currentCoins }}</span>
           </div>
-          <div class="button-group">
-            <button @click="addCoins(10)" class="admin-btn green">+10 Coins</button>
-            <button @click="addCoins(50)" class="admin-btn green">+50 Coins</button>
-            <button @click="addCoins(100)" class="admin-btn green">+100 Coins</button>
-            <button @click="addCoins(1000)" class="admin-btn green">+1000 Coins</button>
-          </div>
-          <div class="button-group">
-            <button @click="removeCoins(10)" class="admin-btn red">-10 Coins</button>
-            <button @click="removeCoins(50)" class="admin-btn red">-50 Coins</button>
-            <button @click="setCoins(0)" class="admin-btn red">Reset to 0</button>
-          </div>
-        </div>
 
-        <!-- Level & EXP Management -->
-        <div class="admin-card">
-          <h2>⬆️ Level & EXP</h2>
-          <div class="current-value">
-            Level: <span class="value">{{ gameData.level }}</span> |
-            EXP: <span class="value">{{ gameData.exp }}</span>
-          </div>
           <div class="button-group">
-            <button @click="setLevel(1)" class="admin-btn blue">Set Level 1</button>
-            <button @click="setLevel(2)" class="admin-btn blue">Set Level 2</button>
-            <button @click="setLevel(5)" class="admin-btn blue">Set Level 5</button>
-            <button @click="setLevel(10)" class="admin-btn blue">Set Level 10</button>
+            <button @click="levelUpOne()" class="btn btn-purple">Level Up +1</button>
+            <button @click="levelUpMax()" class="btn btn-gold">Level Up MAX</button>
           </div>
-          <div class="button-group">
-            <button @click="addExp(10)" class="admin-btn blue">+10 EXP</button>
-            <button @click="addExp(50)" class="admin-btn blue">+50 EXP</button>
-            <button @click="addExp(100)" class="admin-btn blue">+100 EXP</button>
-          </div>
-        </div>
 
-        <!-- Pet Management -->
-        <div class="admin-card">
-          <h2>🐾 Pet Management</h2>
-          <div class="current-value">
-            Pets Owned: <span class="value">{{ gameData.pets?.length || 0 }}</span>
+          <div class="coin-group">
+            <button @click="addBrainrotCoins(100)" class="btn btn-green">+100 Coins</button>
+            <button @click="addBrainrotCoins(100000000)" class="btn btn-green">+100M Coins</button>
+            <button @click="addBrainrotCoins(1e21)" class="btn btn-gold">+100 Sextillion</button>
           </div>
-          <div class="button-group">
-            <button @click="givePet('Dog', 1, 'Common')" class="admin-btn purple">Give Dog</button>
-            <button @click="givePet('Cat', 1.25, 'Uncommon')" class="admin-btn purple">Give Cat</button>
-            <button @click="givePet('Cat Vampire', 1.50, 'Rare')" class="admin-btn purple">Give Cat Vampire</button>
-          </div>
-          <div class="button-group">
-            <button @click="givePet('Mushroom Head', 1.75, 'Epic')" class="admin-btn purple">Give Mushroom Head</button>
-            <button @click="givePet('Dragon', 2, 'Legendary')" class="admin-btn purple">Give Dragon 🐉</button>
-            <button @click="clearAllPets()" class="admin-btn red">Clear All Pets</button>
-          </div>
-        </div>
 
-        <!-- Orange HP Management -->
-        <div class="admin-card">
-          <h2>🍊 Orange HP</h2>
-          <div class="current-value" v-if="gameData.orangeHP">
-            Orange HP:
-            <span class="value" v-for="(hp, index) in gameData.orangeHP" :key="index">
-              #{{ index + 1 }}: {{ hp }}
-            </span>
-          </div>
           <div class="button-group">
-            <button @click="resetOrangeHP()" class="admin-btn orange">Reset All Oranges to 200 HP</button>
-            <button @click="setOrangeHP(0)" class="admin-btn red">Destroy All Oranges</button>
+            <button @click="startAdminAbuse('Brainrot Evolution')" class="btn btn-red btn-full btn-big">
+              START ADMIN ABUSE
+            </button>
           </div>
-        </div>
 
-        <!-- Full Reset -->
-        <div class="admin-card danger">
-          <h2>🔄 Full Reset</h2>
-          <p class="warning">⚠️ This will reset ALL progress!</p>
-          <button @click="fullReset()" class="admin-btn danger-btn">RESET EVERYTHING</button>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="admin-card">
-          <h2>⚡ Quick Actions</h2>
           <div class="button-group">
-            <button @click="maxEverything()" class="admin-btn gold">MAX EVERYTHING</button>
-            <button @click="openGameData()" class="admin-btn blue">View Raw Data</button>
+            <button @click="maxEverything()" class="btn btn-gold btn-full">MAX EVERYTHING</button>
           </div>
         </div>
       </div>
 
       <!-- Status Message -->
-      <div v-if="statusMessage" class="status-message" :class="statusType">
+      <div v-if="statusMessage" class="status-message">
         {{ statusMessage }}
+      </div>
+    </div>
+
+    <!-- GD Admin Abuse Timer Picker -->
+    <div v-if="showGdTimerPicker" class="timer-overlay" @click.self="showGdTimerPicker = false">
+      <div class="timer-box">
+        <h2 class="timer-title">HOW LONG?</h2>
+        <p class="timer-subtitle">Pick admin abuse duration</p>
+
+        <!-- Preset buttons -->
+        <div v-if="!showCustomClock" class="timer-presets">
+          <button @click="startGdAbuse(10000)" class="btn btn-red btn-full">10 Seconds</button>
+          <button @click="startGdAbuse(30000)" class="btn btn-red btn-full">30 Seconds</button>
+          <button @click="startGdAbuse(60000)" class="btn btn-red btn-full">1 Minute</button>
+          <button @click="showCustomClock = true" class="btn btn-gold btn-full btn-big">CUSTOM TIME</button>
+        </div>
+
+        <!-- Custom Clock Picker -->
+        <div v-else class="clock-picker">
+          <div class="clock-row">
+            <div class="clock-col">
+              <button @click="customMinutes = Math.min(customMinutes + 1, 10)" class="clock-btn">+</button>
+              <div class="clock-display">{{ customMinutes }}</div>
+              <button @click="customMinutes = Math.max(customMinutes - 1, 0)" class="clock-btn">-</button>
+              <div class="clock-label">MIN</div>
+            </div>
+            <div class="clock-colon">:</div>
+            <div class="clock-col">
+              <button @click="customSeconds = Math.min(customSeconds + 5, 55)" class="clock-btn">+</button>
+              <div class="clock-display">{{ String(customSeconds).padStart(2, '0') }}</div>
+              <button @click="customSeconds = Math.max(customSeconds - 5, 0)" class="clock-btn">-</button>
+              <div class="clock-label">SEC</div>
+            </div>
+          </div>
+          <div class="clock-total">Total: {{ customMinutes }}m {{ String(customSeconds).padStart(2, '0') }}s</div>
+          <button @click="startGdAbuseCustom()" class="btn btn-red btn-full btn-big">START!</button>
+          <button @click="showCustomClock = false" class="btn btn-blue btn-full">Back</button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { gameState } from '../../components/shared/GameState'
-import CoinDisplay from '../../components/shared/CoinDisplay.vue'
-import Settings from '../../components/Settings.vue'
+import { PlayerTracker, type PlayerSession } from '../../components/shared/PlayerTracker'
 
 const router = useRouter()
-const currentCoins = ref(0)
+const activePlayers = ref<PlayerSession[]>([])
 const statusMessage = ref('')
-const statusType = ref('success')
-const isAuthenticated = ref(false)
-const passwordInput = ref('')
-const wrongPassword = ref(false)
-
-// Admin password - change this to whatever you want!
-const ADMIN_PASSWORD = 'rylan2025'
+const currentCoins = ref(0)
+const showGdTimerPicker = ref(false)
+const showCustomClock = ref(false)
+const customMinutes = ref(0)
+const customSeconds = ref(30)
+const chatMessage = ref('')
+let playerUpdateInterval: number | null = null
 
 interface Pet {
   id: string
@@ -151,7 +197,7 @@ interface Pet {
   rarity: string
 }
 
-interface GameData {
+interface BrainrotData {
   playerX: number
   playerZ: number
   coinsCollectedCount: number
@@ -163,7 +209,7 @@ interface GameData {
   activePet?: Pet | null
 }
 
-const gameData = ref<GameData>({
+const brainrotData = ref<BrainrotData>({
   playerX: 0,
   playerZ: 0,
   coinsCollectedCount: 0,
@@ -179,176 +225,184 @@ const goBack = () => {
   router.push('/')
 }
 
-const checkPassword = () => {
-  if (passwordInput.value === ADMIN_PASSWORD) {
-    isAuthenticated.value = true
-    wrongPassword.value = false
-    localStorage.setItem('adminAuth', 'true')
-  } else {
-    wrongPassword.value = true
-    setTimeout(() => {
-      wrongPassword.value = false
-    }, 2000)
-  }
-}
-
-const logout = () => {
-  localStorage.removeItem('adminAuth')
-  isAuthenticated.value = false
-  passwordInput.value = ''
-  router.push('/')
-}
-
-const loadGameData = () => {
+const loadBrainrotData = () => {
   const saved = localStorage.getItem('brainrotEvolution3D')
   if (saved) {
-    gameData.value = JSON.parse(saved)
+    brainrotData.value = JSON.parse(saved)
   }
   currentCoins.value = gameState.getCoins()
 }
 
-const saveGameData = () => {
-  localStorage.setItem('brainrotEvolution3D', JSON.stringify(gameData.value))
+const saveBrainrotData = () => {
+  localStorage.setItem('brainrotEvolution3D', JSON.stringify(brainrotData.value))
 }
 
-const showStatus = (message: string, type: 'success' | 'error' = 'success') => {
+const showStatus = (message: string) => {
   statusMessage.value = message
-  statusType.value = type
   setTimeout(() => {
     statusMessage.value = ''
   }, 3000)
 }
 
-const addCoins = (amount: number) => {
+const sendMessage = () => {
+  if (!chatMessage.value.trim()) return
+  PlayerTracker.sendGlobalMessage(chatMessage.value.trim())
+  showStatus(`Message sent: "${chatMessage.value.trim()}"`)
+  chatMessage.value = ''
+}
+
+const gameBadgeColor = (game: string): string => {
+  const colors: Record<string, string> = {
+    'Geometry Dash': '#d97706',
+    'Brainrot Evolution': '#7c3aed',
+    'Camera Watch': '#991b1b',
+    'Music Beats': '#2563eb',
+    'Organize the Fridge': '#059669',
+    'Portal': '#555'
+  }
+  return colors[game] || '#555'
+}
+
+// --- Player Actions ---
+const updateActivePlayers = () => {
+  activePlayers.value = PlayerTracker.getAllActivePlayers()
+}
+
+const giveCoins = (sessionId: string, amount: number) => {
+  const adminAction = {
+    type: 'grantCoins',
+    amount,
+    timestamp: Date.now()
+  }
+  localStorage.setItem(`admin_action_${sessionId}`, JSON.stringify(adminAction))
+  const label = amount >= 1e21 ? '100 Sextillion' : amount >= 1e8 ? '100M' : amount.toString()
+  showStatus(`Gave ${label} coins to player!`)
+}
+
+// --- Ban/Kick ---
+const kickPlayer = (sessionId: string) => {
+  PlayerTracker.kickPlayer(sessionId)
+  showStatus('Player KICKED!')
+}
+
+const warnPlayer = (sessionId: string) => {
+  PlayerTracker.warnPlayer(sessionId)
+  showStatus('Player WARNED!')
+}
+
+const banPlayer = (sessionId: string) => {
+  PlayerTracker.banPlayer(sessionId)
+  showStatus('Player BANNED!')
+}
+
+const unbanPlayer = (sessionId: string) => {
+  PlayerTracker.unbanPlayer(sessionId)
+  showStatus('Player UNBANNED!')
+}
+
+// --- Abuse Effects ---
+const startEffect = (effect: string) => {
+  const duration = parseInt(localStorage.getItem('admin_abuse_duration') || '10000')
+  PlayerTracker.startAbuseEffect(effect, duration)
+  const names: Record<string, string> = {
+    screen_shake: 'Screen Shake',
+    rainbow: 'Rainbow Mode',
+    upside_down: 'Upside Down'
+  }
+  showStatus(`${names[effect] || effect} activated for ${duration / 1000}s!`)
+}
+
+const startAllEffects = () => {
+  const duration = parseInt(localStorage.getItem('admin_abuse_duration') || '10000')
+  PlayerTracker.startAbuseEffect('screen_shake', duration)
+  PlayerTracker.startAbuseEffect('rainbow', duration)
+  PlayerTracker.startAbuseEffect('upside_down', duration)
+  showStatus(`ALL EFFECTS activated for ${duration / 1000}s!`)
+}
+
+const stopAllEffects = () => {
+  PlayerTracker.stopAllAbuseEffects()
+  showStatus('All effects stopped!')
+}
+
+// --- Camera Watch ---
+const spawnAnomaly = (type: string) => {
+  PlayerTracker.spawnCameraAnomaly(type)
+  showStatus(`Spawned ${type} in Camera Watch!`)
+}
+
+const spawnAllAnomalies = () => {
+  const types = ['Preacher', 'Cloak', 'Corpse', 'Displacement', 'Imagery']
+  types.forEach((type, i) => {
+    setTimeout(() => {
+      PlayerTracker.spawnCameraAnomaly(type)
+    }, i * 500)
+  })
+  showStatus('Spawning ALL anomalies!')
+}
+
+// --- Geometry Dash ---
+const giveAllPowers = () => {
+  // Powers: 0=shoot, 1=Rage Table, 2=Super Jump, 3=Kamehame haaa
+  for (let i = 0; i <= 3; i++) {
+    gameState.purchasePower(i)
+  }
+  showStatus('Gave all GD powers!')
+}
+
+const startAdminAbuse = (game: string, durationMs: number = 10000) => {
+  PlayerTracker.startAdminAbuse(game, durationMs)
+  localStorage.setItem('admin_abuse_duration', String(durationMs))
+  showStatus(`Admin Abuse started for ${game}!`)
+}
+
+const startGdAbuse = (durationMs: number) => {
+  showGdTimerPicker.value = false
+  showCustomClock.value = false
+  startAdminAbuse('Geometry Dash', durationMs)
+}
+
+const startGdAbuseCustom = () => {
+  const totalMs = (customMinutes.value * 60 + customSeconds.value) * 1000
+  if (totalMs <= 0) return
+  startGdAbuse(totalMs)
+}
+
+// --- Brainrot Evolution ---
+const addBrainrotCoins = (amount: number) => {
   gameState.addCoins(amount)
   currentCoins.value = gameState.getCoins()
-  showStatus(`Added ${amount} coins!`)
+  const label = amount >= 1e21 ? '100 Sextillion' : amount >= 1e8 ? '100M' : amount.toString()
+  showStatus(`Added ${label} coins!`)
 }
 
-const removeCoins = (amount: number) => {
-  gameState.spendCoins(amount)
-  currentCoins.value = gameState.getCoins()
-  showStatus(`Removed ${amount} coins!`)
+const levelUpOne = () => {
+  brainrotData.value.level += 1
+  brainrotData.value.exp = 0
+  saveBrainrotData()
+  showStatus(`Leveled up to ${brainrotData.value.level}!`)
 }
 
-const setCoins = (amount: number) => {
-  const current = gameState.getCoins()
-  if (current > amount) {
-    gameState.spendCoins(current - amount)
-  } else {
-    gameState.addCoins(amount - current)
-  }
-  currentCoins.value = gameState.getCoins()
-  showStatus(`Set coins to ${amount}!`)
-}
-
-const setLevel = (level: number) => {
-  gameData.value.level = level
-  gameData.value.exp = 0
-  saveGameData()
-  showStatus(`Set level to ${level}!`)
-}
-
-const addExp = (amount: number) => {
-  gameData.value.exp += amount
-  saveGameData()
-  showStatus(`Added ${amount} EXP!`)
-}
-
-const givePet = (name: string, damage: number, rarity: string) => {
-  if (!gameData.value.pets) {
-    gameData.value.pets = []
-  }
-
-  const newPet: Pet = {
-    id: `${name.toLowerCase().replace(/\s/g, '')}-${Date.now()}-${Math.random()}`,
-    name,
-    damage,
-    rarity
-  }
-
-  gameData.value.pets.push(newPet)
-
-  if (!gameData.value.activePet) {
-    gameData.value.activePet = newPet
-  }
-
-  saveGameData()
-
-  // Debug logging
-  console.log('Gave pet:', newPet)
-  console.log('Total pets:', gameData.value.pets.length)
-  console.log('Active pet:', gameData.value.activePet)
-  console.log('Saved data:', localStorage.getItem('brainrotEvolution3D'))
-
-  showStatus(`Gave ${name}!`)
-}
-
-const clearAllPets = () => {
-  gameData.value.pets = []
-  gameData.value.activePet = null
-  saveGameData()
-  showStatus('Cleared all pets!')
-}
-
-const resetOrangeHP = () => {
-  gameData.value.orangeHP = [200, 200, 200, 200, 200]
-  saveGameData()
-  showStatus('Reset all oranges to 200 HP!')
-}
-
-const setOrangeHP = (hp: number) => {
-  gameData.value.orangeHP = [hp, hp, hp, hp, hp]
-  saveGameData()
-  showStatus(`Set all oranges to ${hp} HP!`)
-}
-
-const fullReset = () => {
-  if (confirm('Are you sure you want to reset ALL progress? This cannot be undone!')) {
-    // Clear all game-related localStorage
-    localStorage.removeItem('brainrotEvolution3D')
-    localStorage.removeItem('gameCoins')
-    localStorage.removeItem('adminAuth')
-
-    // Reset gameState coins to 0
-    const currentCoins = gameState.getCoins()
-    if (currentCoins > 0) {
-      gameState.spendCoins(currentCoins)
-    }
-
-    // Clear the gameData in memory
-    gameData.value = {
-      playerX: 0,
-      playerZ: 0,
-      coinsCollectedCount: 0,
-      hasMetTungTung: false,
-      level: 1,
-      exp: 0,
-      orangeHP: [200, 200, 200, 200, 200],
-      pets: [],
-      activePet: null
-    }
-
-    // Save the reset data
-    saveGameData()
-
-    // Reload the page
-    setTimeout(() => {
-      location.reload()
-    }, 100)
-  }
+const levelUpMax = () => {
+  brainrotData.value.level = 99
+  brainrotData.value.exp = 999
+  saveBrainrotData()
+  showStatus('Set to MAX level 99!')
 }
 
 const maxEverything = () => {
-  gameState.addCoins(99999)
+  // Max coins
+  gameState.addCoins(999999)
   currentCoins.value = gameState.getCoins()
-  gameData.value.level = 99
-  gameData.value.exp = 999
-  gameData.value.orangeHP = [200, 200, 200, 200, 200]
+
+  // Max level
+  brainrotData.value.level = 99
+  brainrotData.value.exp = 999
+  brainrotData.value.orangeHP = [200, 200, 200, 200, 200]
 
   // Give all pets
-  if (!gameData.value.pets) {
-    gameData.value.pets = []
+  if (!brainrotData.value.pets) {
+    brainrotData.value.pets = []
   }
 
   const allPets = [
@@ -366,48 +420,53 @@ const maxEverything = () => {
       damage: pet.damage,
       rarity: pet.rarity
     }
-    gameData.value.pets!.push(newPet)
+    brainrotData.value.pets!.push(newPet)
   })
 
-  gameData.value.activePet = gameData.value.pets[gameData.value.pets.length - 1]
+  brainrotData.value.activePet = brainrotData.value.pets[brainrotData.value.pets.length - 1]
+  saveBrainrotData()
 
-  saveGameData()
-  showStatus('MAXED EVERYTHING! 🚀', 'success')
-}
+  // Give all GD powers
+  for (let i = 0; i <= 3; i++) {
+    gameState.purchasePower(i)
+  }
 
-const openGameData = () => {
-  console.log('Game Data:', gameData.value)
-  console.log('Coins:', gameState.getCoins())
-  alert('Game data logged to console! Press F12 to view.')
+  showStatus('MAXED EVERYTHING!')
 }
 
 onMounted(() => {
-  // Check if already authenticated
-  const authStatus = localStorage.getItem('adminAuth')
-  if (authStatus === 'true') {
-    isAuthenticated.value = true
-  }
+  loadBrainrotData()
+  updateActivePlayers()
+  playerUpdateInterval = setInterval(() => {
+    updateActivePlayers()
+    loadBrainrotData()
+  }, 2000)
+})
 
-  loadGameData()
+onUnmounted(() => {
+  if (playerUpdateInterval) {
+    clearInterval(playerUpdateInterval)
+  }
 })
 </script>
 
 <style scoped>
-.admin-wrapper {
-  position: relative;
+.owner-wrapper {
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a0033 0%, #330066 100%);
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a0033 50%, #000a00 100%);
   padding: 20px;
+  color: white;
+  font-family: 'Segoe UI', sans-serif;
 }
 
 .back-button {
-  position: absolute;
+  position: fixed;
   top: 20px;
   left: 20px;
   padding: 10px 20px;
-  background: #6366f1;
+  background: #333;
   color: white;
-  border: none;
+  border: 1px solid #555;
   border-radius: 5px;
   cursor: pointer;
   font-size: 16px;
@@ -417,330 +476,537 @@ onMounted(() => {
 }
 
 .back-button:hover {
-  background: #4f46e5;
+  background: #555;
 }
 
-.admin-container {
-  max-width: 1200px;
+.owner-container {
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 20px;
+  padding-top: 20px;
 }
 
-.admin-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 40px;
-  flex-wrap: wrap;
-  gap: 20px;
-}
-
-.admin-title {
-  color: #fff;
-  font-size: 48px;
-  margin: 0;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-  flex: 1;
+.owner-header {
   text-align: center;
-}
-
-.logout-button {
-  padding: 12px 24px;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: white;
-  border: 2px solid white;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
-  transition: all 0.3s;
-  white-space: nowrap;
-}
-
-.logout-button:hover {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-  transform: scale(1.05);
-}
-
-.admin-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 30px;
   margin-bottom: 30px;
 }
 
-.admin-card {
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+.owner-title {
+  font-size: 52px;
+  color: #00ff00;
+  text-shadow: 0 0 20px rgba(0, 255, 0, 0.5), 0 0 40px rgba(0, 255, 0, 0.2);
+  font-family: monospace;
+  letter-spacing: 8px;
+  margin: 0;
+}
+
+/* Sections */
+.section {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.15);
   border-radius: 15px;
   padding: 25px;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s;
+  margin-bottom: 25px;
 }
 
-.admin-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+.section-title {
+  font-size: 22px;
+  font-family: monospace;
+  margin: 0 0 20px 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.admin-card.danger {
+/* Players Section */
+.players-section {
+  border-color: rgba(0, 255, 0, 0.3);
+}
+
+.players-section .section-title {
+  color: #00ff00;
+}
+
+.no-players {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  padding: 20px;
+  font-style: italic;
+}
+
+.players-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.player-card {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.player-info {
+  flex: 1;
+}
+
+.player-name {
+  font-size: 18px;
+  font-weight: bold;
+  color: #00ff00;
+  margin-bottom: 5px;
+}
+
+.player-stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.stat {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.game-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+}
+
+.player-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Panels Grid */
+.panels-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+@media (max-width: 768px) {
+  .panels-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Camera Watch Section */
+.camera-section {
+  border-color: rgba(139, 0, 0, 0.5);
+  background: rgba(139, 0, 0, 0.08);
+}
+
+.camera-section .section-title {
+  color: #ff3333;
+  text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+}
+
+.camera-desc {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  margin: 0 0 15px 0;
+  font-style: italic;
+}
+
+.anomaly-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.btn-anomaly {
+  padding: 16px 12px;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  font-family: monospace;
+  border: 2px solid;
+}
+
+.btn-preacher {
+  background: linear-gradient(135deg, #1a0a2e, #2d1b4e);
+  border-color: #8b5cf6;
+  color: #c4b5fd;
+  text-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
+}
+
+.btn-cloak {
+  background: linear-gradient(135deg, #0a0a0a, #1a1a2e);
   border-color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  text-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
 }
 
-.admin-card h2 {
-  color: #fff;
-  margin-bottom: 20px;
-  font-size: 24px;
+.btn-corpse {
+  background: linear-gradient(135deg, #1a1a0a, #2e2e1b);
+  border-color: #a3a3a3;
+  color: #d4d4d4;
+  text-shadow: 0 0 8px rgba(163, 163, 163, 0.6);
+}
+
+.btn-displacement {
+  background: linear-gradient(135deg, #0a1a2e, #1b2d4e);
+  border-color: #3b82f6;
+  color: #93c5fd;
+  text-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+}
+
+.btn-imagery {
+  background: linear-gradient(135deg, #2e0a0a, #4e1b1b);
+  border-color: #f97316;
+  color: #fdba74;
+  text-shadow: 0 0 8px rgba(249, 115, 22, 0.6);
+}
+
+.btn-anomaly:hover {
+  transform: scale(1.05);
+  filter: brightness(1.3);
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
+}
+
+/* GD Section */
+.gd-section {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.gd-section .section-title {
+  color: #3b82f6;
+}
+
+/* Brainrot Section */
+.brainrot-section {
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
+.brainrot-section .section-title {
+  color: #a855f7;
 }
 
 .current-value {
   color: #ffd700;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   padding: 10px;
   background: rgba(0, 0, 0, 0.3);
   border-radius: 8px;
+  text-align: center;
 }
 
 .value {
   color: #4ade80;
-  margin: 0 5px;
 }
 
-.button-group {
+/* Buttons */
+.button-group,
+.coin-group {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
-.admin-btn {
-  flex: 1;
-  min-width: 120px;
+.btn {
   padding: 12px 20px;
   border: none;
   border-radius: 8px;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
   color: white;
   font-size: 14px;
+  flex: 1;
+  min-width: 100px;
+  text-align: center;
 }
 
-.admin-btn:hover {
-  transform: scale(1.05);
+.btn:hover {
+  transform: scale(1.03);
+  filter: brightness(1.2);
 }
 
-.admin-btn.green {
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-sm {
+  padding: 8px 14px;
+  font-size: 12px;
+  min-width: 80px;
+  flex: 0;
+}
+
+.btn-full {
+  width: 100%;
+  flex: unset;
+}
+
+.btn-big {
+  padding: 18px 20px;
+  font-size: 18px;
+  letter-spacing: 2px;
+}
+
+.btn-green {
   background: linear-gradient(135deg, #10b981, #059669);
 }
 
-.admin-btn.green:hover {
-  background: linear-gradient(135deg, #059669, #047857);
-}
-
-.admin-btn.red {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-}
-
-.admin-btn.red:hover {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-}
-
-.admin-btn.blue {
+.btn-blue {
   background: linear-gradient(135deg, #3b82f6, #2563eb);
 }
 
-.admin-btn.blue:hover {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-}
-
-.admin-btn.purple {
+.btn-purple {
   background: linear-gradient(135deg, #a855f7, #9333ea);
 }
 
-.admin-btn.purple:hover {
-  background: linear-gradient(135deg, #9333ea, #7e22ce);
+.btn-red {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
 }
 
-.admin-btn.orange {
+.btn-gold {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #000;
+}
+
+.btn-yellow {
+  background: linear-gradient(135deg, #eab308, #ca8a04);
+  color: #000;
+}
+
+.btn-orange {
   background: linear-gradient(135deg, #f97316, #ea580c);
 }
 
-.admin-btn.orange:hover {
-  background: linear-gradient(135deg, #ea580c, #c2410c);
-}
-
-.admin-btn.gold {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  font-size: 16px;
-  padding: 15px 25px;
-}
-
-.admin-btn.gold:hover {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-}
-
-.admin-btn.danger-btn {
-  background: linear-gradient(135deg, #dc2626, #991b1b);
-  font-size: 18px;
-  padding: 15px 30px;
-  width: 100%;
-}
-
-.admin-btn.danger-btn:hover {
+.btn-darkred {
   background: linear-gradient(135deg, #991b1b, #7f1d1d);
+  border: 1px solid #ef4444;
 }
 
-.warning {
-  color: #fbbf24;
-  text-align: center;
-  font-weight: bold;
-  margin-bottom: 15px;
+.btn-rainbow {
+  background: linear-gradient(90deg, #ff0000, #ff7700, #ffff00, #00ff00, #0077ff, #8800ff);
+  color: #fff;
+  text-shadow: 1px 1px 2px #000;
 }
 
+.btn-gray {
+  background: linear-gradient(135deg, #555, #333);
+  border: 1px solid #777;
+}
+
+/* Status message */
 .status-message {
   position: fixed;
   bottom: 30px;
-  right: 30px;
-  padding: 20px 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 15px 30px;
+  background: rgba(0, 255, 0, 0.2);
+  border: 2px solid #00ff00;
   border-radius: 10px;
+  color: #00ff00;
+  font-family: monospace;
   font-weight: bold;
-  font-size: 18px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  font-size: 16px;
   z-index: 9999;
-  animation: slideIn 0.3s ease-out;
+  animation: fadeIn 0.3s;
+  text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
 }
 
-.status-message.success {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-.status-message.error {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: white;
-}
-
-.password-screen {
+/* Timer Picker */
+.timer-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
-  justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #1a0033 0%, #330066 100%);
+  justify-content: center;
   z-index: 10000;
 }
 
-.password-box {
-  background: rgba(255, 255, 255, 0.1);
-  border: 3px solid rgba(255, 255, 255, 0.3);
+.timer-box {
+  background: #111;
+  border: 3px solid #ff0000;
   border-radius: 20px;
-  padding: 50px;
-  backdrop-filter: blur(10px);
+  padding: 35px 40px;
   text-align: center;
-  max-width: 400px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  width: 380px;
+  box-shadow: 0 0 40px rgba(255, 0, 0, 0.4);
 }
 
-.password-box h1 {
-  color: #fff;
-  font-size: 32px;
-  margin-bottom: 20px;
+.timer-title {
+  color: #ff0000;
+  font-size: 36px;
+  font-family: 'Impact', sans-serif;
+  margin: 0 0 5px 0;
+  text-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
 }
 
-.password-box p {
-  color: #aaa;
-  font-size: 16px;
-  margin-bottom: 30px;
+.timer-subtitle {
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 0 25px 0;
+  font-size: 14px;
 }
 
-.password-input {
-  width: 100%;
-  padding: 15px;
-  font-size: 18px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  margin-bottom: 20px;
-  text-align: center;
-  transition: all 0.3s;
+.timer-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.password-input:focus {
-  outline: none;
-  border-color: #6366f1;
-  background: rgba(255, 255, 255, 0.15);
+/* Clock Picker */
+.clock-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
-.password-input::placeholder {
-  color: #888;
+.clock-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
 }
 
-.password-btn {
-  width: 100%;
-  padding: 15px 30px;
-  font-size: 18px;
+.clock-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.clock-btn {
+  width: 50px;
+  height: 40px;
+  font-size: 24px;
   font-weight: bold;
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  background: #333;
   color: white;
-  border: none;
-  border-radius: 10px;
+  border: 2px solid #555;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
 }
 
-.password-btn:hover {
-  background: linear-gradient(135deg, #4f46e5, #4338ca);
-  transform: scale(1.05);
+.clock-btn:hover {
+  background: #555;
+  border-color: #ff0000;
 }
 
-.error-message {
-  color: #ef4444;
+.clock-display {
+  font-size: 64px;
+  font-weight: 900;
+  color: #ff0000;
+  font-family: monospace;
+  text-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+  line-height: 1;
+}
+
+.clock-colon {
+  font-size: 64px;
+  font-weight: 900;
+  color: #ff0000;
+  font-family: monospace;
+  padding-bottom: 30px;
+}
+
+.clock-label {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
   font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.clock-total {
+  color: #ffd700;
+  font-size: 18px;
+  font-weight: bold;
+  font-family: monospace;
+}
+
+/* Talk to People */
+.talk-section {
   margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.talk-label {
+  color: #3b82f6;
   font-size: 16px;
-  animation: shake 0.5s;
+  font-weight: bold;
+  font-family: monospace;
+  margin-bottom: 10px;
 }
 
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-10px); }
-  75% { transform: translateX(10px); }
+.talk-form {
+  display: flex;
+  gap: 8px;
 }
 
-@keyframes slideIn {
-  from {
-    transform: translateX(400px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+.talk-input {
+  flex: 1;
+  padding: 10px 14px;
+  font-size: 14px;
+  border: 2px solid #333;
+  border-radius: 8px;
+  background: #0a0a0a;
+  color: white;
+  font-family: sans-serif;
 }
 
-@media (max-width: 768px) {
-  .admin-title {
-    font-size: 32px;
-  }
+.talk-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
 
-  .admin-grid {
-    grid-template-columns: 1fr;
-  }
+.talk-input::placeholder {
+  color: #555;
+}
 
-  .button-group {
-    flex-direction: column;
-  }
+/* Effects Section */
+.effects-section {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
 
-  .admin-btn {
-    width: 100%;
-  }
+.effects-label {
+  color: #ef4444;
+  font-size: 16px;
+  font-weight: bold;
+  font-family: monospace;
+  margin-bottom: 10px;
+  letter-spacing: 2px;
+}
+
+.effects-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 </style>

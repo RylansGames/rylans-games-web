@@ -1,5 +1,6 @@
 <template>
   <div class="game-wrapper">
+    <AdminAbuseSign />
     <Settings />
     <CoinDisplay />
     <button class="back-button" @click="goBack">← Back to Portal</button>
@@ -169,8 +170,10 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import * as THREE from 'three'
 import { gameState } from '../../components/shared/GameState'
+import { playerTracker } from '../../components/shared/PlayerTracker'
 import CoinDisplay from '../../components/shared/CoinDisplay.vue'
 import Settings from '../../components/Settings.vue'
+import AdminAbuseSign from '../../components/shared/AdminAbuseSign.vue'
 
 const gameContainer = ref<HTMLDivElement>()
 const characterCanvas = ref<HTMLCanvasElement>()
@@ -1226,7 +1229,7 @@ const init3DScene = () => {
   // Create camera (first person view)
   camera = new THREE.PerspectiveCamera(
     75,
-    800 / 600,
+    window.innerWidth / window.innerHeight,
     0.1,
     1000
   )
@@ -1234,7 +1237,7 @@ const init3DScene = () => {
 
   // Create renderer
   renderer = new THREE.WebGLRenderer({ antialias: true })
-  renderer.setSize(800, 600)
+  renderer.setSize(window.innerWidth, window.innerHeight)
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
@@ -2944,6 +2947,37 @@ onMounted(() => {
   loadGameData()
   init3DScene()
 
+  // Start player tracking session
+  playerTracker.startSession(
+    gameState.getPlayerName(),
+    gameState.getCoins(),
+    level.value,
+    exp.value,
+    pets.value.length,
+    'Brainrot Evolution'
+  )
+
+  // Check for admin actions every second
+  setInterval(() => {
+    const action = playerTracker.checkForAdminActions()
+    if (action) {
+      if (action.type === 'grantCoins' && action.amount) {
+        gameState.addCoins(action.amount)
+        showNotification(`Admin granted you ${action.amount} coins!`)
+      } else if (action.type === 'grantGodPet') {
+        const godPet: Pet = {
+          id: `god_${Date.now()}`,
+          name: 'Moderator God',
+          damage: Infinity,
+          rarity: 'Divine'
+        }
+        pets.value.push(godPet)
+        saveGameData()
+        showNotification('Admin granted you a GOD PET!')
+      }
+    }
+  }, 1000)
+
   // Initialize background music - "The Natural Kingdom" by Afro Musique
   backgroundMusic = new Audio('https://www.bensound.com/bensound-music/bensound-thelounge.mp3')
   backgroundMusic.loop = true
@@ -2981,6 +3015,8 @@ onUnmounted(() => {
     backgroundMusic.pause()
     backgroundMusic = null
   }
+  // End player tracking session
+  playerTracker.endSession()
   saveGameData()
 })
 </script>
@@ -2997,11 +3033,11 @@ onUnmounted(() => {
 }
 
 .game-container {
-  position: relative;
-  width: 800px;
-  height: 600px;
-  border: 3px solid #ff00ff;
-  box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
 }
 
 .back-button {

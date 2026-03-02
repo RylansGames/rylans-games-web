@@ -1,5 +1,6 @@
 <template>
   <div class="game-wrapper">
+    <AdminAbuseSign />
     <Settings />
     <CoinDisplay />
     <button class="back-button" @click="goBack">← Back to Portal</button>
@@ -14,6 +15,8 @@ import Phaser from 'phaser'
 import { gameState } from '../../components/shared/GameState'
 import CoinDisplay from '../../components/shared/CoinDisplay.vue'
 import Settings from '../../components/Settings.vue'
+import AdminAbuseSign from '../../components/shared/AdminAbuseSign.vue'
+import { PlayerTracker, playerTracker } from '../../components/shared/PlayerTracker'
 
 const gameContainer = ref<HTMLDivElement>()
 const router = useRouter()
@@ -219,6 +222,55 @@ class HomeScene extends Phaser.Scene {
     // Rebirth button click
     rebirthButton.on('pointerdown', () => {
       this.scene.start('RebirthScene')
+    })
+
+    // ADMIN PARTYYYYYYYYYYY button (under Rebirth) - only visible during admin abuse
+    const adminPartyButton = this.add.rectangle(700, 260, 180, 45, 0xff0000)
+    adminPartyButton.setStrokeStyle(3, 0xffff00)
+    adminPartyButton.setInteractive()
+    adminPartyButton.setVisible(false)
+
+    const adminPartyText = this.add.text(700, 260, 'ADMIN PARTYYYYYYYYYYY', {
+      fontSize: '11px',
+      color: '#ffff00',
+      fontStyle: 'bold'
+    })
+    adminPartyText.setOrigin(0.5)
+    adminPartyText.setVisible(false)
+
+    // Flash animation
+    this.tweens.add({
+      targets: adminPartyButton,
+      fillColor: { from: 0xff0000, to: 0xcc0000 },
+      duration: 500,
+      yoyo: true,
+      repeat: -1
+    })
+
+    adminPartyButton.on('pointerover', () => {
+      adminPartyButton.setScale(1.1)
+    })
+
+    adminPartyButton.on('pointerout', () => {
+      adminPartyButton.setScale(1)
+    })
+
+    adminPartyButton.on('pointerdown', () => {
+      const savedDuration = localStorage.getItem('admin_abuse_duration')
+      const duration = savedDuration ? parseInt(savedDuration) : 10000
+      PlayerTracker.startAdminAbuse('Geometry Dash', duration)
+    })
+
+    // Check every 500ms if admin abuse is active, show/hide button
+    this.time.addEvent({
+      delay: 500,
+      loop: true,
+      callback: () => {
+        const abuse = PlayerTracker.checkForAdminAbuse()
+        const show = abuse !== null
+        adminPartyButton.setVisible(show)
+        adminPartyText.setVisible(show)
+      }
     })
   }
 }
@@ -7137,9 +7189,12 @@ onMounted(() => {
   console.log('🎮 Geometry Dash Developer Console')
   console.log('For Rylan: setRylan()')
   console.log('For others: setModerator(true/false)')
+
+  playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Geometry Dash')
 })
 
 onUnmounted(() => {
+  playerTracker.endSession()
   if (game) {
     game.destroy(true)
   }
