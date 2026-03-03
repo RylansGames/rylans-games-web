@@ -143,8 +143,28 @@
           </div>
         </div>
       </div>
-      <div class="controls-hint">
+      <div class="controls-hint" v-if="!isTouchDevice">
         WASD/Arrows: Move | Mouse: Look Around | SPACE: Jump | B: Toggle Camera | Left Click: Hit Apple
+      </div>
+
+      <!-- Touch controls for iPad/mobile -->
+      <div v-if="isTouchDevice" class="touch-joystick-area"
+        @touchstart.prevent="joystickStart"
+        @touchmove.prevent="joystickMove"
+        @touchend.prevent="joystickEnd"
+      >
+        <div class="joystick-base" :style="joystickBaseStyle">
+          <div class="joystick-knob" :style="joystickKnobStyle"></div>
+        </div>
+      </div>
+      <div v-if="isTouchDevice" class="touch-look-area"
+        @touchstart.prevent="lookStart"
+        @touchmove.prevent="lookMove"
+        @touchend.prevent="lookEnd"
+      ></div>
+      <div v-if="isTouchDevice" class="touch-action-buttons">
+        <button class="touch-action-btn jump-btn" @touchstart.prevent="touchJump">JUMP</button>
+        <button class="touch-action-btn attack-btn" @touchstart.prevent="touchAttack">ATTACK</button>
       </div>
 
       <!-- Level/EXP Bar at Bottom -->
@@ -166,7 +186,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import * as THREE from 'three'
 import { gameState } from '../../components/shared/GameState'
@@ -224,6 +244,115 @@ let mouseY = 0
 let yaw = 0
 let pitch = 0
 let isFirstPerson = true // Camera mode
+
+// Touch controls for iPad/mobile
+const isTouchDevice = ref('ontouchstart' in window || navigator.maxTouchPoints > 0)
+let joystickTouchId: number | null = null
+let lookTouchId: number | null = null
+let lastLookX = 0
+let lastLookY = 0
+const joystickActive = ref(false)
+const joystickX = ref(0)
+const joystickY = ref(0)
+const joystickBaseX = ref(0)
+const joystickBaseY = ref(0)
+
+const joystickBaseStyle = computed(() => ({
+  left: joystickActive.value ? `${joystickBaseX.value - 50}px` : '50%',
+  top: joystickActive.value ? `${joystickBaseY.value - 50}px` : '50%',
+  transform: joystickActive.value ? 'none' : 'translate(-50%, -50%)',
+  opacity: joystickActive.value ? '1' : '0.3',
+}))
+
+const joystickKnobStyle = computed(() => ({
+  transform: `translate(${joystickX.value}px, ${joystickY.value}px)`,
+}))
+
+const joystickStart = (e: TouchEvent) => {
+  const touch = e.changedTouches[0]
+  joystickTouchId = touch.identifier
+  joystickActive.value = true
+  joystickBaseX.value = touch.clientX
+  joystickBaseY.value = touch.clientY
+  joystickX.value = 0
+  joystickY.value = 0
+}
+
+const joystickMove = (e: TouchEvent) => {
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    const touch = e.changedTouches[i]
+    if (touch.identifier === joystickTouchId) {
+      const dx = touch.clientX - joystickBaseX.value
+      const dy = touch.clientY - joystickBaseY.value
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      const maxDist = 40
+      if (dist > maxDist) {
+        joystickX.value = (dx / dist) * maxDist
+        joystickY.value = (dy / dist) * maxDist
+      } else {
+        joystickX.value = dx
+        joystickY.value = dy
+      }
+      // Map joystick to keys
+      const threshold = 10
+      keys['w'] = joystickY.value < -threshold
+      keys['s'] = joystickY.value > threshold
+      keys['a'] = joystickX.value < -threshold
+      keys['d'] = joystickX.value > threshold
+    }
+  }
+}
+
+const joystickEnd = (e: TouchEvent) => {
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    if (e.changedTouches[i].identifier === joystickTouchId) {
+      joystickTouchId = null
+      joystickActive.value = false
+      joystickX.value = 0
+      joystickY.value = 0
+      keys['w'] = false
+      keys['s'] = false
+      keys['a'] = false
+      keys['d'] = false
+    }
+  }
+}
+
+const lookStart = (e: TouchEvent) => {
+  const touch = e.changedTouches[0]
+  lookTouchId = touch.identifier
+  lastLookX = touch.clientX
+  lastLookY = touch.clientY
+}
+
+const lookMove = (e: TouchEvent) => {
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    const touch = e.changedTouches[i]
+    if (touch.identifier === lookTouchId) {
+      mouseX = (touch.clientX - lastLookX) * 2
+      mouseY = (touch.clientY - lastLookY) * 2
+      lastLookX = touch.clientX
+      lastLookY = touch.clientY
+    }
+  }
+}
+
+const lookEnd = (e: TouchEvent) => {
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    if (e.changedTouches[i].identifier === lookTouchId) {
+      lookTouchId = null
+    }
+  }
+}
+
+const touchJump = () => {
+  keys[' '] = true
+  setTimeout(() => { keys[' '] = false }, 100)
+}
+
+const touchAttack = () => {
+  hitApple()
+}
 let lastNPCInteraction = 0 // Cooldown timer for NPC interaction
 let lastAppleAttack = 0 // Cooldown timer for apple attacks
 
@@ -2504,24 +2633,26 @@ const setupControls = () => {
     keys[e.key.toLowerCase()] = false
   })
 
-  // Mouse controls
-  renderer.domElement.addEventListener('click', () => {
-    renderer.domElement.requestPointerLock()
-  })
+  // Mouse controls (skip pointer lock on touch devices - use touch look instead)
+  if (!isTouchDevice.value) {
+    renderer.domElement.addEventListener('click', () => {
+      renderer.domElement.requestPointerLock()
+    })
 
-  document.addEventListener('mousemove', (e) => {
-    if (document.pointerLockElement === renderer.domElement) {
-      mouseX = e.movementX
-      mouseY = e.movementY
-    }
-  })
+    document.addEventListener('mousemove', (e) => {
+      if (document.pointerLockElement === renderer.domElement) {
+        mouseX = e.movementX
+        mouseY = e.movementY
+      }
+    })
 
-  // Mouse click to hit apples
-  renderer.domElement.addEventListener('click', (e) => {
-    if (document.pointerLockElement === renderer.domElement) {
-      hitApple()
-    }
-  })
+    // Mouse click to hit apples
+    renderer.domElement.addEventListener('click', (e) => {
+      if (document.pointerLockElement === renderer.domElement) {
+        hitApple()
+      }
+    })
+  }
 }
 
 const hitApple = () => {
@@ -3835,5 +3966,85 @@ onUnmounted(() => {
   padding: 10px 20px;
   border-radius: 10px;
   border: 3px solid #ffd700;
+}
+
+/* Touch controls for iPad/mobile */
+.touch-joystick-area {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 40vw;
+  height: 40vh;
+  z-index: 300;
+  touch-action: none;
+}
+
+.joystick-base {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: 3px solid rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.joystick-knob {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  transition: transform 0.05s;
+}
+
+.touch-look-area {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 60vw;
+  height: 60vh;
+  z-index: 250;
+  touch-action: none;
+}
+
+.touch-action-buttons {
+  position: fixed;
+  right: 20px;
+  bottom: 30px;
+  display: flex;
+  gap: 15px;
+  z-index: 300;
+}
+
+.touch-action-btn {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.6);
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.touch-action-btn.jump-btn {
+  background: rgba(0, 200, 100, 0.6);
+}
+
+.touch-action-btn.attack-btn {
+  background: rgba(255, 50, 50, 0.6);
+}
+
+.touch-action-btn:active {
+  transform: scale(0.9);
+  opacity: 0.8;
 }
 </style>

@@ -55,6 +55,7 @@
             :class="{ active: activePads.has(pad.id), sequenced: isPadInCurrentStep(pad.id) }"
             :style="{ '--pad-color': pad.color, '--pad-bg': pad.color + '66' }"
             @mousedown="hitPad(pad.id)"
+            @touchstart.prevent="hitPad(pad.id)"
           >
             <span class="pad-name">{{ pad.name }}</span>
             <span class="pad-key">{{ pad.key }}</span>

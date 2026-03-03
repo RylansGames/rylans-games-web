@@ -5,6 +5,15 @@
     <CoinDisplay />
     <button class="back-button" @click="goBack">← Back to Portal</button>
     <div ref="gameContainer" id="phaser-game"></div>
+
+    <!-- Touch controls overlay for iPad/mobile -->
+    <div v-if="showTouchControls" class="touch-controls">
+      <button class="touch-btn shoot-btn" @touchstart.prevent="touchShoot" @click="touchShoot">🔫</button>
+      <button v-if="touchPowers.rageTable" class="touch-btn power-btn rage-btn" @touchstart.prevent="touchRageTable" @click="touchRageTable">💥</button>
+      <button v-if="touchPowers.superJump" class="touch-btn power-btn jump-btn" @touchstart.prevent="touchSuperJump" @click="touchSuperJump">⬆️</button>
+      <button v-if="touchPowers.kamehameHaaa" class="touch-btn power-btn kame-btn" @touchstart.prevent="touchKamehameHaaa" @click="touchKamehameHaaa">🔵</button>
+      <button v-if="touchPowers.fireball" class="touch-btn power-btn fire-btn" @touchstart.prevent="touchFireball" @click="touchFireball">🔥</button>
+    </div>
   </div>
 </template>
 
@@ -22,6 +31,23 @@ import { OnlineTracker } from '../../components/shared/OnlineTracker'
 const gameContainer = ref<HTMLDivElement>()
 const router = useRouter()
 let game: Phaser.Game | null = null
+let activeMainScene: any = null
+
+// Touch controls for iPad
+const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+const showTouchControls = ref(false)
+const touchPowers = ref({
+  rageTable: false,
+  superJump: false,
+  kamehameHaaa: false,
+  fireball: false,
+})
+
+const touchShoot = () => { activeMainScene?.shoot?.() }
+const touchRageTable = () => { activeMainScene?.useRageTable?.() }
+const touchSuperJump = () => { activeMainScene?.useSuperJump?.() }
+const touchKamehameHaaa = () => { activeMainScene?.useKamehameHaaa?.() }
+const touchFireball = () => { activeMainScene?.useFireball?.() }
 
 // Use shared game state
 let totalCoins = gameState.getCoins()
@@ -118,7 +144,7 @@ class HomeScene extends Phaser.Scene {
     })
 
     // Instructions
-    const instructions = this.add.text(400, 450, 'Click or SPACE to jump\nPress F to shoot (20s cooldown)', {
+    const instructions = this.add.text(400, 450, 'Tap/Click or SPACE to jump\nPress F or use buttons to shoot', {
       fontSize: '18px',
       color: '#ffffff',
       align: 'center'
@@ -4003,6 +4029,18 @@ class MainScene extends Phaser.Scene {
   }
 
   create() {
+    // Store reference for touch controls
+    activeMainScene = this
+    if (isTouchDevice) {
+      showTouchControls.value = true
+      touchPowers.value = {
+        rageTable: this.hasRageTable,
+        superJump: this.hasSuperJump,
+        kamehameHaaa: this.hasKamehameHaaa,
+        fireball: this.hasFireball,
+      }
+    }
+
     // Create ground
     this.ground = this.physics.add.staticGroup()
     const groundRect = this.add.rectangle(400, 550, 800, 100, 0x00ff00)
@@ -6127,7 +6165,7 @@ class MainScene extends Phaser.Scene {
     })
   }
   
-  private shoot() {
+  shoot() {
     if (!this.canShoot || this.gameOver) return
     
     // Create bullet
@@ -6167,7 +6205,7 @@ class MainScene extends Phaser.Scene {
     obstacle.destroy()
   }
   
-  private useRageTable() {
+  useRageTable() {
     if (!this.canUseRageTable || this.gameOver) return
     
     // Zoom out camera
@@ -6238,7 +6276,7 @@ class MainScene extends Phaser.Scene {
     table.destroy()
   }
   
-  private useSuperJump() {
+  useSuperJump() {
     if (this.isJumping || this.gameOver || this.isSuperJumping || !this.canUseSuperJump) return
     
     // Start super jump
@@ -6314,7 +6352,7 @@ class MainScene extends Phaser.Scene {
     }
   }
   
-  private useKamehameHaaa() {
+  useKamehameHaaa() {
     if (this.gameOver || this.isUsingKamehameHaaa) return
     
     this.isUsingKamehameHaaa = true
@@ -6410,7 +6448,7 @@ class MainScene extends Phaser.Scene {
     })
   }
   
-  private useReviver() {
+  useReviver() {
     if (this.gameOver || !this.canUseReviver || this.reviverActive) return
     
     // Activate reviver
@@ -6477,7 +6515,7 @@ class MainScene extends Phaser.Scene {
     this.player.setData('shieldUpdate', shieldUpdate)
   }
   
-  private useFireball() {
+  useFireball() {
     if (!this.canUseFireball || this.gameOver || this.isRidingFireball) return
     
     // Create fireball beneath player
@@ -6583,7 +6621,7 @@ class MainScene extends Phaser.Scene {
     })
   }
   
-  private useTelekinesis() {
+  useTelekinesis() {
     if (this.telekinesisActive || this.gameOver) return
     
     // Get all visible obstacles (spikes)
@@ -7204,6 +7242,8 @@ onMounted(() => {
 onUnmounted(() => {
   playerTracker.endSession()
   OnlineTracker.goOffline()
+  showTouchControls.value = false
+  activeMainScene = null
   if (game) {
     game.destroy(true)
   }
@@ -7242,5 +7282,55 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
   padding: 20px;
+}
+
+.touch-controls {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 10px;
+  z-index: 200;
+  pointer-events: auto;
+}
+
+.touch-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.6);
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.shoot-btn {
+  background: rgba(255, 100, 0, 0.7);
+}
+
+.rage-btn {
+  background: rgba(255, 0, 0, 0.7);
+}
+
+.jump-btn {
+  background: rgba(0, 200, 255, 0.7);
+}
+
+.kame-btn {
+  background: rgba(0, 100, 255, 0.7);
+}
+
+.fire-btn {
+  background: rgba(255, 150, 0, 0.7);
+}
+
+.touch-btn:active {
+  transform: scale(0.9);
+  opacity: 0.8;
 }
 </style>

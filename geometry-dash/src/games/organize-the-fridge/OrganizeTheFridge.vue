@@ -19,7 +19,7 @@
       <div v-if="!gameStarted && !gameOver" class="start-screen">
         <h1>🧊 ORGANIZE THE FRIDGE 🧊</h1>
         <p class="subtitle">Keep the Kitchen Clean!</p>
-        <p class="instructions">🖱️ Click and drag food items</p>
+        <p class="instructions">🖱️ Click or touch and drag food items</p>
         <p class="instructions">🥕 Drop items on the correct colored shelves!</p>
         <p class="instructions">🔴 Red items → Bottom shelf</p>
         <p class="instructions">🟢 Green items → Middle shelf</p>
@@ -471,6 +471,24 @@ const handleMouseUp = () => {
   draggedItem = null
 }
 
+// Touch event handlers for iPad/mobile
+const handleTouchStart = (e: TouchEvent) => {
+  e.preventDefault()
+  const touch = e.touches[0]
+  handleMouseDown({ clientX: touch.clientX, clientY: touch.clientY } as MouseEvent)
+}
+
+const handleTouchMove = (e: TouchEvent) => {
+  e.preventDefault()
+  const touch = e.touches[0]
+  handleMouseMove({ clientX: touch.clientX, clientY: touch.clientY } as MouseEvent)
+}
+
+const handleTouchEnd = (e: TouchEvent) => {
+  e.preventDefault()
+  handleMouseUp()
+}
+
 const updateFoodItems = () => {
   foodItems.forEach(item => {
     // Make unorganized items bob slightly
@@ -502,6 +520,9 @@ onMounted(() => {
   window.addEventListener('mousedown', handleMouseDown)
   window.addEventListener('mousemove', handleMouseMove)
   window.addEventListener('mouseup', handleMouseUp)
+  window.addEventListener('touchstart', handleTouchStart, { passive: false })
+  window.addEventListener('touchmove', handleTouchMove, { passive: false })
+  window.addEventListener('touchend', handleTouchEnd, { passive: false })
   window.addEventListener('resize', handleResize)
   playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Organize the Fridge')
   OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Organize the Fridge')
@@ -517,6 +538,9 @@ onUnmounted(() => {
   window.removeEventListener('mousedown', handleMouseDown)
   window.removeEventListener('mousemove', handleMouseMove)
   window.removeEventListener('mouseup', handleMouseUp)
+  window.removeEventListener('touchstart', handleTouchStart)
+  window.removeEventListener('touchmove', handleTouchMove)
+  window.removeEventListener('touchend', handleTouchEnd)
   window.removeEventListener('resize', handleResize)
   playerTracker.endSession()
   OnlineTracker.goOffline()
