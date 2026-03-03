@@ -220,9 +220,9 @@ const myPlayerId = ref('')
 const teamScore = ref(0)
 const fixedByMessage = ref('')
 let fixedByTimeout: ReturnType<typeof setTimeout> | null = null
-let lobbyPollInterval: number | null = null
 let coopSyncInterval: number | null = null
-let lobbyCheckInterval: number | null = null
+let lobbyUnsub: (() => void) | null = null
+let anomalyUnsub: (() => void) | null = null
 
 // Track which shared anomaly IDs we've already applied locally
 const appliedAnomalyIds = new Set<string>()
@@ -801,12 +801,13 @@ function spawnAnomaly() {
 
   const room = rooms[obj.roomIndex]
 
-  // In co-op, share the spawn so other tabs can apply it
+  // In co-op, share the spawn so other players can apply it
   if (coopMode.value) {
-    const sharedId = coopLobby.shareAnomalySpawn(objIdx, type, obj.roomIndex)
     const localIdx = allObjects.indexOf(obj)
-    sharedToLocalMap.set(sharedId, localIdx)
-    appliedAnomalyIds.add(sharedId)
+    coopLobby.shareAnomalySpawn(objIdx, type, obj.roomIndex).then((sharedId) => {
+      sharedToLocalMap.set(sharedId, localIdx)
+      appliedAnomalyIds.add(sharedId)
+    })
   }
 
   switch (type) {
@@ -1030,21 +1031,16 @@ function endGame() {
   coinsEarned.value = score.value * 5
   gameState.addCoins(coinsEarned.value)
   if (coopMode.value) {
-    teamScore.value = coopLobby.getTeamScore()
     if (isHost.value) coopLobby.endGame()
   }
 }
 
 // ─── Co-op Functions ───
 function startLobbyCheck() {
-  // Check every 2 seconds if a lobby exists (for the JOIN button)
-  lobbyCheckInterval = setInterval(() => {
-    const lobby = coopLobby.getLobby()
+  // Listen for lobby changes in real-time via Firebase
+  lobbyUnsub = coopLobby.onLobbyChanged((lobby) => {
     lobbyExists.value = lobby !== null && lobby.gameState === 'waiting'
-  }, 2000) as unknown as number
-  // Also check immediately
-  const lobby = coopLobby.getLobby()
-  lobbyExists.value = lobby !== null && lobby.gameState === 'waiting'
+  })
 }
 
 function startSolo() {
@@ -1052,38 +1048,37 @@ function startSolo() {
   startGame()
 }
 
-function createCoopRoom() {
+async function createCoopRoom() {
   coopLobby.setPlayerName(gameState.playerName || 'Player')
   myPlayerId.value = coopLobby.getPlayerId()
-  const lobby = coopLobby.createLobby()
+  const lobby = await coopLobby.createLobby()
   inLobby.value = true
   isHost.value = true
   lobbyHostId.value = lobby.hostId
-  lobbyPlayers.value = lobby.players
-  startLobbyPolling()
+  lobbyPlayers.value = Object.values(lobby.players)
+  startLobbyListening()
 }
 
-function joinCoopRoom() {
+async function joinCoopRoom() {
   coopLobby.setPlayerName(gameState.playerName || 'Player')
   myPlayerId.value = coopLobby.getPlayerId()
-  const lobby = coopLobby.joinLobby()
+  const lobby = await coopLobby.joinLobby()
   if (!lobby) return
   inLobby.value = true
   isHost.value = false
   lobbyHostId.value = lobby.hostId
-  lobbyPlayers.value = lobby.players
-  startLobbyPolling()
+  lobbyPlayers.value = Object.values(lobby.players)
+  startLobbyListening()
 }
 
-function startLobbyPolling() {
-  lobbyPollInterval = setInterval(() => {
-    const lobby = coopLobby.getLobby()
+function startLobbyListening() {
+  // Real-time listener replaces polling
+  lobbyUnsub = coopLobby.onLobbyChanged((lobby) => {
     if (!lobby) {
-      // Lobby was destroyed
       inLobby.value = false
       return
     }
-    lobbyPlayers.value = lobby.players
+    lobbyPlayers.value = lobby.players ? Object.values(lobby.players) : []
     lobbyHostId.value = lobby.hostId
 
     // If game started by host, start for all
@@ -1091,11 +1086,16 @@ function startLobbyPolling() {
       coopMode.value = true
       startGame()
     }
-  }, 500) as unknown as number
+
+    // During gameplay, update team info
+    if (coopMode.value && gameStarted.value) {
+      teamScore.value = coopLobby.getTeamScoreFromData(lobby)
+    }
+  })
 }
 
-function startCoopGame() {
-  coopLobby.startGame()
+async function startCoopGame() {
+  await coopLobby.startGame()
   coopMode.value = true
   startGame()
 }
@@ -1104,22 +1104,21 @@ function leaveLobby() {
   coopLobby.leaveLobby()
   inLobby.value = false
   coopMode.value = false
-  if (lobbyPollInterval) clearInterval(lobbyPollInterval)
+  if (lobbyUnsub) { lobbyUnsub(); lobbyUnsub = null }
 }
 
 function startCoopSync() {
+  // Update our state every 500ms
   coopSyncInterval = setInterval(() => {
     if (!coopMode.value || !gameStarted.value || gameOver.value) return
-
-    // Update our state in the lobby
     coopLobby.updatePlayerState(currentCamera.value, score.value)
+  }, 500) as unknown as number
 
-    // Read lobby player state
-    lobbyPlayers.value = coopLobby.getActivePlayers()
-    teamScore.value = coopLobby.getTeamScore()
+  // Listen for anomaly changes in real-time
+  anomalyUnsub = coopLobby.onAnomaliesChanged((sharedAnomalies) => {
+    if (!coopMode.value || !gameStarted.value || gameOver.value) return
 
     // Check for anomalies fixed by others
-    const sharedAnomalies = coopLobby.getSharedAnomalies()
     for (const sa of sharedAnomalies) {
       if (sa.fixedBy && sa.fixedBy !== coopLobby.getPlayerName() && sharedToLocalMap.has(sa.id)) {
         const localIdx = sharedToLocalMap.get(sa.id)!
@@ -1141,7 +1140,7 @@ function startCoopSync() {
         }
       }
     }
-  }, 500) as unknown as number
+  })
 }
 
 function applySharedAnomaly(sharedId: string, objectIndex: number, type: AnomalyType, roomIndex: number) {
@@ -1436,9 +1435,9 @@ onUnmounted(() => {
   playerTracker.endSession()
   OnlineTracker.goOffline()
   if (coopMode.value) coopLobby.leaveLobby()
-  if (lobbyPollInterval) clearInterval(lobbyPollInterval)
+  if (lobbyUnsub) lobbyUnsub()
+  if (anomalyUnsub) anomalyUnsub()
   if (coopSyncInterval) clearInterval(coopSyncInterval)
-  if (lobbyCheckInterval) clearInterval(lobbyCheckInterval)
   if (renderer && gameContainer.value) {
     gameContainer.value.removeChild(renderer.domElement)
     renderer.dispose()

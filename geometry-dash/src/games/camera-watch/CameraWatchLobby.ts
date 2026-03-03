@@ -1,4 +1,14 @@
-// Camera Watch Co-op Multiplayer Lobby (localStorage-based cross-tab communication)
+// Camera Watch Co-op Multiplayer Lobby (Firebase-based for cross-device play)
+import { db } from '../../firebase'
+import {
+  ref as dbRef,
+  set,
+  remove,
+  get,
+  onValue,
+  onDisconnect,
+  type Unsubscribe
+} from 'firebase/database'
 
 export interface CoopPlayer {
   id: string
@@ -11,7 +21,7 @@ export interface CoopPlayer {
 
 export interface CoopLobby {
   hostId: string
-  players: CoopPlayer[]
+  players: Record<string, CoopPlayer>
   gameState: 'waiting' | 'playing' | 'ended'
   createdAt: number
 }
@@ -26,13 +36,13 @@ export interface SharedAnomaly {
   fixedAt: number | null
 }
 
-const LOBBY_KEY = 'camera_watch_lobby'
-const ANOMALIES_KEY = 'camera_watch_shared_anomalies'
-const ACTIVE_THRESHOLD = 5000 // 5 seconds
+const LOBBY_PATH = 'camera_watch_lobby'
+const ANOMALIES_PATH = 'camera_watch_anomalies'
 
 class CameraWatchLobbyManager {
   private playerId: string
   private playerName: string
+  private unsubs: Unsubscribe[] = []
 
   constructor() {
     this.playerId = `coop_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`
@@ -53,122 +63,107 @@ class CameraWatchLobbyManager {
 
   // --- Lobby Management ---
 
-  createLobby(): CoopLobby {
-    const lobby: CoopLobby = {
-      hostId: this.playerId,
-      players: [{
-        id: this.playerId,
-        name: this.playerName,
-        currentCamera: 0,
-        score: 0,
-        joinedAt: Date.now(),
-        lastActive: Date.now()
-      }],
-      gameState: 'waiting',
-      createdAt: Date.now()
-    }
-    localStorage.setItem(LOBBY_KEY, JSON.stringify(lobby))
-    // Clear any old shared anomalies
-    localStorage.removeItem(ANOMALIES_KEY)
-    return lobby
-  }
-
-  joinLobby(): CoopLobby | null {
-    const lobby = this.getLobby()
-    if (!lobby || lobby.gameState !== 'waiting') return null
-
-    // Check if already in lobby
-    if (lobby.players.some(p => p.id === this.playerId)) return lobby
-
-    lobby.players.push({
+  async createLobby(): Promise<CoopLobby> {
+    const player: CoopPlayer = {
       id: this.playerId,
       name: this.playerName,
       currentCamera: 0,
       score: 0,
       joinedAt: Date.now(),
       lastActive: Date.now()
-    })
-    localStorage.setItem(LOBBY_KEY, JSON.stringify(lobby))
+    }
+    const lobby: CoopLobby = {
+      hostId: this.playerId,
+      players: { [this.playerId]: player },
+      gameState: 'waiting',
+      createdAt: Date.now()
+    }
+    await set(dbRef(db, LOBBY_PATH), lobby)
+    await remove(dbRef(db, ANOMALIES_PATH))
+
+    // Auto-remove this player if they disconnect
+    onDisconnect(dbRef(db, `${LOBBY_PATH}/players/${this.playerId}`)).remove()
+
     return lobby
   }
 
-  getLobby(): CoopLobby | null {
-    const saved = localStorage.getItem(LOBBY_KEY)
-    if (!saved) return null
-    try {
-      return JSON.parse(saved)
-    } catch {
-      return null
+  async joinLobby(): Promise<CoopLobby | null> {
+    const lobby = await this.getLobby()
+    if (!lobby || lobby.gameState !== 'waiting') return null
+
+    const player: CoopPlayer = {
+      id: this.playerId,
+      name: this.playerName,
+      currentCamera: 0,
+      score: 0,
+      joinedAt: Date.now(),
+      lastActive: Date.now()
     }
+    await set(dbRef(db, `${LOBBY_PATH}/players/${this.playerId}`), player)
+
+    // Auto-remove this player if they disconnect
+    onDisconnect(dbRef(db, `${LOBBY_PATH}/players/${this.playerId}`)).remove()
+
+    return await this.getLobby()
   }
 
-  isHost(): boolean {
-    const lobby = this.getLobby()
+  async getLobby(): Promise<CoopLobby | null> {
+    const snapshot = await get(dbRef(db, LOBBY_PATH))
+    if (!snapshot.exists()) return null
+    return snapshot.val() as CoopLobby
+  }
+
+  // Real-time listener for lobby changes
+  onLobbyChanged(callback: (lobby: CoopLobby | null) => void): Unsubscribe {
+    const unsub = onValue(dbRef(db, LOBBY_PATH), (snapshot) => {
+      if (snapshot.exists()) {
+        callback(snapshot.val() as CoopLobby)
+      } else {
+        callback(null)
+      }
+    })
+    this.unsubs.push(unsub)
+    return unsub
+  }
+
+  async isHost(): Promise<boolean> {
+    const lobby = await this.getLobby()
     return lobby?.hostId === this.playerId
   }
 
-  isInLobby(): boolean {
-    const lobby = this.getLobby()
-    if (!lobby) return false
-    return lobby.players.some(p => p.id === this.playerId)
-  }
-
-  startGame(): void {
-    const lobby = this.getLobby()
+  async startGame(): Promise<void> {
+    const lobby = await this.getLobby()
     if (!lobby || lobby.hostId !== this.playerId) return
-    lobby.gameState = 'playing'
-    localStorage.setItem(LOBBY_KEY, JSON.stringify(lobby))
+    await set(dbRef(db, `${LOBBY_PATH}/gameState`), 'playing')
   }
 
-  endGame(): void {
-    const lobby = this.getLobby()
-    if (!lobby) return
-    lobby.gameState = 'ended'
-    localStorage.setItem(LOBBY_KEY, JSON.stringify(lobby))
+  async endGame(): Promise<void> {
+    await set(dbRef(db, `${LOBBY_PATH}/gameState`), 'ended')
   }
 
   // --- Player State Updates ---
 
   updatePlayerState(currentCamera: number, score: number): void {
-    const lobby = this.getLobby()
-    if (!lobby) return
-
-    const player = lobby.players.find(p => p.id === this.playerId)
-    if (player) {
-      player.currentCamera = currentCamera
-      player.score = score
-      player.lastActive = Date.now()
-      localStorage.setItem(LOBBY_KEY, JSON.stringify(lobby))
-    }
+    set(dbRef(db, `${LOBBY_PATH}/players/${this.playerId}/currentCamera`), currentCamera)
+    set(dbRef(db, `${LOBBY_PATH}/players/${this.playerId}/score`), score)
+    set(dbRef(db, `${LOBBY_PATH}/players/${this.playerId}/lastActive`), Date.now())
   }
 
-  getActivePlayers(): CoopPlayer[] {
-    const lobby = this.getLobby()
-    if (!lobby) return []
+  getActivePlayersFromData(lobby: CoopLobby): CoopPlayer[] {
+    if (!lobby.players) return []
     const now = Date.now()
-    return lobby.players.filter(p => now - p.lastActive < ACTIVE_THRESHOLD)
+    return Object.values(lobby.players).filter(p => now - p.lastActive < 5000)
   }
 
-  getTeamScore(): number {
-    return this.getActivePlayers().reduce((sum, p) => sum + p.score, 0)
+  getTeamScoreFromData(lobby: CoopLobby): number {
+    return this.getActivePlayersFromData(lobby).reduce((sum, p) => sum + p.score, 0)
   }
 
   // --- Shared Anomalies ---
 
-  getSharedAnomalies(): SharedAnomaly[] {
-    const saved = localStorage.getItem(ANOMALIES_KEY)
-    if (!saved) return []
-    try {
-      return JSON.parse(saved)
-    } catch {
-      return []
-    }
-  }
-
-  shareAnomalySpawn(objectIndex: number, type: string, roomIndex: number): string {
-    const anomalies = this.getSharedAnomalies()
+  async shareAnomalySpawn(objectIndex: number, type: string, roomIndex: number): Promise<string> {
     const id = `anomaly_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`
-    anomalies.push({
+    const anomaly: SharedAnomaly = {
       id,
       objectIndex,
       type,
@@ -176,49 +171,59 @@ class CameraWatchLobbyManager {
       spawnedAt: Date.now(),
       fixedBy: null,
       fixedAt: null
-    })
-    localStorage.setItem(ANOMALIES_KEY, JSON.stringify(anomalies))
+    }
+    await set(dbRef(db, `${ANOMALIES_PATH}/${id}`), anomaly)
     return id
   }
 
-  shareAnomalyFix(anomalyId: string, fixerName: string): void {
-    const anomalies = this.getSharedAnomalies()
-    const anomaly = anomalies.find(a => a.id === anomalyId)
-    if (anomaly && !anomaly.fixedBy) {
-      anomaly.fixedBy = fixerName
-      anomaly.fixedAt = Date.now()
-      localStorage.setItem(ANOMALIES_KEY, JSON.stringify(anomalies))
-    }
+  async shareAnomalyFix(anomalyId: string, fixerName: string): Promise<void> {
+    await set(dbRef(db, `${ANOMALIES_PATH}/${anomalyId}/fixedBy`), fixerName)
+    await set(dbRef(db, `${ANOMALIES_PATH}/${anomalyId}/fixedAt`), Date.now())
   }
 
-  getUnfixedAnomalies(): SharedAnomaly[] {
-    return this.getSharedAnomalies().filter(a => !a.fixedBy)
+  onAnomaliesChanged(callback: (anomalies: SharedAnomaly[]) => void): Unsubscribe {
+    const unsub = onValue(dbRef(db, ANOMALIES_PATH), (snapshot) => {
+      if (snapshot.exists()) {
+        callback(Object.values(snapshot.val()))
+      } else {
+        callback([])
+      }
+    })
+    this.unsubs.push(unsub)
+    return unsub
   }
 
   // --- Cleanup ---
 
-  leaveLobby(): void {
-    const lobby = this.getLobby()
+  async leaveLobby(): Promise<void> {
+    const lobby = await this.getLobby()
     if (!lobby) return
 
-    lobby.players = lobby.players.filter(p => p.id !== this.playerId)
+    // Remove this player
+    await remove(dbRef(db, `${LOBBY_PATH}/players/${this.playerId}`))
 
-    if (lobby.players.length === 0) {
-      // Last player — remove lobby entirely
-      localStorage.removeItem(LOBBY_KEY)
-      localStorage.removeItem(ANOMALIES_KEY)
-    } else {
-      // If host left, assign new host
-      if (lobby.hostId === this.playerId) {
-        lobby.hostId = lobby.players[0].id
-      }
-      localStorage.setItem(LOBBY_KEY, JSON.stringify(lobby))
+    // Check remaining players
+    const remaining = lobby.players ? Object.values(lobby.players).filter(p => p.id !== this.playerId) : []
+
+    if (remaining.length === 0) {
+      // Last player — destroy lobby
+      await remove(dbRef(db, LOBBY_PATH))
+      await remove(dbRef(db, ANOMALIES_PATH))
+    } else if (lobby.hostId === this.playerId) {
+      // Host left — assign new host
+      await set(dbRef(db, `${LOBBY_PATH}/hostId`), remaining[0].id)
     }
+
+    // Clean up all listeners
+    this.unsubs.forEach(unsub => unsub())
+    this.unsubs = []
   }
 
-  destroyLobby(): void {
-    localStorage.removeItem(LOBBY_KEY)
-    localStorage.removeItem(ANOMALIES_KEY)
+  async destroyLobby(): Promise<void> {
+    await remove(dbRef(db, LOBBY_PATH))
+    await remove(dbRef(db, ANOMALIES_PATH))
+    this.unsubs.forEach(unsub => unsub())
+    this.unsubs = []
   }
 }
 
