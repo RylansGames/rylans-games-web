@@ -14,6 +14,7 @@ const adminCode = ref('')
 const adminError = ref(false)
 const adminLocked = ref(false)
 const isOwner = ref(false)
+const isAdmin = ref(localStorage.getItem('adminAuth') === 'true')
 
 // Check if this browser is the owner (the one who locked it)
 const ownerKey = localStorage.getItem('adminOwnerKey')
@@ -82,6 +83,11 @@ const checkAdminCode = () => {
   <!-- Small admin button on the side -->
   <button class="admin-side-btn" @click="showAdminBox = !showAdminBox">A</button>
 
+  <!-- Secret lock button - only visible if you've been admin before -->
+  <button v-if="isAdmin" class="lock-side-btn" @click="adminLocked && isOwner ? unlockAdmin() : lockAdmin()">
+    {{ adminLocked && isOwner ? '🔓' : '🔒' }}
+  </button>
+
   <!-- Green admin code box -->
   <div v-if="showAdminBox" class="admin-box-overlay" @click.self="showAdminBox = false">
     <div class="admin-box">
@@ -106,10 +112,6 @@ const checkAdminCode = () => {
       </form>
 
       <p v-if="adminError" class="admin-error">Wrong code!</p>
-
-      <!-- Lock/unlock buttons for the owner -->
-      <button v-if="!adminLocked" class="lock-btn" @click="lockAdmin">LOCK ADMIN FOR EVERYONE EXCEPT ME</button>
-      <button v-if="adminLocked && isOwner" class="unlock-btn" @click="unlockAdmin">UNLOCK ADMIN</button>
     </div>
   </div>
 </template>
@@ -139,6 +141,29 @@ const checkAdminCode = () => {
   background: #00ff00;
   color: #000;
   border-color: #00ff00;
+}
+
+.lock-side-btn {
+  position: fixed;
+  right: 0;
+  top: calc(50% + 30px);
+  width: 20px;
+  height: 20px;
+  background: #1a1a1a;
+  border: 1px solid #1a1a1a;
+  border-right: none;
+  border-radius: 4px 0 0 4px;
+  font-size: 8px;
+  cursor: pointer;
+  z-index: 9998;
+  opacity: 0.05;
+  transition: opacity 0.3s;
+  padding: 0;
+  line-height: 20px;
+}
+
+.lock-side-btn:hover {
+  opacity: 0.8;
 }
 
 .admin-box-overlay {
@@ -230,43 +255,4 @@ const checkAdminCode = () => {
   margin-bottom: 12px;
 }
 
-.lock-btn {
-  width: 100%;
-  padding: 10px;
-  font-size: 13px;
-  font-weight: bold;
-  background: transparent;
-  color: #ff4444;
-  border: 1px solid #ff4444;
-  border-radius: 8px;
-  cursor: pointer;
-  font-family: monospace;
-  margin-top: 15px;
-  transition: all 0.3s;
-}
-
-.lock-btn:hover {
-  background: #ff4444;
-  color: #000;
-}
-
-.unlock-btn {
-  width: 100%;
-  padding: 10px;
-  font-size: 13px;
-  font-weight: bold;
-  background: transparent;
-  color: #00ff00;
-  border: 1px solid #00ff00;
-  border-radius: 8px;
-  cursor: pointer;
-  font-family: monospace;
-  margin-top: 15px;
-  transition: all 0.3s;
-}
-
-.unlock-btn:hover {
-  background: #00ff00;
-  color: #000;
-}
 </style>
