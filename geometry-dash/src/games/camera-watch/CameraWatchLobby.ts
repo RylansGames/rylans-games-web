@@ -89,7 +89,9 @@ class CameraWatchLobbyManager {
 
   async joinLobby(): Promise<CoopLobby | null> {
     const lobby = await this.getLobby()
-    if (!lobby || lobby.gameState !== 'waiting') return null
+    if (!lobby) return null
+    // Allow joining in 'waiting' or 'playing' state
+    if (lobby.gameState === 'ended') return null
 
     const player: CoopPlayer = {
       id: this.playerId,

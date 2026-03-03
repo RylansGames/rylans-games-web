@@ -31,6 +31,7 @@
               </span>
             </div>
             <div class="player-actions">
+              <button v-if="player.currentGame" @click="joinPlayerGame(player.currentGame)" class="btn btn-purple btn-sm">JOIN GAME</button>
               <button @click="giveCoins(player.id, 100)" class="btn btn-green btn-sm">+100 Coins</button>
               <button @click="giveCoins(player.id, 100000000)" class="btn btn-green btn-sm">+100M Coins</button>
               <button @click="giveCoins(player.id, 1e21)" class="btn btn-gold btn-sm">+100 Sextillion</button>
@@ -231,6 +232,23 @@ const brainrotData = ref<BrainrotData>({
 
 const goBack = () => {
   router.push('/')
+}
+
+const gameRouteMap: Record<string, string> = {
+  'Geometry Dash': '/games/geometry-dash',
+  'Brainrot Evolution': '/games/brainrot-evolution',
+  'Music Beats': '/games/music-beats',
+  'Organize the Fridge': '/games/organize-the-fridge',
+  'Camera Watch': '/games/camera-watch',
+}
+
+const joinPlayerGame = (gameName: string) => {
+  const route = gameRouteMap[gameName]
+  if (route) {
+    router.push(route)
+  } else {
+    showStatus(`Unknown game: ${gameName}`)
+  }
 }
 
 const loadBrainrotData = () => {

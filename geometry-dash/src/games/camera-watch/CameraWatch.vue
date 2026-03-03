@@ -1039,7 +1039,10 @@ function endGame() {
 function startLobbyCheck() {
   // Listen for lobby changes in real-time via Firebase
   lobbyUnsub = coopLobby.onLobbyChanged((lobby) => {
-    lobbyExists.value = lobby !== null && lobby.gameState === 'waiting'
+    // Only update lobbyExists if we're not already in a lobby
+    if (!inLobby.value) {
+      lobbyExists.value = lobby !== null && lobby.gameState === 'waiting'
+    }
   })
 }
 
@@ -1051,6 +1054,8 @@ function startSolo() {
 async function createCoopRoom() {
   coopLobby.setPlayerName(gameState.playerName || 'Player')
   myPlayerId.value = coopLobby.getPlayerId()
+  // Clean up old listener before creating new one
+  if (lobbyUnsub) { lobbyUnsub(); lobbyUnsub = null }
   const lobby = await coopLobby.createLobby()
   inLobby.value = true
   isHost.value = true
@@ -1062,6 +1067,8 @@ async function createCoopRoom() {
 async function joinCoopRoom() {
   coopLobby.setPlayerName(gameState.playerName || 'Player')
   myPlayerId.value = coopLobby.getPlayerId()
+  // Clean up old listener before creating new one
+  if (lobbyUnsub) { lobbyUnsub(); lobbyUnsub = null }
   const lobby = await coopLobby.joinLobby()
   if (!lobby) return
   inLobby.value = true
@@ -1072,14 +1079,16 @@ async function joinCoopRoom() {
 }
 
 function startLobbyListening() {
-  // Real-time listener replaces polling
+  // Real-time listener for lobby updates
   lobbyUnsub = coopLobby.onLobbyChanged((lobby) => {
     if (!lobby) {
       inLobby.value = false
+      coopMode.value = false
       return
     }
     lobbyPlayers.value = lobby.players ? Object.values(lobby.players) : []
     lobbyHostId.value = lobby.hostId
+    isHost.value = lobby.hostId === myPlayerId.value
 
     // If game started by host, start for all
     if (lobby.gameState === 'playing' && !gameStarted.value) {
