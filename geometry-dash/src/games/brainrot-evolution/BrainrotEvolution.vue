@@ -2959,26 +2959,17 @@ onMounted(() => {
   )
   OnlineTracker.goOnline(gameState.getPlayerName(), gameState.getCoins(), level.value, exp.value, pets.value.length, 'Brainrot Evolution')
 
-  // Check for admin actions every second
-  setInterval(() => {
-    const action = playerTracker.checkForAdminActions()
-    if (action) {
-      if (action.type === 'grantCoins' && action.amount) {
-        gameState.addCoins(action.amount)
-        showNotification(`Admin granted you ${action.amount} coins!`)
-      } else if (action.type === 'grantGodPet') {
-        const godPet: Pet = {
-          id: `god_${Date.now()}`,
-          name: 'Moderator God',
-          damage: Infinity,
-          rarity: 'Divine'
-        }
-        pets.value.push(godPet)
-        saveGameData()
-        showNotification('Admin granted you a GOD PET!')
-      }
+  // Check for admin actions from Firebase
+  OnlineTracker.onAdminAction((action) => {
+    if (action.type === 'grantCoins' && action.amount) {
+      gameState.addCoins(action.amount)
+      showNotification(`Admin granted you ${action.amount} coins!`)
+    } else if (action.type === 'kick') {
+      showNotification('You got KICKED by the admin!')
+    } else if (action.type === 'warn') {
+      showNotification('WARNING from the admin!')
     }
-  }, 1000)
+  })
 
   // Initialize background music - "The Natural Kingdom" by Afro Musique
   backgroundMusic = new Audio('https://www.bensound.com/bensound-music/bensound-thelounge.mp3')

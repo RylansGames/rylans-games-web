@@ -1411,6 +1411,12 @@ onMounted(() => {
   window.addEventListener('keydown', handleAdminCode)
   playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Camera Watch')
   OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Camera Watch')
+
+  OnlineTracker.onAdminAction((action) => {
+    if (action.type === 'grantCoins' && action.amount) {
+      gameState.addCoins(action.amount)
+    }
+  })
   startLobbyCheck()
 })
 
