@@ -1,20 +1,69 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { RouterView, useRouter } from 'vue-router'
 import ModeratorPanel from './components/ModeratorPanel.vue'
 import GlobalMessage from './components/shared/GlobalMessage.vue'
 import AdminEffects from './components/shared/AdminEffects.vue'
+import { db } from './firebase'
+import { ref as dbRef, set, remove, onValue, type Unsubscribe } from 'firebase/database'
 
 const router = useRouter()
 
 const showAdminBox = ref(false)
 const adminCode = ref('')
 const adminError = ref(false)
+const adminLocked = ref(false)
+const isOwner = ref(false)
+
+// Check if this browser is the owner (the one who locked it)
+const ownerKey = localStorage.getItem('adminOwnerKey')
+
+let unsubLock: Unsubscribe | null = null
+
+onMounted(() => {
+  // Listen for lock status from Firebase
+  unsubLock = onValue(dbRef(db, 'admin_lock'), (snapshot) => {
+    if (snapshot.exists()) {
+      const data = snapshot.val()
+      adminLocked.value = true
+      isOwner.value = ownerKey === data.ownerKey
+    } else {
+      adminLocked.value = false
+      isOwner.value = false
+    }
+  })
+})
+
+onUnmounted(() => {
+  if (unsubLock) unsubLock()
+})
+
+const lockAdmin = () => {
+  // Generate a secret key and save it in localStorage
+  const key = `owner_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  localStorage.setItem('adminOwnerKey', key)
+  set(dbRef(db, 'admin_lock'), { ownerKey: key, timestamp: Date.now() })
+  isOwner.value = true
+}
+
+const unlockAdmin = () => {
+  remove(dbRef(db, 'admin_lock'))
+  adminLocked.value = false
+  isOwner.value = false
+}
 
 const checkAdminCode = () => {
   if (adminCode.value === 'rylan2026') {
+    // If locked and not the owner, block access
+    if (adminLocked.value && !isOwner.value) {
+      adminError.value = true
+      adminCode.value = ''
+      setTimeout(() => { adminError.value = false }, 2000)
+      return
+    }
     adminCode.value = ''
     showAdminBox.value = false
+    localStorage.setItem('adminAuth', 'true')
     router.push('/games/brainrot-admin')
   } else {
     adminError.value = true
@@ -37,7 +86,14 @@ const checkAdminCode = () => {
   <div v-if="showAdminBox" class="admin-box-overlay" @click.self="showAdminBox = false">
     <div class="admin-box">
       <h2 class="admin-box-title">ADMIN ACCESS</h2>
-      <form @submit.prevent="checkAdminCode">
+
+      <!-- Show locked message if locked and not owner -->
+      <div v-if="adminLocked && !isOwner" class="locked-msg">
+        ADMIN PANEL IS LOCKED
+      </div>
+
+      <!-- Show code input if not locked, or if owner -->
+      <form v-else @submit.prevent="checkAdminCode">
         <input
           v-model="adminCode"
           type="password"
@@ -48,7 +104,12 @@ const checkAdminCode = () => {
         />
         <button type="submit" class="admin-code-btn">ENTER</button>
       </form>
+
       <p v-if="adminError" class="admin-error">Wrong code!</p>
+
+      <!-- Lock/unlock buttons for the owner -->
+      <button v-if="!adminLocked" class="lock-btn" @click="lockAdmin">LOCK ADMIN FOR EVERYONE EXCEPT ME</button>
+      <button v-if="adminLocked && isOwner" class="unlock-btn" @click="unlockAdmin">UNLOCK ADMIN</button>
     </div>
   </div>
 </template>
@@ -155,5 +216,57 @@ const checkAdminCode = () => {
   margin-top: 12px;
   font-family: monospace;
   font-weight: bold;
+}
+
+.locked-msg {
+  color: #ff4444;
+  font-size: 20px;
+  font-weight: bold;
+  font-family: monospace;
+  padding: 20px;
+  border: 2px solid #ff4444;
+  border-radius: 8px;
+  background: rgba(255, 68, 68, 0.1);
+  margin-bottom: 12px;
+}
+
+.lock-btn {
+  width: 100%;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: bold;
+  background: transparent;
+  color: #ff4444;
+  border: 1px solid #ff4444;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: monospace;
+  margin-top: 15px;
+  transition: all 0.3s;
+}
+
+.lock-btn:hover {
+  background: #ff4444;
+  color: #000;
+}
+
+.unlock-btn {
+  width: 100%;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: bold;
+  background: transparent;
+  color: #00ff00;
+  border: 1px solid #00ff00;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: monospace;
+  margin-top: 15px;
+  transition: all 0.3s;
+}
+
+.unlock-btn:hover {
+  background: #00ff00;
+  color: #000;
 }
 </style>
