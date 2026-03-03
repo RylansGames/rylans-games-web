@@ -5,6 +5,9 @@
     <div class="owner-container">
       <div class="owner-header">
         <h1 class="owner-title">OWNER PANEL</h1>
+        <button class="lock-btn" @click="toggleLock">
+          {{ adminLocked && isOwner ? '🔓 UNLOCK ADMIN' : '🔒 LOCK ADMIN' }}
+        </button>
       </div>
 
       <!-- Active Players Section -->
@@ -179,10 +182,14 @@ import { useRouter } from 'vue-router'
 import { gameState } from '../../components/shared/GameState'
 import { PlayerTracker, type PlayerSession } from '../../components/shared/PlayerTracker'
 import { OnlineTracker, type OnlinePlayer } from '../../components/shared/OnlineTracker'
+import { db } from '../../firebase'
+import { ref as dbRef, set, remove, onValue, type Unsubscribe } from 'firebase/database'
 
 const router = useRouter()
 const activePlayers = ref<OnlinePlayer[]>([])
 const statusMessage = ref('')
+const adminLocked = ref(false)
+const isOwner = ref(false)
 const currentCoins = ref(0)
 const showGdTimerPicker = ref(false)
 const showCustomClock = ref(false)
@@ -428,6 +435,19 @@ const maxEverything = () => {
   showStatus('MAXED EVERYTHING!')
 }
 
+const toggleLock = () => {
+  if (adminLocked.value && isOwner.value) {
+    remove(dbRef(db, 'admin_lock'))
+  } else {
+    const key = `owner_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    localStorage.setItem('adminOwnerKey', key)
+    set(dbRef(db, 'admin_lock'), { ownerKey: key, timestamp: Date.now() })
+    isOwner.value = true
+  }
+}
+
+let unsubLock: Unsubscribe | null = null
+
 onMounted(() => {
   loadBrainrotData()
   // Listen for players in real-time from Firebase
@@ -437,10 +457,23 @@ onMounted(() => {
   playerUpdateInterval = setInterval(() => {
     loadBrainrotData()
   }, 2000)
+
+  // Listen for admin lock status
+  const ownerKey = localStorage.getItem('adminOwnerKey')
+  unsubLock = onValue(dbRef(db, 'admin_lock'), (snapshot) => {
+    if (snapshot.exists()) {
+      const data = snapshot.val()
+      adminLocked.value = true
+      isOwner.value = ownerKey === data.ownerKey
+    } else {
+      adminLocked.value = false
+    }
+  })
 })
 
 onUnmounted(() => {
   if (unsubPlayers) unsubPlayers()
+  if (unsubLock) unsubLock()
   if (playerUpdateInterval) {
     clearInterval(playerUpdateInterval)
   }
@@ -494,6 +527,25 @@ onUnmounted(() => {
   font-family: monospace;
   letter-spacing: 8px;
   margin: 0;
+}
+
+.lock-btn {
+  margin-top: 10px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: bold;
+  font-family: monospace;
+  background: transparent;
+  color: #ff4444;
+  border: 1px solid #ff4444;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.lock-btn:hover {
+  background: #ff4444;
+  color: #000;
 }
 
 /* Sections */

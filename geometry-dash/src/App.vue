@@ -5,7 +5,7 @@ import ModeratorPanel from './components/ModeratorPanel.vue'
 import GlobalMessage from './components/shared/GlobalMessage.vue'
 import AdminEffects from './components/shared/AdminEffects.vue'
 import { db } from './firebase'
-import { ref as dbRef, set, remove, onValue, type Unsubscribe } from 'firebase/database'
+import { ref as dbRef, onValue, type Unsubscribe } from 'firebase/database'
 
 const router = useRouter()
 
@@ -14,7 +14,6 @@ const adminCode = ref('')
 const adminError = ref(false)
 const adminLocked = ref(false)
 const isOwner = ref(false)
-const isAdmin = ref(localStorage.getItem('adminAuth') === 'true')
 
 // Check if this browser is the owner (the one who locked it)
 const ownerKey = localStorage.getItem('adminOwnerKey')
@@ -38,20 +37,6 @@ onMounted(() => {
 onUnmounted(() => {
   if (unsubLock) unsubLock()
 })
-
-const lockAdmin = () => {
-  // Generate a secret key and save it in localStorage
-  const key = `owner_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-  localStorage.setItem('adminOwnerKey', key)
-  set(dbRef(db, 'admin_lock'), { ownerKey: key, timestamp: Date.now() })
-  isOwner.value = true
-}
-
-const unlockAdmin = () => {
-  remove(dbRef(db, 'admin_lock'))
-  adminLocked.value = false
-  isOwner.value = false
-}
 
 const checkAdminCode = () => {
   if (adminCode.value === 'rylan2026') {
@@ -82,11 +67,6 @@ const checkAdminCode = () => {
 
   <!-- Small admin button on the side -->
   <button class="admin-side-btn" @click="showAdminBox = !showAdminBox">A</button>
-
-  <!-- Secret lock button - only visible if you've been admin before -->
-  <button v-if="isAdmin" class="lock-side-btn" @click="adminLocked && isOwner ? unlockAdmin() : lockAdmin()">
-    {{ adminLocked && isOwner ? '🔓' : '🔒' }}
-  </button>
 
   <!-- Green admin code box -->
   <div v-if="showAdminBox" class="admin-box-overlay" @click.self="showAdminBox = false">
@@ -137,33 +117,6 @@ const checkAdminCode = () => {
 }
 
 .admin-side-btn:hover {
-  opacity: 1;
-  background: #00ff00;
-  color: #000;
-  border-color: #00ff00;
-}
-
-.lock-side-btn {
-  position: fixed;
-  right: 0;
-  top: calc(50% + 30px);
-  width: 24px;
-  height: 24px;
-  background: #1a1a1a;
-  color: #333;
-  border: 1px solid #333;
-  border-right: none;
-  border-radius: 4px 0 0 4px;
-  font-size: 8px;
-  cursor: pointer;
-  z-index: 9998;
-  opacity: 0.3;
-  transition: opacity 0.3s;
-  padding: 0;
-  line-height: 24px;
-}
-
-.lock-side-btn:hover {
   opacity: 1;
   background: #00ff00;
   color: #000;
@@ -258,5 +211,4 @@ const checkAdminCode = () => {
   background: rgba(255, 68, 68, 0.1);
   margin-bottom: 12px;
 }
-
 </style>
