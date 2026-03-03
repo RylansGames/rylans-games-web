@@ -465,12 +465,12 @@ function buildRoom(
   g.add(right)
 
   // Light
-  const light = new THREE.PointLight(0xffeedd, 0.8, 15)
+  const light = new THREE.PointLight(0xffeedd, 1.4, 18)
   light.position.set(cx, h - 0.3, cz)
   light.castShadow = true
   g.add(light)
 
-  const ambient = new THREE.PointLight(0xffffff, 0.3, 20)
+  const ambient = new THREE.PointLight(0xffffff, 0.6, 25)
   ambient.position.set(cx, h / 2, cz)
   g.add(ambient)
 
@@ -741,7 +741,7 @@ function initScene() {
   clock = new THREE.Clock()
 
   // Global ambient
-  const ambient = new THREE.AmbientLight(0x222222, 0.5)
+  const ambient = new THREE.AmbientLight(0x444444, 0.8)
   scene.add(ambient)
 
   // Build all rooms
