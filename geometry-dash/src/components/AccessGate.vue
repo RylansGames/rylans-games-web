@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-const SECRET_CODE = 'gametime'
+const SECRET_CODE = 'gamezone'
 
 const showCodePage = ref(false)
 const codeInput = ref('')
