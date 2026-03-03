@@ -1417,6 +1417,14 @@ onMounted(() => {
       gameState.addCoins(action.amount)
     }
   })
+
+  // Listen for admin-spawned anomalies from Firebase
+  OnlineTracker.onCameraAnomaly((spawn) => {
+    if (spawn && gameStarted.value && !gameOver.value) {
+      adminSpawn(spawn.type as AnomalyType)
+    }
+  })
+
   startLobbyCheck()
 })
 
