@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 
 const SECRET_CODE = 'gamezone'
+const ACCESS_VERSION = '2'
 
 const showCodePage = ref(false)
 const codeInput = ref('')
@@ -11,9 +12,16 @@ const emit = defineEmits<{
   (e: 'granted'): void
 }>()
 
+// Clear old access if version changed
+if (localStorage.getItem('accessVersion') !== ACCESS_VERSION) {
+  localStorage.removeItem('accessGranted')
+  localStorage.setItem('accessVersion', ACCESS_VERSION)
+}
+
 const checkCode = () => {
   if (codeInput.value === SECRET_CODE) {
     localStorage.setItem('accessGranted', 'true')
+    localStorage.setItem('accessVersion', ACCESS_VERSION)
     emit('granted')
   } else {
     error.value = true
