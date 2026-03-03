@@ -178,9 +178,10 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { gameState } from '../../components/shared/GameState'
 import { PlayerTracker, type PlayerSession } from '../../components/shared/PlayerTracker'
+import { OnlineTracker, type OnlinePlayer } from '../../components/shared/OnlineTracker'
 
 const router = useRouter()
-const activePlayers = ref<PlayerSession[]>([])
+const activePlayers = ref<OnlinePlayer[]>([])
 const statusMessage = ref('')
 const currentCoins = ref(0)
 const showGdTimerPicker = ref(false)
@@ -246,7 +247,7 @@ const showStatus = (message: string) => {
 
 const sendMessage = () => {
   if (!chatMessage.value.trim()) return
-  PlayerTracker.sendGlobalMessage(chatMessage.value.trim())
+  OnlineTracker.sendGlobalMessage(chatMessage.value.trim())
   showStatus(`Message sent: "${chatMessage.value.trim()}"`)
   chatMessage.value = ''
 }
@@ -263,47 +264,40 @@ const gameBadgeColor = (game: string): string => {
   return colors[game] || '#555'
 }
 
-// --- Player Actions ---
-const updateActivePlayers = () => {
-  activePlayers.value = PlayerTracker.getAllActivePlayers()
-}
+// --- Player Actions (Firebase) ---
+let unsubPlayers: (() => void) | null = null
 
 const giveCoins = (sessionId: string, amount: number) => {
-  const adminAction = {
-    type: 'grantCoins',
-    amount,
-    timestamp: Date.now()
-  }
-  localStorage.setItem(`admin_action_${sessionId}`, JSON.stringify(adminAction))
+  OnlineTracker.giveCoins(sessionId, amount)
   const label = amount >= 1e21 ? '100 Sextillion' : amount >= 1e8 ? '100M' : amount.toString()
   showStatus(`Gave ${label} coins to player!`)
 }
 
 // --- Ban/Kick ---
 const kickPlayer = (sessionId: string) => {
-  PlayerTracker.kickPlayer(sessionId)
+  OnlineTracker.kickPlayer(sessionId)
   showStatus('Player KICKED!')
 }
 
 const warnPlayer = (sessionId: string) => {
-  PlayerTracker.warnPlayer(sessionId)
+  OnlineTracker.warnPlayer(sessionId)
   showStatus('Player WARNED!')
 }
 
 const banPlayer = (sessionId: string) => {
-  PlayerTracker.banPlayer(sessionId)
+  OnlineTracker.banPlayer(sessionId)
   showStatus('Player BANNED!')
 }
 
 const unbanPlayer = (sessionId: string) => {
-  PlayerTracker.unbanPlayer(sessionId)
+  OnlineTracker.unbanPlayer(sessionId)
   showStatus('Player UNBANNED!')
 }
 
 // --- Abuse Effects ---
 const startEffect = (effect: string) => {
   const duration = parseInt(localStorage.getItem('admin_abuse_duration') || '10000')
-  PlayerTracker.startAbuseEffect(effect, duration)
+  OnlineTracker.startAbuseEffect(effect, duration)
   const names: Record<string, string> = {
     screen_shake: 'Screen Shake',
     rainbow: 'Rainbow Mode',
@@ -314,20 +308,20 @@ const startEffect = (effect: string) => {
 
 const startAllEffects = () => {
   const duration = parseInt(localStorage.getItem('admin_abuse_duration') || '10000')
-  PlayerTracker.startAbuseEffect('screen_shake', duration)
-  PlayerTracker.startAbuseEffect('rainbow', duration)
-  PlayerTracker.startAbuseEffect('upside_down', duration)
+  OnlineTracker.startAbuseEffect('screen_shake', duration)
+  OnlineTracker.startAbuseEffect('rainbow', duration)
+  OnlineTracker.startAbuseEffect('upside_down', duration)
   showStatus(`ALL EFFECTS activated for ${duration / 1000}s!`)
 }
 
 const stopAllEffects = () => {
-  PlayerTracker.stopAllAbuseEffects()
+  OnlineTracker.stopAllAbuseEffects()
   showStatus('All effects stopped!')
 }
 
 // --- Camera Watch ---
 const spawnAnomaly = (type: string) => {
-  PlayerTracker.spawnCameraAnomaly(type)
+  OnlineTracker.spawnCameraAnomaly(type)
   showStatus(`Spawned ${type} in Camera Watch!`)
 }
 
@@ -335,7 +329,7 @@ const spawnAllAnomalies = () => {
   const types = ['Preacher', 'Cloak', 'Corpse', 'Displacement', 'Imagery']
   types.forEach((type, i) => {
     setTimeout(() => {
-      PlayerTracker.spawnCameraAnomaly(type)
+      OnlineTracker.spawnCameraAnomaly(type)
     }, i * 500)
   })
   showStatus('Spawning ALL anomalies!')
@@ -351,7 +345,7 @@ const giveAllPowers = () => {
 }
 
 const startAdminAbuse = (game: string, durationMs: number = 10000) => {
-  PlayerTracker.startAdminAbuse(game, durationMs)
+  OnlineTracker.startAdminAbuse(game, durationMs)
   localStorage.setItem('admin_abuse_duration', String(durationMs))
   showStatus(`Admin Abuse started for ${game}!`)
 }
@@ -436,14 +430,17 @@ const maxEverything = () => {
 
 onMounted(() => {
   loadBrainrotData()
-  updateActivePlayers()
+  // Listen for players in real-time from Firebase
+  unsubPlayers = OnlineTracker.onPlayersChanged((players) => {
+    activePlayers.value = players
+  })
   playerUpdateInterval = setInterval(() => {
-    updateActivePlayers()
     loadBrainrotData()
   }, 2000)
 })
 
 onUnmounted(() => {
+  if (unsubPlayers) unsubPlayers()
   if (playerUpdateInterval) {
     clearInterval(playerUpdateInterval)
   }

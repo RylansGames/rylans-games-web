@@ -17,6 +17,7 @@ import CoinDisplay from '../../components/shared/CoinDisplay.vue'
 import Settings from '../../components/Settings.vue'
 import AdminAbuseSign from '../../components/shared/AdminAbuseSign.vue'
 import { PlayerTracker, playerTracker } from '../../components/shared/PlayerTracker'
+import { OnlineTracker } from '../../components/shared/OnlineTracker'
 
 const gameContainer = ref<HTMLDivElement>()
 const router = useRouter()
@@ -7191,10 +7192,12 @@ onMounted(() => {
   console.log('For others: setModerator(true/false)')
 
   playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Geometry Dash')
+  OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Geometry Dash')
 })
 
 onUnmounted(() => {
   playerTracker.endSession()
+  OnlineTracker.goOffline()
   if (game) {
     game.destroy(true)
   }

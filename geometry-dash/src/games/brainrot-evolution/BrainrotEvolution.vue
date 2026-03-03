@@ -171,6 +171,7 @@ import { useRouter } from 'vue-router'
 import * as THREE from 'three'
 import { gameState } from '../../components/shared/GameState'
 import { playerTracker } from '../../components/shared/PlayerTracker'
+import { OnlineTracker } from '../../components/shared/OnlineTracker'
 import CoinDisplay from '../../components/shared/CoinDisplay.vue'
 import Settings from '../../components/Settings.vue'
 import AdminAbuseSign from '../../components/shared/AdminAbuseSign.vue'
@@ -2956,6 +2957,7 @@ onMounted(() => {
     pets.value.length,
     'Brainrot Evolution'
   )
+  OnlineTracker.goOnline(gameState.getPlayerName(), gameState.getCoins(), level.value, exp.value, pets.value.length, 'Brainrot Evolution')
 
   // Check for admin actions every second
   setInterval(() => {
@@ -3017,6 +3019,7 @@ onUnmounted(() => {
   }
   // End player tracking session
   playerTracker.endSession()
+  OnlineTracker.goOffline()
   saveGameData()
 })
 </script>

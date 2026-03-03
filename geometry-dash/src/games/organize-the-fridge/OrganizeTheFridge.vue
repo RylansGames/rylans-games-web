@@ -57,6 +57,7 @@ import CoinDisplay from '../../components/shared/CoinDisplay.vue'
 import Settings from '../../components/Settings.vue'
 import * as THREE from 'three'
 import { playerTracker } from '../../components/shared/PlayerTracker'
+import { OnlineTracker } from '../../components/shared/OnlineTracker'
 
 const router = useRouter()
 const gameContainer = ref<HTMLDivElement>()
@@ -503,6 +504,7 @@ onMounted(() => {
   window.addEventListener('mouseup', handleMouseUp)
   window.addEventListener('resize', handleResize)
   playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Organize the Fridge')
+  OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Organize the Fridge')
 })
 
 onUnmounted(() => {
@@ -511,6 +513,7 @@ onUnmounted(() => {
   window.removeEventListener('mouseup', handleMouseUp)
   window.removeEventListener('resize', handleResize)
   playerTracker.endSession()
+  OnlineTracker.goOffline()
   cancelAnimationFrame(animationId)
 
   if (renderer && gameContainer.value) {

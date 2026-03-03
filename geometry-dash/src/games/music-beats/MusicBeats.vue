@@ -99,6 +99,7 @@ import CoinDisplay from '../../components/shared/CoinDisplay.vue'
 import Settings from '../../components/Settings.vue'
 import { gameState } from '../../components/shared/GameState'
 import { playerTracker } from '../../components/shared/PlayerTracker'
+import { OnlineTracker } from '../../components/shared/OnlineTracker'
 
 const router = useRouter()
 const goBack = () => { router.push('/') }
@@ -499,12 +500,14 @@ onMounted(() => {
   window.addEventListener('keydown', handleKeyDown)
   window.addEventListener('keyup', handleKeyUp)
   playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Music Beats')
+  OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Music Beats')
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown)
   window.removeEventListener('keyup', handleKeyUp)
   playerTracker.endSession()
+  OnlineTracker.goOffline()
   stopSequencer()
   if (coinTimer) clearInterval(coinTimer)
   if (audioCtx) audioCtx.close()

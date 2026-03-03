@@ -159,6 +159,7 @@ import CoinDisplay from '../../components/shared/CoinDisplay.vue'
 import Settings from '../../components/Settings.vue'
 import { gameState } from '../../components/shared/GameState'
 import { PlayerTracker, playerTracker } from '../../components/shared/PlayerTracker'
+import { OnlineTracker } from '../../components/shared/OnlineTracker'
 import { coopLobby, type CoopPlayer } from './CameraWatchLobby'
 
 const router = useRouter()
@@ -1409,6 +1410,7 @@ onMounted(() => {
   window.addEventListener('resize', handleResize)
   window.addEventListener('keydown', handleAdminCode)
   playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Camera Watch')
+  OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Camera Watch')
   startLobbyCheck()
 })
 
@@ -1418,6 +1420,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
   cancelAnimationFrame(animationId)
   playerTracker.endSession()
+  OnlineTracker.goOffline()
   if (coopMode.value) coopLobby.leaveLobby()
   if (lobbyPollInterval) clearInterval(lobbyPollInterval)
   if (coopSyncInterval) clearInterval(coopSyncInterval)
