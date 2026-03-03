@@ -147,23 +147,27 @@ const checkAdminCode = () => {
   position: fixed;
   right: 0;
   top: calc(50% + 30px);
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   background: #1a1a1a;
-  border: 1px solid #1a1a1a;
+  color: #333;
+  border: 1px solid #333;
   border-right: none;
   border-radius: 4px 0 0 4px;
   font-size: 8px;
   cursor: pointer;
   z-index: 9998;
-  opacity: 0.05;
+  opacity: 0.3;
   transition: opacity 0.3s;
   padding: 0;
-  line-height: 20px;
+  line-height: 24px;
 }
 
 .lock-side-btn:hover {
-  opacity: 0.8;
+  opacity: 1;
+  background: #00ff00;
+  color: #000;
+  border-color: #00ff00;
 }
 
 .admin-box-overlay {
