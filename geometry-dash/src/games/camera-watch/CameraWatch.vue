@@ -126,6 +126,7 @@
           <button class="admin-btn admin-corpse" @click="adminSpawn('Corpse')">Add Corpse</button>
           <button class="admin-btn admin-displacement" @click="adminSpawn('Displacement')">Move Furniture</button>
           <button class="admin-btn admin-imagery" @click="adminSpawn('Imagery')">Wrong Imagery</button>
+          <button class="admin-btn admin-mimic" @click="adminSpawn('Mimic')">Spawn Mimic</button>
         </div>
       </div>
 
@@ -169,8 +170,8 @@ const goBack = () => {
 }
 
 // ─── Types ───
-type AnomalyType = 'Displacement' | 'Imagery' | 'Corpse' | 'Preacher' | 'Cloak'
-const anomalyTypeList: AnomalyType[] = ['Displacement', 'Imagery', 'Corpse', 'Preacher', 'Cloak']
+type AnomalyType = 'Displacement' | 'Imagery' | 'Corpse' | 'Preacher' | 'Cloak' | 'Mimic'
+const anomalyTypeList: AnomalyType[] = ['Displacement', 'Imagery', 'Corpse', 'Preacher', 'Cloak', 'Mimic']
 
 interface TrackedObject {
   mesh: THREE.Mesh | THREE.Group
@@ -873,6 +874,28 @@ function spawnAnomaly() {
       obj.spawnedFigure = fig
       break
     }
+    case 'Mimic': {
+      // Duplicate the object near its original position
+      const clone = obj.mesh.clone()
+      clone.position.copy(obj.originalPosition)
+      clone.position.x += (Math.random() - 0.5) * 2
+      clone.position.z += (Math.random() - 0.5) * 2
+      // Slight green tint to make it subtly off
+      clone.traverse((child: THREE.Object3D) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const m = (child as THREE.Mesh).material
+          if (m && (m as THREE.MeshStandardMaterial).color) {
+            const mat = (m as THREE.MeshStandardMaterial).clone()
+            mat.emissive = new THREE.Color(0x003300)
+            mat.emissiveIntensity = 0.15
+            ;(child as THREE.Mesh).material = mat
+          }
+        }
+      })
+      room.group.add(clone)
+      obj.spawnedFigure = clone
+      break
+    }
   }
 }
 
@@ -948,6 +971,26 @@ function adminSpawn(type: AnomalyType) {
       obj.spawnedFigure = fig
       break
     }
+    case 'Mimic': {
+      const clone = obj.mesh.clone()
+      clone.position.copy(obj.originalPosition)
+      clone.position.x += (Math.random() - 0.5) * 2
+      clone.position.z += (Math.random() - 0.5) * 2
+      clone.traverse((child: THREE.Object3D) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const m = (child as THREE.Mesh).material
+          if (m && (m as THREE.MeshStandardMaterial).color) {
+            const mat = (m as THREE.MeshStandardMaterial).clone()
+            mat.emissive = new THREE.Color(0x003300)
+            mat.emissiveIntensity = 0.15
+            ;(child as THREE.Mesh).material = mat
+          }
+        }
+      })
+      room.group.add(clone)
+      obj.spawnedFigure = clone
+      break
+    }
   }
   showFeedback('ADMIN: Spawned ' + type + ' in ' + roomNames[roomIndex], 'correct')
 }
@@ -971,6 +1014,7 @@ function fixAnomaly(obj: TrackedObject) {
     case 'Corpse':
     case 'Preacher':
     case 'Cloak':
+    case 'Mimic':
       if (obj.spawnedFigure) {
         room.group.remove(obj.spawnedFigure)
         obj.spawnedFigure = null
@@ -1209,6 +1253,26 @@ function applySharedAnomaly(sharedId: string, objectIndex: number, type: Anomaly
       obj.spawnedFigure = fig
       break
     }
+    case 'Mimic': {
+      const clone = obj.mesh.clone()
+      clone.position.copy(obj.originalPosition)
+      clone.position.x += (Math.random() - 0.5) * 2
+      clone.position.z += (Math.random() - 0.5) * 2
+      clone.traverse((child: THREE.Object3D) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const m = (child as THREE.Mesh).material
+          if (m && (m as THREE.MeshStandardMaterial).color) {
+            const mat = (m as THREE.MeshStandardMaterial).clone()
+            mat.emissive = new THREE.Color(0x003300)
+            mat.emissiveIntensity = 0.15
+            ;(child as THREE.Mesh).material = mat
+          }
+        }
+      })
+      room.group.add(clone)
+      obj.spawnedFigure = clone
+      break
+    }
   }
 }
 
@@ -1308,7 +1372,7 @@ function animate() {
       adminCheckTimer = 0.5 // Check every 0.5 seconds
       const adminAnomaly = PlayerTracker.checkForAdminAnomaly()
       if (adminAnomaly) {
-        const validTypes: AnomalyType[] = ['Displacement', 'Imagery', 'Corpse', 'Preacher', 'Cloak']
+        const validTypes: AnomalyType[] = ['Displacement', 'Imagery', 'Corpse', 'Preacher', 'Cloak', 'Mimic']
         if (validTypes.includes(adminAnomaly.type as AnomalyType)) {
           adminRemoteSpawn(adminAnomaly.type as AnomalyType)
         }
@@ -1830,6 +1894,7 @@ onUnmounted(() => {
 .admin-corpse:hover { border-color: #888888; color: #aaaaaa; }
 .admin-displacement:hover { border-color: #ffaa00; color: #ffcc66; }
 .admin-imagery:hover { border-color: #ff0000; color: #ff4444; }
+.admin-mimic:hover { border-color: #00ff66; color: #66ffaa; }
 
 /* ─── Preacher Speech ─── */
 .preacher-speech {
