@@ -40,6 +40,11 @@ const router = createRouter({
       component: () => import('../games/camera-watch/CameraWatch.vue'),
     },
     {
+      path: '/games/ai',
+      name: 'ai-world',
+      component: () => import('../games/ai/AIPortal.vue'),
+    },
+    {
       path: '/about',
       name: 'about',
       component: () => import('../views/AboutView.vue'),

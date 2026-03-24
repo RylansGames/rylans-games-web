@@ -5,7 +5,7 @@ import ModeratorPanel from './components/ModeratorPanel.vue'
 import GlobalMessage from './components/shared/GlobalMessage.vue'
 import AdminEffects from './components/shared/AdminEffects.vue'
 import { db } from './firebase'
-import { ref as dbRef, onValue, type Unsubscribe } from 'firebase/database'
+import { ref as dbRef, onValue, set, type Unsubscribe } from 'firebase/database'
 
 const router = useRouter()
 
@@ -40,12 +40,12 @@ onUnmounted(() => {
 
 const checkAdminCode = () => {
   if (adminCode.value === 'rylan2026') {
-    // If locked and not the owner, block access
+    // If locked and not the owner, reclaim ownership with a new key
     if (adminLocked.value && !isOwner.value) {
-      adminError.value = true
-      adminCode.value = ''
-      setTimeout(() => { adminError.value = false }, 2000)
-      return
+      const newKey = `owner_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      localStorage.setItem('adminOwnerKey', newKey)
+      set(dbRef(db, 'admin_lock'), { ownerKey: newKey, timestamp: Date.now() })
+      isOwner.value = true
     }
     adminCode.value = ''
     showAdminBox.value = false
@@ -73,13 +73,13 @@ const checkAdminCode = () => {
     <div class="admin-box">
       <h2 class="admin-box-title">ADMIN ACCESS</h2>
 
-      <!-- Show locked message if locked and not owner -->
+      <!-- Show locked message if locked and not owner (but still show input below) -->
       <div v-if="adminLocked && !isOwner" class="locked-msg">
         ADMIN PANEL IS LOCKED
       </div>
 
-      <!-- Show code input if not locked, or if owner -->
-      <form v-else @submit.prevent="checkAdminCode">
+      <!-- Always show code input - entering correct code reclaims ownership -->
+      <form @submit.prevent="checkAdminCode">
         <input
           v-model="adminCode"
           type="password"

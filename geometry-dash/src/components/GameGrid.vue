@@ -108,6 +108,16 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'ai-world',
+    title: 'Roblox',
+    description: 'Build and play levels in a 3D portal world! Create platformer levels and share them!',
+    route: '/games/ai',
+    icon: '🌐',
+    thumbnailColor: '#6366f1',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'de-activated',
     title: 'De-Activated',
     description: 'Find the impostor before its too late!',
