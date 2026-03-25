@@ -40,9 +40,29 @@ const router = createRouter({
       component: () => import('../games/camera-watch/CameraWatch.vue'),
     },
     {
-      path: '/games/ai',
-      name: 'ai-world',
-      component: () => import('../games/ai/AIPortal.vue'),
+      path: '/games/roblox',
+      name: 'roblox',
+      component: () => import('../games/create/RobloxHub.vue'),
+    },
+    {
+      path: '/studio',
+      name: 'roblox-studio',
+      component: () => import('../games/create/RobloxStudio.vue'),
+    },
+    {
+      path: '/create',
+      name: 'create-game',
+      component: () => import('../games/create/CreateGame.vue'),
+    },
+    {
+      path: '/games/feedback',
+      name: 'feedback',
+      component: () => import('../games/feedback/Feedback.vue'),
+    },
+    {
+      path: '/games/chat',
+      name: 'chat',
+      component: () => import('../games/chat/RylanChat.vue'),
     },
     {
       path: '/about',

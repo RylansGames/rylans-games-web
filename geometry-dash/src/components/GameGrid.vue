@@ -108,12 +108,32 @@ const games: Game[] = [
     available: true
   },
   {
-    id: 'ai-world',
+    id: 'roblox',
     title: 'Roblox',
-    description: 'Build and play levels in a 3D portal world! Create platformer levels and share them!',
-    route: '/games/ai',
+    description: 'Create your own levels! Pick 2D or 3D, use AI to help build, and let others play your games!',
+    route: '/games/roblox',
     icon: '🌐',
     thumbnailColor: '#6366f1',
+    rating: 5.0,
+    available: true
+  },
+  {
+    id: 'feedback',
+    title: 'Feedback',
+    description: 'Got an idea for a new game? Submit it and vote on other ideas!',
+    route: '/games/feedback',
+    icon: '💡',
+    thumbnailColor: '#d69e2e',
+    rating: 5.0,
+    available: true
+  },
+  {
+    id: 'chat',
+    title: 'Rylan Chat',
+    description: 'Chat, voice call, and video call with your friends!',
+    route: '/games/chat',
+    icon: '💬',
+    thumbnailColor: '#5a67d8',
     rating: 5.0,
     available: true
   },
@@ -230,7 +250,7 @@ onUnmounted(() => {
   .portal-title {
     font-size: 32px;
   }
-  
+
   .game-grid {
     grid-template-columns: 1fr;
     gap: 20px;
