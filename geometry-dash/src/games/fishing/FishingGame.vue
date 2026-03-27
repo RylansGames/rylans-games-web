@@ -31,13 +31,14 @@
     </div>
 
     <!-- ===== 3D CANVAS ===== -->
-    <div ref="canvasContainer" class="canvas-container" v-show="screen !== 'title' && screen !== 'shop' && screen !== 'inventory'"></div>
+    <div ref="canvasContainer" class="canvas-container" v-show="screen !== 'title' && screen !== 'shop' && screen !== 'inventory' && screen !== 'upgrades'"></div>
 
     <!-- Cast Button -->
     <div v-if="screen === 'fishing'" class="action-area">
       <button class="cast-btn" @click="castLine">🎣 Cast Line</button>
       <button class="shop-btn" @click="screen = 'shop'">🛒 Shop</button>
       <button class="inv-btn" @click="screen = 'inventory'">🎒 Inventory</button>
+      <button class="upgrade-btn" @click="screen = 'upgrades'">⬆️ Upgrades</button>
     </div>
 
     <!-- Waiting -->
@@ -82,9 +83,9 @@
           <div class="result-emoji">{{ caughtFish.emoji }}</div>
           <h2 class="result-name">{{ caughtFish.name }}</h2>
           <div class="result-rarity" :class="caughtFish.rarity">{{ caughtFish.rarity.toUpperCase() }}</div>
-          <div class="result-value">Worth: ${{ caughtFish.value.toLocaleString() }}</div>
+          <div class="result-value">Worth: ${{ getSellPrice(caughtFish).toLocaleString() }}</div>
           <div class="result-actions">
-            <button class="sell-btn" @click="sellFish">💰 Sell for ${{ caughtFish.value.toLocaleString() }}</button>
+            <button class="sell-btn" @click="sellFish">💰 Sell for ${{ getSellPrice(caughtFish).toLocaleString() }}</button>
             <button class="keep-btn" @click="keepFish">🎒 Keep</button>
           </div>
         </template>
@@ -118,6 +119,57 @@
       </div>
     </div>
 
+    <!-- ===== UPGRADES ===== -->
+    <div v-if="screen === 'upgrades'" class="upgrades-screen">
+      <div class="shop-header">
+        <h1>⬆️ Upgrades</h1>
+        <button class="close-btn" @click="screen = 'fishing'">✕</button>
+      </div>
+      <div class="upgrades-grid">
+        <!-- Money Upgrade -->
+        <div class="upgrade-card">
+          <div class="upgrade-icon">💰</div>
+          <h3 class="upgrade-name">Upgrade Money</h3>
+          <p class="upgrade-desc">Fish sell for more money!</p>
+          <div class="upgrade-level">Level {{ moneyUpgradeLevel }} / {{ maxMoneyLevel }}</div>
+          <div class="upgrade-effect">Current: {{ moneyMultiplier.toFixed(1) }}x sell price</div>
+          <div class="upgrade-next" v-if="moneyUpgradeLevel < maxMoneyLevel">
+            Next: {{ (1 + (moneyUpgradeLevel + 1) * 0.5).toFixed(1) }}x sell price
+          </div>
+          <div class="upgrade-next maxed" v-else>MAXED OUT!</div>
+          <button
+            v-if="moneyUpgradeLevel < maxMoneyLevel"
+            class="upgrade-buy-btn"
+            :disabled="money < moneyUpgradeCost"
+            @click="buyMoneyUpgrade"
+          >
+            Buy - ${{ moneyUpgradeCost.toLocaleString() }}
+          </button>
+        </div>
+
+        <!-- Fish Faster Upgrade -->
+        <div class="upgrade-card">
+          <div class="upgrade-icon">⚡</div>
+          <h3 class="upgrade-name">Fish Faster</h3>
+          <p class="upgrade-desc">Fish bite quicker!</p>
+          <div class="upgrade-level">Level {{ speedUpgradeLevel }} / {{ maxSpeedLevel }}</div>
+          <div class="upgrade-effect">Current: {{ currentWaitMin.toFixed(1) }}s - {{ currentWaitMax.toFixed(1) }}s wait</div>
+          <div class="upgrade-next" v-if="speedUpgradeLevel < maxSpeedLevel">
+            Next: {{ nextWaitMin.toFixed(1) }}s - {{ nextWaitMax.toFixed(1) }}s wait
+          </div>
+          <div class="upgrade-next maxed" v-else>MAXED OUT!</div>
+          <button
+            v-if="speedUpgradeLevel < maxSpeedLevel"
+            class="upgrade-buy-btn"
+            :disabled="money < speedUpgradeCost"
+            @click="buySpeedUpgrade"
+          >
+            Buy - ${{ speedUpgradeCost.toLocaleString() }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- ===== INVENTORY ===== -->
     <div v-if="screen === 'inventory'" class="inv-screen">
       <div class="shop-header">
@@ -130,7 +182,7 @@
           <div class="inv-emoji">{{ fish.emoji }}</div>
           <div class="inv-name">{{ fish.name }}</div>
           <div class="inv-rarity" :class="fish.rarity">{{ fish.rarity }}</div>
-          <button class="sell-sm-btn" @click="sellFromInv(i)">${{ fish.value.toLocaleString() }}</button>
+          <button class="sell-sm-btn" @click="sellFromInv(i)">${{ getSellPrice(fish).toLocaleString() }}</button>
         </div>
       </div>
       <button v-if="inventory.length > 0" class="sell-all-btn" @click="sellAll">
@@ -144,7 +196,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import * as THREE from 'three'
 
-type Screen = 'title' | 'fishing' | 'casting' | 'waiting' | 'catch' | 'minigame' | 'result' | 'shop' | 'inventory'
+type Screen = 'title' | 'fishing' | 'casting' | 'waiting' | 'catch' | 'minigame' | 'result' | 'shop' | 'inventory' | 'upgrades'
 type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'
 
 interface Fish { name: string; emoji: string; rarity: Rarity; value: number }
@@ -157,6 +209,43 @@ const caughtFish = ref<Fish | null>(null)
 const currentFishRarity = ref<Rarity>('common')
 const inventory = ref<Fish[]>([])
 const canvasContainer = ref<HTMLElement | null>(null)
+
+// Upgrades
+const moneyUpgradeLevel = ref(0)
+const speedUpgradeLevel = ref(0)
+const maxMoneyLevel = 10
+const maxSpeedLevel = 8
+
+const moneyMultiplier = computed(() => 1 + moneyUpgradeLevel.value * 0.5)
+// Wait time: starts at 5-9s, goes down to 1-3s at max level
+const currentWaitMin = computed(() => Math.max(1, 5 - speedUpgradeLevel.value * 0.5))
+const currentWaitMax = computed(() => Math.max(3, 9 - speedUpgradeLevel.value * 0.75))
+const nextWaitMin = computed(() => Math.max(1, 5 - (speedUpgradeLevel.value + 1) * 0.5))
+const nextWaitMax = computed(() => Math.max(3, 9 - (speedUpgradeLevel.value + 1) * 0.75))
+
+const moneyUpgradeCost = computed(() => {
+  const costs = [100, 300, 700, 1500, 3000, 6000, 12000, 25000, 50000, 100000]
+  return costs[moneyUpgradeLevel.value] || 999999
+})
+
+const speedUpgradeCost = computed(() => {
+  const costs = [150, 500, 1200, 3000, 7000, 15000, 35000, 80000]
+  return costs[speedUpgradeLevel.value] || 999999
+})
+
+function buyMoneyUpgrade() {
+  if (moneyUpgradeLevel.value >= maxMoneyLevel || money.value < moneyUpgradeCost.value) return
+  money.value -= moneyUpgradeCost.value
+  moneyUpgradeLevel.value++
+  saveGame()
+}
+
+function buySpeedUpgrade() {
+  if (speedUpgradeLevel.value >= maxSpeedLevel || money.value < speedUpgradeCost.value) return
+  money.value -= speedUpgradeCost.value
+  speedUpgradeLevel.value++
+  saveGame()
+}
 
 // Minigame
 const needlePos = ref(0)
@@ -227,7 +316,7 @@ const allFish: Fish[] = [
   { name: 'The Kraken', emoji: '👾', rarity: 'legendary', value: 10000 },
 ]
 
-const inventoryValue = computed(() => inventory.value.reduce((sum, f) => sum + f.value, 0))
+const inventoryValue = computed(() => inventory.value.reduce((sum, f) => sum + Math.floor(f.value * moneyMultiplier.value), 0))
 
 // ========== THREE.JS ==========
 let scene3d: THREE.Scene
@@ -667,7 +756,7 @@ function castLine() {
     dotCount.value = 1
     dotTimer = setInterval(() => { dotCount.value = (dotCount.value % 3) + 1 }, 500) as unknown as number
 
-    const waitTime = 5000 + Math.random() * 4000
+    const waitTime = currentWaitMin.value * 1000 + Math.random() * (currentWaitMax.value - currentWaitMin.value) * 1000
     waitTimer = setTimeout(() => {
       if (dotTimer) clearInterval(dotTimer)
       screen.value = 'catch'
@@ -728,8 +817,12 @@ function reelIn() {
   screen.value = 'result'
 }
 
+function getSellPrice(fish: Fish): number {
+  return Math.floor(fish.value * moneyMultiplier.value)
+}
+
 function sellFish() {
-  if (caughtFish.value) { money.value += caughtFish.value.value; saveGame() }
+  if (caughtFish.value) { money.value += getSellPrice(caughtFish.value); saveGame() }
   caughtFish.value = null; screen.value = 'fishing'
 }
 
@@ -739,11 +832,12 @@ function keepFish() {
 }
 
 function sellFromInv(i: number) {
-  money.value += inventory.value[i].value; inventory.value.splice(i, 1); saveGame()
+  money.value += getSellPrice(inventory.value[i]); inventory.value.splice(i, 1); saveGame()
 }
 
 function sellAll() {
-  money.value += inventoryValue.value; inventory.value = []; saveGame()
+  for (const fish of inventory.value) money.value += getSellPrice(fish)
+  inventory.value = []; saveGame()
 }
 
 function buyRod(rod: Rod) {
@@ -757,6 +851,7 @@ function saveGame() {
   localStorage.setItem('fishingGame', JSON.stringify({
     money: money.value, ownedRods: ownedRods.value,
     currentRodId: currentRod.value.id, inventory: inventory.value,
+    moneyUpgradeLevel: moneyUpgradeLevel.value, speedUpgradeLevel: speedUpgradeLevel.value,
   }))
 }
 
@@ -769,6 +864,8 @@ function loadGame() {
     inventory.value = d.inventory || []
     const rod = rods.find(r => r.id === d.currentRodId)
     if (rod) currentRod.value = rod
+    moneyUpgradeLevel.value = d.moneyUpgradeLevel || 0
+    speedUpgradeLevel.value = d.speedUpgradeLevel || 0
   }
 }
 
@@ -874,7 +971,12 @@ onUnmounted(() => {
   background: rgba(0,0,0,0.5); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
   backdrop-filter: blur(4px);
 }
-.shop-btn:hover, .inv-btn:hover { background: rgba(0,0,0,0.7); }
+.shop-btn:hover, .inv-btn:hover, .upgrade-btn:hover { background: rgba(0,0,0,0.7); }
+.upgrade-btn {
+  padding: 16px 24px; border-radius: 16px; border: none;
+  background: rgba(0,0,0,0.5); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
+  backdrop-filter: blur(4px);
+}
 
 /* WAITING */
 .waiting-text {
@@ -1058,6 +1160,43 @@ onUnmounted(() => {
   border: none; background: linear-gradient(135deg, #f59e0b, #f97316);
   color: #fff; font-size: 18px; font-weight: 800; cursor: pointer;
 }
+
+/* UPGRADES */
+.upgrades-screen {
+  min-height: 100vh; background: #0f172a; padding: 20px; position: relative; z-index: 10;
+}
+.upgrades-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px; max-width: 700px; margin: 0 auto;
+}
+.upgrade-card {
+  background: #1e293b; border-radius: 20px; padding: 28px; text-align: center;
+  border: 2px solid #334155; transition: border-color 0.15s;
+}
+.upgrade-card:hover { border-color: #475569; }
+.upgrade-icon { font-size: 48px; margin-bottom: 8px; }
+.upgrade-name { color: #fff; font-size: 20px; font-weight: 800; margin: 0 0 6px; }
+.upgrade-desc { color: #94a3b8; font-size: 14px; margin: 0 0 14px; }
+.upgrade-level {
+  color: #fbbf24; font-size: 14px; font-weight: 700; margin-bottom: 6px;
+}
+.upgrade-effect {
+  color: #4ade80; font-size: 15px; font-weight: 700; margin-bottom: 4px;
+}
+.upgrade-next {
+  color: #60a5fa; font-size: 13px; margin-bottom: 14px;
+}
+.upgrade-next.maxed {
+  color: #fbbf24; font-size: 16px; font-weight: 800;
+}
+.upgrade-buy-btn {
+  padding: 10px 24px; border-radius: 12px; border: none;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
+  transition: transform 0.15s;
+}
+.upgrade-buy-btn:hover { transform: scale(1.05); }
+.upgrade-buy-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
 @media (max-width: 600px) {
   .action-area { flex-direction: column; align-items: center; bottom: 20px; }
