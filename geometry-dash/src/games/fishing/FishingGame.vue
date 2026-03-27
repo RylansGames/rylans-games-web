@@ -1,7 +1,7 @@
 <template>
   <div class="fishing-app">
     <!-- Back button -->
-    <button class="back-btn" @click="screen === 'shop' || screen === 'inventory' || screen === 'upgrades' || screen === 'fishindex' ? screen = 'fishing' : $router.push('/')" v-if="screen !== 'catch' && screen !== 'minigame' && screen !== 'result'">← Back</button>
+    <button class="back-btn" @click="screen === 'shop' || screen === 'inventory' || screen === 'upgrades' || screen === 'fishindex' || screen === 'characters' ? screen = 'fishing' : $router.push('/')" v-if="screen !== 'catch' && screen !== 'minigame' && screen !== 'result'">← Back</button>
 
     <!-- Money Display -->
     <div class="money-hud" v-if="screen !== 'title'">
@@ -31,7 +31,7 @@
     </div>
 
     <!-- ===== 3D CANVAS ===== -->
-    <div ref="canvasContainer" class="canvas-container" v-show="screen !== 'title' && screen !== 'shop' && screen !== 'inventory' && screen !== 'upgrades' && screen !== 'fishindex'"></div>
+    <div ref="canvasContainer" class="canvas-container" v-show="screen !== 'title' && screen !== 'shop' && screen !== 'inventory' && screen !== 'upgrades' && screen !== 'fishindex' && screen !== 'characters'"></div>
 
     <!-- Cheese Event Banner -->
     <div v-if="cheeseMessage" class="cheese-banner">{{ cheeseMessage }}</div>
@@ -49,6 +49,7 @@
       <button class="inv-btn" @click="screen = 'inventory'">🎒 Inventory</button>
       <button class="upgrade-btn" @click="screen = 'upgrades'">⬆️ Upgrades</button>
       <button class="index-btn" @click="screen = 'fishindex'">📖 Fish Index</button>
+      <button class="char-btn" @click="screen = 'characters'">👤 Characters</button>
     </div>
 
     <!-- Waiting -->
@@ -128,6 +129,69 @@
           </button>
           <button v-else-if="currentRod.id !== rod.id" class="equip-btn" @click="equipRod(rod)">Equip</button>
           <div v-else class="equipped-badge">✅ Equipped</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CHARACTERS ===== -->
+    <div v-if="screen === 'characters'" class="char-screen">
+      <div class="shop-header">
+        <h1>👤 Characters & Cosmetics</h1>
+        <button class="close-btn" @click="screen = 'fishing'">✕</button>
+      </div>
+
+      <!-- Current look preview -->
+      <div class="char-preview">
+        <div class="preview-character">
+          <div class="preview-aura">{{ allCosmetics.find(c => c.id === equippedCosmetics.aura)?.icon || '' }}</div>
+          <div class="preview-hat">{{ allCosmetics.find(c => c.id === equippedCosmetics.hat)?.icon || '' }}</div>
+          <div class="preview-body">{{ allCosmetics.find(c => c.id === equippedCosmetics.character)?.icon || '🧑' }}</div>
+          <div class="preview-outfit">{{ allCosmetics.find(c => c.id === equippedCosmetics.outfit)?.icon || '👕' }}</div>
+          <div class="preview-rod">{{ allCosmetics.find(c => c.id === equippedCosmetics['rod-skin'])?.icon || '🎣' }}</div>
+          <div class="preview-trail">{{ allCosmetics.find(c => c.id === equippedCosmetics.trail)?.icon || '' }}</div>
+        </div>
+      </div>
+
+      <!-- Category tabs -->
+      <div class="char-tabs">
+        <button
+          v-for="cat in cosmeticCategories"
+          :key="cat.id"
+          class="char-tab"
+          :class="{ active: activeCharTab === cat.id }"
+          @click="activeCharTab = cat.id"
+        >
+          {{ cat.icon }} {{ cat.label }}
+        </button>
+      </div>
+
+      <!-- Items grid -->
+      <div class="char-grid">
+        <div
+          v-for="item in getCosmeticsByCategory(activeCharTab)"
+          :key="item.id"
+          class="char-card"
+          :class="{ owned: ownedCosmetics.includes(item.id), equipped: equippedCosmetics[item.category] === item.id }"
+        >
+          <div class="char-item-icon">{{ item.icon }}</div>
+          <div class="char-item-name">{{ item.name }}</div>
+          <div class="char-item-desc">{{ item.desc }}</div>
+          <button
+            v-if="!ownedCosmetics.includes(item.id)"
+            class="char-buy-btn"
+            :disabled="money < item.price"
+            @click="buyCosmetic(item)"
+          >
+            Buy - ${{ item.price.toLocaleString() }}
+          </button>
+          <button
+            v-else-if="equippedCosmetics[item.category] !== item.id"
+            class="char-equip-btn"
+            @click="equipCosmetic(item)"
+          >
+            Equip
+          </button>
+          <div v-else class="char-equipped-badge">✅ Equipped</div>
         </div>
       </div>
     </div>
@@ -243,7 +307,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import * as THREE from 'three'
 
-type Screen = 'title' | 'fishing' | 'casting' | 'waiting' | 'catch' | 'minigame' | 'result' | 'shop' | 'inventory' | 'upgrades' | 'fishindex'
+type Screen = 'title' | 'fishing' | 'casting' | 'waiting' | 'catch' | 'minigame' | 'result' | 'shop' | 'inventory' | 'upgrades' | 'fishindex' | 'characters'
 type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'secret'
 
 interface Fish { name: string; emoji: string; rarity: Rarity; value: number; trait?: string }
@@ -368,6 +432,115 @@ function buySpeedUpgrade() {
   money.value -= speedUpgradeCost.value
   speedUpgradeLevel.value++
   saveGame()
+}
+
+// Characters & Cosmetics
+interface Cosmetic {
+  id: string
+  name: string
+  icon: string
+  category: 'character' | 'hat' | 'outfit' | 'rod-skin' | 'trail' | 'aura'
+  price: number
+  desc: string
+}
+
+const allCosmetics: Cosmetic[] = [
+  // Characters
+  { id: 'default', name: 'Default Fisher', icon: '🧑', category: 'character', price: 0, desc: 'Just a regular person who loves fishing.' },
+  { id: 'pirate', name: 'Pirate', icon: '🏴‍☠️', category: 'character', price: 500, desc: 'Arrr! Fish be my treasure!' },
+  { id: 'robot', name: 'Robot', icon: '🤖', category: 'character', price: 1000, desc: 'Beep boop. Fishing protocol activated.' },
+  { id: 'ninja', name: 'Ninja', icon: '🥷', category: 'character', price: 2000, desc: 'Silent but deadly... at fishing.' },
+  { id: 'astronaut', name: 'Astronaut', icon: '👨‍🚀', category: 'character', price: 5000, desc: 'Fishing in zero gravity hits different.' },
+  { id: 'wizard', name: 'Wizard', icon: '🧙', category: 'character', price: 8000, desc: 'Uses magic to lure fish. Totally fair.' },
+  { id: 'zombie', name: 'Zombie', icon: '🧟', category: 'character', price: 3000, desc: 'Braiiins... I mean... fiiish...' },
+  { id: 'alien', name: 'Alien', icon: '👽', category: 'character', price: 15000, desc: 'Came from another planet just to fish here.' },
+  { id: 'skeleton', name: 'Skeleton', icon: '💀', category: 'character', price: 10000, desc: 'Been fishing so long the flesh fell off.' },
+  { id: 'king', name: 'King', icon: '🤴', category: 'character', price: 50000, desc: 'The royal angler. Fish bow before you.' },
+
+  // Hats
+  { id: 'hat-none', name: 'No Hat', icon: '❌', category: 'hat', price: 0, desc: 'Just vibin without a hat.' },
+  { id: 'hat-cowboy', name: 'Cowboy Hat', icon: '🤠', category: 'hat', price: 300, desc: 'Yeehaw! Fishin country style.' },
+  { id: 'hat-crown', name: 'Crown', icon: '👑', category: 'hat', price: 20000, desc: 'The king of the pond.' },
+  { id: 'hat-tophat', name: 'Top Hat', icon: '🎩', category: 'hat', price: 5000, desc: 'Fancy fishing with class.' },
+  { id: 'hat-cap', name: 'Baseball Cap', icon: '🧢', category: 'hat', price: 200, desc: 'Classic fishing cap.' },
+  { id: 'hat-party', name: 'Party Hat', icon: '🥳', category: 'hat', price: 1500, desc: 'Every catch is a celebration!' },
+  { id: 'hat-helmet', name: 'Viking Helmet', icon: '⚔️', category: 'hat', price: 8000, desc: 'Fishing like a warrior.' },
+  { id: 'hat-halo', name: 'Halo', icon: '😇', category: 'hat', price: 30000, desc: 'Blessed by the fishing gods.' },
+  { id: 'hat-devil', name: 'Devil Horns', icon: '😈', category: 'hat', price: 30000, desc: 'Fish fear you.' },
+
+  // Outfits
+  { id: 'outfit-default', name: 'Casual', icon: '👕', category: 'outfit', price: 0, desc: 'T-shirt and shorts. Simple.' },
+  { id: 'outfit-suit', name: 'Business Suit', icon: '🤵', category: 'outfit', price: 3000, desc: 'Fishing in a suit. Power move.' },
+  { id: 'outfit-hawaiian', name: 'Hawaiian Shirt', icon: '🌺', category: 'outfit', price: 800, desc: 'Tropical fishing vibes.' },
+  { id: 'outfit-armor', name: 'Knight Armor', icon: '🛡️', category: 'outfit', price: 12000, desc: 'Protected from fish bites.' },
+  { id: 'outfit-lab', name: 'Lab Coat', icon: '🥼', category: 'outfit', price: 4000, desc: 'Fishing... for SCIENCE!' },
+  { id: 'outfit-gold', name: 'Gold Drip', icon: '💛', category: 'outfit', price: 75000, desc: 'Dripped out in solid gold.' },
+  { id: 'outfit-galaxy', name: 'Galaxy Suit', icon: '🌌', category: 'outfit', price: 100000, desc: 'Wearing the universe.' },
+
+  // Rod Skins
+  { id: 'rskin-default', name: 'Default Rod', icon: '🎣', category: 'rod-skin', price: 0, desc: 'Standard rod look.' },
+  { id: 'rskin-flame', name: 'Flame Rod', icon: '🔥', category: 'rod-skin', price: 5000, desc: 'Your rod is literally on fire.' },
+  { id: 'rskin-ice', name: 'Ice Rod', icon: '❄️', category: 'rod-skin', price: 5000, desc: 'Frozen solid but still works.' },
+  { id: 'rskin-rainbow', name: 'Rainbow Rod', icon: '🌈', category: 'rod-skin', price: 25000, desc: 'The most colorful rod ever.' },
+  { id: 'rskin-lightning', name: 'Lightning Rod', icon: '⚡', category: 'rod-skin', price: 15000, desc: 'Shocks the fish out of the water.' },
+  { id: 'rskin-candy', name: 'Candy Rod', icon: '🍭', category: 'rod-skin', price: 8000, desc: 'Sweet fishing experience.' },
+  { id: 'rskin-dark', name: 'Shadow Rod', icon: '🖤', category: 'rod-skin', price: 40000, desc: 'Made of pure darkness.' },
+
+  // Trails (bobber effect)
+  { id: 'trail-none', name: 'No Trail', icon: '❌', category: 'trail', price: 0, desc: 'Just a normal bobber.' },
+  { id: 'trail-sparkle', name: 'Sparkle Trail', icon: '✨', category: 'trail', price: 2000, desc: 'Sparkles follow your bobber.' },
+  { id: 'trail-fire', name: 'Fire Trail', icon: '🔥', category: 'trail', price: 6000, desc: 'Leaves a trail of flames.' },
+  { id: 'trail-hearts', name: 'Heart Trail', icon: '💕', category: 'trail', price: 3000, desc: 'Love is in the water.' },
+  { id: 'trail-stars', name: 'Star Trail', icon: '⭐', category: 'trail', price: 10000, desc: 'Stardust in the water.' },
+  { id: 'trail-rainbow', name: 'Rainbow Trail', icon: '🌈', category: 'trail', price: 20000, desc: 'A rainbow follows your line.' },
+  { id: 'trail-void', name: 'Void Trail', icon: '🕳️', category: 'trail', price: 50000, desc: 'Reality bends around your bobber.' },
+
+  // Auras
+  { id: 'aura-none', name: 'No Aura', icon: '❌', category: 'aura', price: 0, desc: 'No aura.' },
+  { id: 'aura-green', name: 'Nature Aura', icon: '🌿', category: 'aura', price: 4000, desc: 'One with nature.' },
+  { id: 'aura-fire', name: 'Fire Aura', icon: '🔥', category: 'aura', price: 8000, desc: 'Burning passion for fishing.' },
+  { id: 'aura-ice', name: 'Frost Aura', icon: '❄️', category: 'aura', price: 8000, desc: 'Cool as ice.' },
+  { id: 'aura-electric', name: 'Electric Aura', icon: '⚡', category: 'aura', price: 15000, desc: 'Shocking presence.' },
+  { id: 'aura-rainbow', name: 'Rainbow Aura', icon: '🌈', category: 'aura', price: 35000, desc: 'All the colors surround you.' },
+  { id: 'aura-dark', name: 'Dark Aura', icon: '🖤', category: 'aura', price: 50000, desc: 'Darkness surrounds you.' },
+  { id: 'aura-divine', name: 'Divine Aura', icon: '😇', category: 'aura', price: 200000, desc: 'A holy glow. The ultimate flex.' },
+]
+
+const cosmeticCategories = [
+  { id: 'character', label: 'Characters', icon: '👤' },
+  { id: 'hat', label: 'Hats', icon: '🎩' },
+  { id: 'outfit', label: 'Outfits', icon: '👕' },
+  { id: 'rod-skin', label: 'Rod Skins', icon: '🎣' },
+  { id: 'trail', label: 'Trails', icon: '✨' },
+  { id: 'aura', label: 'Auras', icon: '🔮' },
+]
+
+const ownedCosmetics = ref<string[]>(['default', 'hat-none', 'outfit-default', 'rskin-default', 'trail-none', 'aura-none'])
+const equippedCosmetics = ref<Record<string, string>>({
+  character: 'default',
+  hat: 'hat-none',
+  outfit: 'outfit-default',
+  'rod-skin': 'rskin-default',
+  trail: 'trail-none',
+  aura: 'aura-none',
+})
+const activeCharTab = ref('character')
+
+function buyCosmetic(item: Cosmetic) {
+  if (money.value < item.price || ownedCosmetics.value.includes(item.id)) return
+  money.value -= item.price
+  ownedCosmetics.value.push(item.id)
+  equippedCosmetics.value[item.category] = item.id
+  saveGame()
+}
+
+function equipCosmetic(item: Cosmetic) {
+  equippedCosmetics.value[item.category] = item.id
+  saveGame()
+}
+
+function getCosmeticsByCategory(cat: string): Cosmetic[] {
+  return allCosmetics.filter(c => c.category === cat)
 }
 
 // Cheese Event
@@ -997,7 +1170,7 @@ function triggerCheeseEvent() {
     ;(waterMesh.material as THREE.MeshStandardMaterial).opacity = 0.9
   }
 
-  // Event lasts 30 seconds
+  // Event lasts 5 minutes
   cheeseEndTimer = setTimeout(() => {
     cheeseEventActive.value = false
     cheeseMessage.value = '🧀 Cheese event ended!'
@@ -1009,7 +1182,7 @@ function triggerCheeseEvent() {
     }
 
     setTimeout(() => { cheeseMessage.value = '' }, 3000)
-  }, 30000) as unknown as number
+  }, 5 * 60 * 1000) as unknown as number
 }
 
 // ========== ANIMATION ==========
@@ -1190,6 +1363,8 @@ function saveGame() {
     currentRodId: currentRod.value.id, inventory: inventory.value,
     moneyUpgradeLevel: moneyUpgradeLevel.value, speedUpgradeLevel: speedUpgradeLevel.value,
     caughtFishNames: caughtFishNames.value,
+    ownedCosmetics: ownedCosmetics.value,
+    equippedCosmetics: equippedCosmetics.value,
   }))
 }
 
@@ -1205,6 +1380,8 @@ function loadGame() {
     moneyUpgradeLevel.value = d.moneyUpgradeLevel || 0
     speedUpgradeLevel.value = d.speedUpgradeLevel || 0
     caughtFishNames.value = d.caughtFishNames || []
+    ownedCosmetics.value = d.ownedCosmetics || ['default', 'hat-none', 'outfit-default', 'rskin-default', 'trail-none', 'aura-none']
+    equippedCosmetics.value = d.equippedCosmetics || { character: 'default', hat: 'hat-none', outfit: 'outfit-default', 'rod-skin': 'rskin-default', trail: 'trail-none', aura: 'aura-none' }
   }
 }
 
@@ -1522,6 +1699,78 @@ onUnmounted(() => {
   border: none; background: linear-gradient(135deg, #f59e0b, #f97316);
   color: #fff; font-size: 18px; font-weight: 800; cursor: pointer;
 }
+
+/* CHARACTERS BUTTON */
+.char-btn {
+  padding: 16px 24px; border-radius: 16px; border: none;
+  background: rgba(0,0,0,0.5); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+.char-btn:hover { background: rgba(0,0,0,0.7); }
+
+/* CHARACTERS SCREEN */
+.char-screen {
+  min-height: 100vh; background: #0f172a; padding: 20px; position: relative; z-index: 10;
+}
+
+.char-preview {
+  display: flex; justify-content: center; margin-bottom: 20px;
+}
+.preview-character {
+  background: linear-gradient(135deg, #1e293b, #334155);
+  border-radius: 20px; padding: 24px 40px; border: 2px solid #475569;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  position: relative;
+}
+.preview-aura { font-size: 40px; opacity: 0.6; position: absolute; top: 5px; right: 10px; }
+.preview-hat { font-size: 32px; }
+.preview-body { font-size: 56px; }
+.preview-outfit { font-size: 24px; margin-top: -4px; }
+.preview-rod { font-size: 28px; position: absolute; right: 15px; bottom: 30px; }
+.preview-trail { font-size: 20px; position: absolute; left: 15px; bottom: 15px; opacity: 0.7; }
+
+.char-tabs {
+  display: flex; gap: 6px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px;
+}
+.char-tab {
+  padding: 8px 16px; border-radius: 10px; border: 1px solid #334155;
+  background: none; color: #94a3b8; font-size: 13px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+}
+.char-tab:hover { color: #fff; background: #1e293b; }
+.char-tab.active { background: #5a67d8; color: #fff; border-color: #5a67d8; }
+
+.char-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px; max-width: 900px; margin: 0 auto;
+}
+.char-card {
+  background: #1e293b; border-radius: 14px; padding: 16px; text-align: center;
+  border: 2px solid #334155; transition: border-color 0.15s;
+}
+.char-card:hover { border-color: #475569; }
+.char-card.owned { border-color: #22c55e; }
+.char-card.equipped { border-color: #fbbf24; box-shadow: 0 0 15px rgba(251,191,36,0.2); }
+
+.char-item-icon { font-size: 40px; margin-bottom: 6px; }
+.char-item-name { color: #fff; font-size: 14px; font-weight: 800; margin-bottom: 4px; }
+.char-item-desc { color: #94a3b8; font-size: 11px; margin-bottom: 10px; line-height: 1.3; }
+
+.char-buy-btn {
+  padding: 6px 16px; border-radius: 10px; border: none;
+  background: linear-gradient(135deg, #5a67d8, #7c3aed);
+  color: #fff; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.char-buy-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.char-buy-btn:hover:not(:disabled) { transform: scale(1.05); }
+
+.char-equip-btn {
+  padding: 6px 16px; border-radius: 10px; border: 2px solid #3b82f6;
+  background: none; color: #3b82f6; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.char-equip-btn:hover { background: #3b82f6; color: #fff; }
+
+.char-equipped-badge { color: #22c55e; font-size: 13px; font-weight: 700; }
 
 /* CHEESE EVENT */
 .cheese-banner {
