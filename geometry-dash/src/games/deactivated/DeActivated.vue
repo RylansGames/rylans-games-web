@@ -331,18 +331,18 @@ interface DeadBody { x: number; y: number; color: string; id: string }
 const deadBodies = ref<DeadBody[]>([])
 
 const MAP_ROOMS: MapRoom[] = [
-  { name: 'Cafeteria', x: 300, y: 50, w: 200, h: 150, color: '#2a3a4a', hasEmergency: true },
-  { name: 'Weapons', x: 550, y: 50, w: 130, h: 120, color: '#3a2a2a', hasTask: true },
-  { name: 'Navigation', x: 600, y: 250, w: 120, h: 130, color: '#2a2a3a', hasTask: true },
-  { name: 'O2', x: 450, y: 200, w: 100, h: 100, color: '#2a3a2a', hasTask: true },
-  { name: 'Admin', x: 350, y: 300, w: 120, h: 100, color: '#3a3a2a', hasTask: true },
-  { name: 'Storage', x: 250, y: 350, w: 130, h: 120, color: '#2a2a2a', hasTask: true },
-  { name: 'Electrical', x: 100, y: 300, w: 110, h: 110, color: '#2a2a1a', hasTask: true, hasVent: true },
-  { name: 'Lower Engine', x: 50, y: 200, w: 100, h: 100, color: '#1a2a2a' },
-  { name: 'Reactor', x: 30, y: 50, w: 120, h: 120, color: '#3a1a1a', hasTask: true, hasVent: true },
-  { name: 'Upper Engine', x: 50, y: 0, w: 100, h: 80, color: '#1a2a2a' },
-  { name: 'Medbay', x: 180, y: 100, w: 110, h: 100, color: '#1a3a3a', hasTask: true, hasVent: true },
-  { name: 'Security', x: 180, y: 250, w: 100, h: 80, color: '#1a1a3a', hasVent: true },
+  { name: 'Cafeteria', x: 300, y: 50, w: 200, h: 150, color: '#4a5a6a', hasEmergency: true },
+  { name: 'Weapons', x: 550, y: 50, w: 130, h: 120, color: '#5a4a4a', hasTask: true },
+  { name: 'Navigation', x: 600, y: 250, w: 120, h: 130, color: '#4a4a5a', hasTask: true },
+  { name: 'O2', x: 450, y: 200, w: 100, h: 100, color: '#4a5a4a', hasTask: true },
+  { name: 'Admin', x: 350, y: 300, w: 120, h: 100, color: '#5a5a4a', hasTask: true },
+  { name: 'Storage', x: 250, y: 350, w: 130, h: 120, color: '#4a4a4a', hasTask: true },
+  { name: 'Electrical', x: 100, y: 300, w: 110, h: 110, color: '#4a4a3a', hasTask: true, hasVent: true },
+  { name: 'Lower Engine', x: 50, y: 200, w: 100, h: 100, color: '#3a4a4a' },
+  { name: 'Reactor', x: 30, y: 50, w: 120, h: 120, color: '#5a3a3a', hasTask: true, hasVent: true },
+  { name: 'Upper Engine', x: 50, y: 0, w: 100, h: 80, color: '#3a4a4a' },
+  { name: 'Medbay', x: 180, y: 100, w: 110, h: 100, color: '#3a5a5a', hasTask: true, hasVent: true },
+  { name: 'Security', x: 180, y: 250, w: 100, h: 80, color: '#3a3a5a', hasVent: true },
 ]
 
 // Hallways connecting rooms
@@ -546,7 +546,7 @@ function init3D() {
   if (!threeContainer.value) return
 
   scene3d = new THREE.Scene()
-  scene3d.background = new THREE.Color('#0a0a1a')
+  scene3d.background = new THREE.Color('#2a3040')
 
   camera3d = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200)
 
@@ -563,11 +563,11 @@ function init3D() {
   })
 
   // Lights
-  scene3d.add(new THREE.AmbientLight('#334466', 0.4))
+  scene3d.add(new THREE.AmbientLight('#8899bb', 0.8))
 
   // Ceiling lights per room
   for (const room of MAP_ROOMS) {
-    const light = new THREE.PointLight('#aabbcc', 0.8, 15)
+    const light = new THREE.PointLight('#ddeeff', 1.5, 20)
     light.position.set((room.x + room.w / 2) / 30, 3.5, (room.y + room.h / 2) / 30)
     light.castShadow = true
     scene3d.add(light)
@@ -594,7 +594,7 @@ function build3DMap() {
 
     // Walls around room (4 walls with gaps for doors)
     const wallH = 2.5
-    const wallMat = new THREE.MeshStandardMaterial({ color: '#1a1a2a', roughness: 0.9 })
+    const wallMat = new THREE.MeshStandardMaterial({ color: '#3a3a5a', roughness: 0.9 })
 
     // Simple box walls on each side
     const sides = [
@@ -672,7 +672,7 @@ function build3DMap() {
 
     // Ceiling
     const ceilGeo = new THREE.PlaneGeometry(room.w / S, room.h / S)
-    const ceilMat = new THREE.MeshStandardMaterial({ color: '#111', roughness: 1 })
+    const ceilMat = new THREE.MeshStandardMaterial({ color: '#2a2a3a', roughness: 1 })
     const ceil = new THREE.Mesh(ceilGeo, ceilMat)
     ceil.rotation.x = Math.PI / 2
     ceil.position.set((room.x + room.w / 2) / S, 4, (room.y + room.h / 2) / S)
@@ -682,7 +682,7 @@ function build3DMap() {
   // Hallway floors
   for (const hall of HALLWAYS) {
     const floorGeo = new THREE.PlaneGeometry(hall.w / S, hall.h / S)
-    const floorMat = new THREE.MeshStandardMaterial({ color: '#151520', roughness: 0.9 })
+    const floorMat = new THREE.MeshStandardMaterial({ color: '#2a2a3a', roughness: 0.9 })
     const floor = new THREE.Mesh(floorGeo, floorMat)
     floor.rotation.x = -Math.PI / 2
     floor.position.set((hall.x + hall.w / 2) / S, 0, (hall.y + hall.h / 2) / S)
@@ -690,7 +690,7 @@ function build3DMap() {
     scene3d.add(floor)
 
     // Hallway light
-    const hl = new THREE.PointLight('#556677', 0.3, 5)
+    const hl = new THREE.PointLight('#8899aa', 0.8, 8)
     hl.position.set((hall.x + hall.w / 2) / S, 2, (hall.y + hall.h / 2) / S)
     scene3d.add(hl)
   }
