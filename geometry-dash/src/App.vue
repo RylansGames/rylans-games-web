@@ -21,6 +21,14 @@ const ownerKey = localStorage.getItem('adminOwnerKey')
 let unsubLock: Unsubscribe | null = null
 
 onMounted(() => {
+  // Kick out old admin sessions - change this number to force logout everyone
+  const ADMIN_VERSION = '2'
+  if (localStorage.getItem('adminVersion') !== ADMIN_VERSION) {
+    localStorage.removeItem('adminAuth')
+    localStorage.removeItem('adminOwnerKey')
+    localStorage.setItem('adminVersion', ADMIN_VERSION)
+  }
+
   // Listen for lock status from Firebase
   unsubLock = onValue(dbRef(db, 'admin_lock'), (snapshot) => {
     if (snapshot.exists()) {
@@ -39,7 +47,7 @@ onUnmounted(() => {
 })
 
 const checkAdminCode = () => {
-  if (adminCode.value === 'rylan2026') {
+  if (adminCode.value === 'rylan2027') {
     // If locked and not the owner, reclaim ownership with a new key
     if (adminLocked.value && !isOwner.value) {
       const newKey = `owner_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
