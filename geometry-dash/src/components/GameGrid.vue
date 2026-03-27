@@ -118,6 +118,16 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'basketball',
+    title: 'Basketball',
+    description: 'Play basketball against friends or bots! Dribble, shoot, and score in a 3D arena!',
+    route: '/games/basketball',
+    icon: '🏀',
+    thumbnailColor: '#ff6b00',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'gunfight',
     title: 'Gun Fight',
     description: '1v1 arena shooter! Play online or battle bots in a 3D arena!',
