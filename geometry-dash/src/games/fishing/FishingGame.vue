@@ -817,7 +817,7 @@ function showFishingLine(show: boolean) {
 function startTitanicChecker() {
   titanicTimer = setInterval(() => {
     if (titanicPhase !== 'done') return
-    if (Math.random() < 0.1) {
+    if (Math.random() < 0.01) {
       triggerTitanicEvent()
     }
   }, 30000) as unknown as number
