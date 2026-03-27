@@ -190,11 +190,12 @@ const games: Game[] = [
   {
     id: 'de-activated',
     title: 'De-Activated',
-    description: 'Find the impostor before its too late!',
+    description: 'Find the impostor before its too late! Online multiplayer or play with bots!',
+    route: '/games/deactivated',
     icon: '🟢',
     thumbnailColor: '#e53e3e',
     rating: 4.7,
-    available: false
+    available: true
   },
   {
     id: 'platform-adventure',

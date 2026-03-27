@@ -55,6 +55,11 @@ const router = createRouter({
       component: () => import('../games/create/CreateGame.vue'),
     },
     {
+      path: '/games/deactivated',
+      name: 'deactivated',
+      component: () => import('../games/deactivated/DeActivated.vue'),
+    },
+    {
       path: '/games/frogger',
       name: 'frogger',
       component: () => import('../games/frogger/Frogger.vue'),
