@@ -15,6 +15,15 @@
       <span class="luck-badge">Luck: {{ currentRod.luck }}x</span>
     </div>
 
+    <!-- Character Display -->
+    <div class="char-hud" v-if="inFishingScreens">
+      <span class="char-hud-aura">{{ getEquippedIcon('aura') }}</span>
+      <span class="char-hud-hat">{{ getEquippedIcon('hat') }}</span>
+      <span class="char-hud-body">{{ getEquippedIcon('character') }}</span>
+      <span class="char-hud-outfit">{{ getEquippedIcon('outfit') }}</span>
+      <span class="char-hud-trail">{{ getEquippedIcon('trail') }}</span>
+    </div>
+
     <!-- ===== TITLE SCREEN ===== -->
     <div v-if="screen === 'title'" class="title-screen">
       <div class="title-card">
@@ -537,6 +546,13 @@ function buyCosmetic(item: Cosmetic) {
 function equipCosmetic(item: Cosmetic) {
   equippedCosmetics.value[item.category] = item.id
   saveGame()
+}
+
+function getEquippedIcon(category: string): string {
+  const id = equippedCosmetics.value[category]
+  if (!id) return ''
+  const item = allCosmetics.find(c => c.id === id)
+  return item ? item.icon : ''
 }
 
 function getCosmeticsByCategory(cat: string): Cosmetic[] {
@@ -1699,6 +1715,20 @@ onUnmounted(() => {
   border: none; background: linear-gradient(135deg, #f59e0b, #f97316);
   color: #fff; font-size: 18px; font-weight: 800; cursor: pointer;
 }
+
+/* CHARACTER HUD */
+.char-hud {
+  position: fixed; bottom: 80px; left: 16px; z-index: 10;
+  background: rgba(0,0,0,0.5); border-radius: 16px; padding: 10px 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+  backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.1);
+  pointer-events: none;
+}
+.char-hud-aura { font-size: 18px; opacity: 0.6; }
+.char-hud-hat { font-size: 20px; margin-bottom: -4px; }
+.char-hud-body { font-size: 36px; }
+.char-hud-outfit { font-size: 16px; margin-top: -4px; }
+.char-hud-trail { font-size: 14px; opacity: 0.7; }
 
 /* CHARACTERS BUTTON */
 .char-btn {
