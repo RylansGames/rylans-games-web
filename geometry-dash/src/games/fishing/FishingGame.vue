@@ -180,7 +180,7 @@
           v-for="item in getCosmeticsByCategory(activeCharTab)"
           :key="item.id"
           class="char-card"
-          :class="{ owned: ownedCosmetics.includes(item.id), equipped: equippedCosmetics[item.category] === item.id }"
+          :class="{ owned: ownedCosmetics.includes(item.id), equipped: isEquipped(item) }"
         >
           <div class="char-item-icon">{{ item.icon }}</div>
           <div class="char-item-name">{{ item.name }}</div>
@@ -194,7 +194,7 @@
             Buy - ${{ item.price.toLocaleString() }}
           </button>
           <button
-            v-else-if="equippedCosmetics[item.category] !== item.id"
+            v-else-if="!isEquipped(item)"
             class="char-equip-btn"
             @click="equipCosmetic(item)"
           >
@@ -313,7 +313,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import * as THREE from 'three'
 
 type Screen = 'title' | 'fishing' | 'casting' | 'waiting' | 'catch' | 'minigame' | 'result' | 'shop' | 'inventory' | 'upgrades' | 'fishindex' | 'characters'
@@ -525,7 +525,7 @@ const cosmeticCategories = [
 ]
 
 const ownedCosmetics = ref<string[]>(['default', 'hat-none', 'outfit-default', 'rskin-default', 'trail-none', 'aura-none'])
-const equippedCosmetics = ref<Record<string, string>>({
+const equipped = reactive<Record<string, string>>({
   character: 'default',
   hat: 'hat-none',
   outfit: 'outfit-default',
@@ -533,26 +533,35 @@ const equippedCosmetics = ref<Record<string, string>>({
   trail: 'trail-none',
   aura: 'aura-none',
 })
+const equippedVersion = ref(0) // force reactivity
 const activeCharTab = ref('character')
 
 function buyCosmetic(item: Cosmetic) {
   if (money.value < item.price || ownedCosmetics.value.includes(item.id)) return
   money.value -= item.price
   ownedCosmetics.value = [...ownedCosmetics.value, item.id]
-  equippedCosmetics.value = { ...equippedCosmetics.value, [item.category]: item.id }
+  equipped[item.category] = item.id
+  equippedVersion.value++
   saveGame()
 }
 
 function equipCosmetic(item: Cosmetic) {
-  equippedCosmetics.value = { ...equippedCosmetics.value, [item.category]: item.id }
+  equipped[item.category] = item.id
+  equippedVersion.value++
   saveGame()
 }
 
 function getEquippedIcon(category: string): string {
-  const id = equippedCosmetics.value[category]
+  void equippedVersion.value // trigger reactivity
+  const id = equipped[category]
   if (!id) return ''
   const item = allCosmetics.find(c => c.id === id)
   return item ? item.icon : ''
+}
+
+function isEquipped(item: Cosmetic): boolean {
+  void equippedVersion.value
+  return equipped[item.category] === item.id
 }
 
 function getCosmeticsByCategory(cat: string): Cosmetic[] {
@@ -1380,7 +1389,7 @@ function saveGame() {
     moneyUpgradeLevel: moneyUpgradeLevel.value, speedUpgradeLevel: speedUpgradeLevel.value,
     caughtFishNames: caughtFishNames.value,
     ownedCosmetics: ownedCosmetics.value,
-    equippedCosmetics: equippedCosmetics.value,
+    equippedCosmetics: { ...equipped },
   }))
 }
 
@@ -1397,7 +1406,9 @@ function loadGame() {
     speedUpgradeLevel.value = d.speedUpgradeLevel || 0
     caughtFishNames.value = d.caughtFishNames || []
     ownedCosmetics.value = d.ownedCosmetics || ['default', 'hat-none', 'outfit-default', 'rskin-default', 'trail-none', 'aura-none']
-    equippedCosmetics.value = d.equippedCosmetics || { character: 'default', hat: 'hat-none', outfit: 'outfit-default', 'rod-skin': 'rskin-default', trail: 'trail-none', aura: 'aura-none' }
+    const savedEquipped = d.equippedCosmetics || { character: 'default', hat: 'hat-none', outfit: 'outfit-default', 'rod-skin': 'rskin-default', trail: 'trail-none', aura: 'aura-none' }
+    Object.assign(equipped, savedEquipped)
+    equippedVersion.value++
   }
 }
 
