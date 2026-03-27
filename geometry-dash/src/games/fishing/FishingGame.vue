@@ -322,6 +322,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { db } from '../../firebase'
+import { ref as dbRef, onValue, set, get } from 'firebase/database'
 import * as THREE from 'three'
 
 type Screen = 'title' | 'fishing' | 'casting' | 'waiting' | 'catch' | 'minigame' | 'result' | 'shop' | 'inventory' | 'upgrades' | 'fishindex' | 'characters'
@@ -692,22 +694,26 @@ function formatCountdown(seconds: number): string {
 }
 
 function startBrainrotCountdown() {
-  // Load saved countdown
-  const saved = localStorage.getItem('brainrotCountdown')
-  const savedTime = localStorage.getItem('brainrotCountdownTime')
-  if (saved && savedTime) {
-    const elapsed = Math.floor((Date.now() - parseInt(savedTime)) / 1000)
-    brainrotCountdown.value = Math.max(0, parseInt(saved) - elapsed)
-  }
-
-  brainrotCountdownTimer = setInterval(() => {
-    brainrotCountdown.value--
-    // Save every 30 seconds so it persists
-    if (brainrotCountdown.value % 30 === 0) {
-      localStorage.setItem('brainrotCountdown', brainrotCountdown.value.toString())
-      localStorage.setItem('brainrotCountdownTime', Date.now().toString())
+  // Read global timer from Firebase
+  onValue(dbRef(db, 'fishing/brainrotNextEvent'), (snap) => {
+    const nextEventTime = snap.val()
+    if (!nextEventTime) {
+      // No timer set yet - this player sets it
+      const next = Date.now() + 4 * 60 * 60 * 1000
+      set(dbRef(db, 'fishing/brainrotNextEvent'), next)
     }
-    if (brainrotCountdown.value <= 0) {
+  })
+
+  // Check Firebase timer every second
+  brainrotCountdownTimer = setInterval(async () => {
+    const snap = await get(dbRef(db, 'fishing/brainrotNextEvent'))
+    const nextEventTime = snap.val()
+    if (!nextEventTime) return
+
+    const remaining = Math.max(0, Math.floor((nextEventTime - Date.now()) / 1000))
+    brainrotCountdown.value = remaining
+
+    if (remaining <= 0 && !brainrotEventActive.value) {
       triggerBrainrotEvent()
     }
   }, 1000) as unknown as number
@@ -721,10 +727,10 @@ function triggerBrainrotEvent() {
   brainrotEndTimer = setTimeout(() => {
     brainrotEventActive.value = false
     brainrotMessage.value = '🧠 Brainrot event ended!'
-    // Reset countdown to 4 hours
+    // Reset global countdown to 4 hours in Firebase
+    const next = Date.now() + 4 * 60 * 60 * 1000
+    set(dbRef(db, 'fishing/brainrotNextEvent'), next)
     brainrotCountdown.value = 4 * 60 * 60
-    localStorage.setItem('brainrotCountdown', brainrotCountdown.value.toString())
-    localStorage.setItem('brainrotCountdownTime', Date.now().toString())
     setTimeout(() => { brainrotMessage.value = '' }, 3000)
   }, 10 * 60 * 1000) as unknown as number
 }
