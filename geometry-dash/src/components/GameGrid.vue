@@ -118,6 +118,16 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'gunfight',
+    title: 'Gun Fight',
+    description: '1v1 arena shooter! Play online or battle bots in a 3D arena!',
+    route: '/games/gunfight',
+    icon: '🔫',
+    thumbnailColor: '#dc2626',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'fishing',
     title: 'Fishing Tycoon',
     description: 'Catch fish, sell them for money, and buy better rods to find legendary fish!',
