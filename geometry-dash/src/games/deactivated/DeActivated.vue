@@ -62,7 +62,7 @@
 
     <!-- ===== GAME ===== -->
     <div v-if="screen === 'game'" class="game-screen">
-      <canvas ref="gameCanvas" class="game-canvas" @click="handleCanvasClick"></canvas>
+      <div ref="threeContainer" class="three-container"></div>
 
       <!-- Role reveal -->
       <div v-if="showRoleReveal" class="role-reveal" :class="myRole">
@@ -219,6 +219,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { db } from '../../firebase'
 import { ref as dbRef, push, onValue, set, remove, get, onDisconnect } from 'firebase/database'
+import * as THREE from 'three'
 
 const router = useRouter()
 
@@ -274,11 +275,16 @@ const xp = ref(0)
 const wins = ref(0)
 const playerLevel = computed(() => Math.floor(xp.value / 100) + 1)
 
-// Canvas
-const gameCanvas = ref<HTMLCanvasElement | null>(null)
-let ctx: CanvasRenderingContext2D
+// 3D
+const threeContainer = ref<HTMLElement | null>(null)
+let scene3d: THREE.Scene
+let camera3d: THREE.PerspectiveCamera
+let renderer3d: THREE.WebGLRenderer
 let animFrame: number
 let gameActive = false
+let playerMeshes: Map<string, THREE.Group> = new Map()
+let bodyMeshes: Map<string, THREE.Group> = new Map()
+let cameraYaw = 0
 
 // Player
 const PLAYER_COLORS = ['#e53e3e', '#3b82f6', '#22c55e', '#fbbf24', '#8b5cf6', '#ec4899', '#f97316', '#06b6d4', '#84cc16', '#6366f1']
@@ -510,6 +516,14 @@ function initGame(botMode: boolean) {
     }
   }
 
+  // Create own mesh (will be added after 3D init)
+  setTimeout(() => {
+    const myMesh = createPlayerMesh3D(myColor, playerName.value)
+    myMesh.position.set(myX / 30, 0, myY / 30)
+    scene3d.add(myMesh)
+    playerMeshes.set(myId.value + '_self', myMesh)
+  }, 100)
+
   // Show role
   showRoleReveal.value = true
   setTimeout(() => { showRoleReveal.value = false }, 3000)
@@ -518,23 +532,345 @@ function initGame(botMode: boolean) {
   startKillCooldown()
 
   nextTick(() => {
-    initCanvas()
+    init3D()
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('mousemove', onMouseMove3D)
+    window.addEventListener('resize', onResize3D)
     gameActive = true
     gameLoop()
   })
 }
 
-function initCanvas() {
-  if (!gameCanvas.value) return
-  const canvas = gameCanvas.value
-  canvas.width = 800
-  canvas.height = 520
-  canvas.style.width = Math.min(800, window.innerWidth - 10) + 'px'
-  canvas.style.height = Math.min(520, (window.innerWidth - 10) * 0.65) + 'px'
-  ctx = canvas.getContext('2d')!
+function init3D() {
+  if (!threeContainer.value) return
+
+  scene3d = new THREE.Scene()
+  scene3d.background = new THREE.Color('#0a0a1a')
+
+  camera3d = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200)
+
+  renderer3d = new THREE.WebGLRenderer({ antialias: true })
+  renderer3d.setSize(window.innerWidth, window.innerHeight)
+  renderer3d.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer3d.shadowMap.enabled = true
+  renderer3d.shadowMap.type = THREE.PCFSoftShadowMap
+  threeContainer.value.appendChild(renderer3d.domElement)
+
+  // Request pointer lock on click
+  renderer3d.domElement.addEventListener('click', () => {
+    renderer3d.domElement.requestPointerLock?.()
+  })
+
+  // Lights
+  scene3d.add(new THREE.AmbientLight('#334466', 0.4))
+
+  // Ceiling lights per room
+  for (const room of MAP_ROOMS) {
+    const light = new THREE.PointLight('#aabbcc', 0.8, 15)
+    light.position.set((room.x + room.w / 2) / 30, 3.5, (room.y + room.h / 2) / 30)
+    light.castShadow = true
+    scene3d.add(light)
+  }
+
+  // Build 3D map
+  build3DMap()
+  playerMeshes = new Map()
+  bodyMeshes = new Map()
 }
+
+function build3DMap() {
+  const S = 30 // Scale: divide 2D coords by this to get 3D world coords
+
+  // Floor for each room
+  for (const room of MAP_ROOMS) {
+    const floorGeo = new THREE.PlaneGeometry(room.w / S, room.h / S)
+    const floorMat = new THREE.MeshStandardMaterial({ color: room.color, roughness: 0.8 })
+    const floor = new THREE.Mesh(floorGeo, floorMat)
+    floor.rotation.x = -Math.PI / 2
+    floor.position.set((room.x + room.w / 2) / S, 0, (room.y + room.h / 2) / S)
+    floor.receiveShadow = true
+    scene3d.add(floor)
+
+    // Walls around room (4 walls with gaps for doors)
+    const wallH = 2.5
+    const wallMat = new THREE.MeshStandardMaterial({ color: '#1a1a2a', roughness: 0.9 })
+
+    // Simple box walls on each side
+    const sides = [
+      { x: room.x + room.w / 2, z: room.y, w: room.w, d: 2, rx: 0 },           // top
+      { x: room.x + room.w / 2, z: room.y + room.h, w: room.w, d: 2, rx: 0 },   // bottom
+      { x: room.x, z: room.y + room.h / 2, w: 2, d: room.h, rx: 0 },             // left
+      { x: room.x + room.w, z: room.y + room.h / 2, w: 2, d: room.h, rx: 0 },    // right
+    ]
+
+    for (const s of sides) {
+      const geo = new THREE.BoxGeometry(s.w / S, wallH, s.d / S)
+      const wall = new THREE.Mesh(geo, wallMat)
+      wall.position.set(s.x / S, wallH / 2, s.z / S)
+      wall.castShadow = true
+      wall.receiveShadow = true
+      scene3d.add(wall)
+    }
+
+    // Room name sign
+    const canvas = document.createElement('canvas')
+    canvas.width = 256; canvas.height = 64
+    const c = canvas.getContext('2d')!
+    c.fillStyle = '#222'
+    c.fillRect(0, 0, 256, 64)
+    c.fillStyle = '#aaa'
+    c.font = 'bold 20px Arial'
+    c.textAlign = 'center'
+    c.fillText(room.name, 128, 42)
+    const tex = new THREE.CanvasTexture(canvas)
+    const signMat = new THREE.MeshBasicMaterial({ map: tex })
+    const signGeo = new THREE.PlaneGeometry(room.w / S * 0.6, 0.3)
+    const sign = new THREE.Mesh(signGeo, signMat)
+    sign.position.set((room.x + room.w / 2) / S, 2, (room.y + room.h / 2) / S)
+    scene3d.add(sign)
+
+    // Emergency button (3D)
+    if (room.hasEmergency) {
+      const btnGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.3, 16)
+      const btnMat = new THREE.MeshStandardMaterial({ color: '#e53e3e', emissive: '#e53e3e', emissiveIntensity: 0.3 })
+      const btn = new THREE.Mesh(btnGeo, btnMat)
+      btn.position.set((room.x + room.w / 2) / S, 0.5, (room.y + room.h / 2) / S)
+      scene3d.add(btn)
+      // Table under button
+      const tableGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.4, 16)
+      const tableMat = new THREE.MeshStandardMaterial({ color: '#444' })
+      const table = new THREE.Mesh(tableGeo, tableMat)
+      table.position.set((room.x + room.w / 2) / S, 0.2, (room.y + room.h / 2) / S)
+      scene3d.add(table)
+    }
+
+    // Task station
+    if (room.hasTask) {
+      const taskGeo = new THREE.BoxGeometry(0.3, 0.6, 0.15)
+      const taskMat = new THREE.MeshStandardMaterial({ color: '#22c55e', emissive: '#22c55e', emissiveIntensity: 0.2 })
+      const task = new THREE.Mesh(taskGeo, taskMat)
+      task.position.set((room.x + room.w / 2 + 15) / S, 0.6, (room.y + room.h / 2) / S)
+      scene3d.add(task)
+    }
+
+    // Vent
+    if (room.hasVent) {
+      const ventGeo = new THREE.BoxGeometry(0.5, 0.05, 0.5)
+      const ventMat = new THREE.MeshStandardMaterial({ color: '#333', roughness: 0.5 })
+      const vent = new THREE.Mesh(ventGeo, ventMat)
+      vent.position.set((room.x + room.w / 2 - 15) / S, 0.01, (room.y + room.h / 2) / S)
+      scene3d.add(vent)
+      // Vent slats
+      for (let i = -2; i <= 2; i++) {
+        const slatGeo = new THREE.BoxGeometry(0.45, 0.02, 0.03)
+        const slat = new THREE.Mesh(slatGeo, ventMat)
+        slat.position.set((room.x + room.w / 2 - 15) / S, 0.04, (room.y + room.h / 2) / S + i * 0.08)
+        scene3d.add(slat)
+      }
+    }
+
+    // Ceiling
+    const ceilGeo = new THREE.PlaneGeometry(room.w / S, room.h / S)
+    const ceilMat = new THREE.MeshStandardMaterial({ color: '#111', roughness: 1 })
+    const ceil = new THREE.Mesh(ceilGeo, ceilMat)
+    ceil.rotation.x = Math.PI / 2
+    ceil.position.set((room.x + room.w / 2) / S, 4, (room.y + room.h / 2) / S)
+    scene3d.add(ceil)
+  }
+
+  // Hallway floors
+  for (const hall of HALLWAYS) {
+    const floorGeo = new THREE.PlaneGeometry(hall.w / S, hall.h / S)
+    const floorMat = new THREE.MeshStandardMaterial({ color: '#151520', roughness: 0.9 })
+    const floor = new THREE.Mesh(floorGeo, floorMat)
+    floor.rotation.x = -Math.PI / 2
+    floor.position.set((hall.x + hall.w / 2) / S, 0, (hall.y + hall.h / 2) / S)
+    floor.receiveShadow = true
+    scene3d.add(floor)
+
+    // Hallway light
+    const hl = new THREE.PointLight('#556677', 0.3, 5)
+    hl.position.set((hall.x + hall.w / 2) / S, 2, (hall.y + hall.h / 2) / S)
+    scene3d.add(hl)
+  }
+}
+
+function createPlayerMesh3D(color: string, name: string): THREE.Group {
+  const group = new THREE.Group()
+
+  // Body (Among Us capsule shape)
+  const bodyGeo = new THREE.CapsuleGeometry(0.2, 0.35, 8, 16)
+  const bodyMat = new THREE.MeshStandardMaterial({ color, roughness: 0.6 })
+  const body = new THREE.Mesh(bodyGeo, bodyMat)
+  body.position.y = 0.55
+  body.castShadow = true
+  group.add(body)
+
+  // Visor
+  const visorGeo = new THREE.SphereGeometry(0.12, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2)
+  const visorMat = new THREE.MeshStandardMaterial({ color: '#87CEEB', roughness: 0.2, metalness: 0.5 })
+  const visor = new THREE.Mesh(visorGeo, visorMat)
+  visor.position.set(0.08, 0.65, 0.12)
+  visor.rotation.x = -0.3
+  group.add(visor)
+
+  // Backpack
+  const bpGeo = new THREE.BoxGeometry(0.12, 0.25, 0.15)
+  const bpMat = new THREE.MeshStandardMaterial({ color, roughness: 0.6 })
+  const bp = new THREE.Mesh(bpGeo, bpMat)
+  bp.position.set(-0.22, 0.5, 0)
+  bp.castShadow = true
+  group.add(bp)
+
+  // Legs
+  const legMat = new THREE.MeshStandardMaterial({ color, roughness: 0.6 })
+  const legGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.2, 8)
+  const leftLeg = new THREE.Mesh(legGeo, legMat)
+  leftLeg.position.set(-0.08, 0.1, 0)
+  group.add(leftLeg)
+  const rightLeg = new THREE.Mesh(legGeo, legMat)
+  rightLeg.position.set(0.08, 0.1, 0)
+  group.add(rightLeg)
+
+  // Name tag
+  const canvas = document.createElement('canvas')
+  canvas.width = 256; canvas.height = 48
+  const c = canvas.getContext('2d')!
+  c.fillStyle = 'rgba(0,0,0,0.6)'
+  c.fillRect(0, 0, 256, 48)
+  c.fillStyle = '#fff'
+  c.font = 'bold 24px Arial'
+  c.textAlign = 'center'
+  c.fillText(name, 128, 34)
+  const tex = new THREE.CanvasTexture(canvas)
+  const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true })
+  const sprite = new THREE.Sprite(spriteMat)
+  sprite.position.y = 1.2
+  sprite.scale.set(1.2, 0.25, 1)
+  group.add(sprite)
+
+  return group
+}
+
+function createGhostMesh3D(color: string): THREE.Group {
+  const group = new THREE.Group()
+  const ghostGeo = new THREE.SphereGeometry(0.2, 12, 12)
+  const ghostMat = new THREE.MeshStandardMaterial({ color, transparent: true, opacity: 0.3 })
+  const ghost = new THREE.Mesh(ghostGeo, ghostMat)
+  ghost.position.y = 0.6
+  group.add(ghost)
+  return group
+}
+
+function createDeadBodyMesh3D(color: string): THREE.Group {
+  const group = new THREE.Group()
+  // Half body (split in half like Among Us)
+  const halfGeo = new THREE.CapsuleGeometry(0.18, 0.15, 8, 16)
+  const halfMat = new THREE.MeshStandardMaterial({ color, roughness: 0.6 })
+  const half = new THREE.Mesh(halfGeo, halfMat)
+  half.position.y = 0.15
+  half.rotation.z = Math.PI / 2
+  group.add(half)
+  // Bone
+  const boneGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.1, 6)
+  const boneMat = new THREE.MeshStandardMaterial({ color: '#f5f5f5' })
+  const bone = new THREE.Mesh(boneGeo, boneMat)
+  bone.position.set(0.15, 0.15, 0)
+  bone.rotation.z = Math.PI / 4
+  group.add(bone)
+  return group
+}
+
+function update3DPlayers() {
+  const S = 30
+  const currentIds = new Set<string>()
+
+  for (const p of allGamePlayers.value) {
+    if (p.id === myId.value) continue
+    currentIds.add(p.id)
+
+    // Skip invisible players (out of vision, dead and we're alive)
+    const dist = Math.sqrt((myX - p.x) ** 2 + (myY - p.y) ** 2)
+    const visionRadius = myRole.value === 'impostor' ? 200 : 150
+    if (dist > visionRadius && !isDead.value) {
+      const existing = playerMeshes.get(p.id)
+      if (existing) { existing.visible = false }
+      continue
+    }
+
+    let mesh = playerMeshes.get(p.id)
+    if (!mesh) {
+      mesh = p.dead ? createGhostMesh3D(p.color) : createPlayerMesh3D(p.color, p.name)
+      scene3d.add(mesh)
+      playerMeshes.set(p.id, mesh)
+    }
+
+    // If player died, swap mesh
+    if (p.dead && mesh.children.length > 2) {
+      scene3d.remove(mesh)
+      mesh = createGhostMesh3D(p.color)
+      scene3d.add(mesh)
+      playerMeshes.set(p.id, mesh)
+    }
+
+    if (p.dead && !isDead.value) { mesh.visible = false; continue }
+
+    mesh.visible = true
+    const targetPos = new THREE.Vector3(p.x / S, 0, p.y / S)
+    mesh.position.lerp(targetPos, 0.2)
+  }
+
+  // Remove old meshes
+  for (const [id, mesh] of playerMeshes) {
+    if (!currentIds.has(id)) {
+      scene3d.remove(mesh)
+      playerMeshes.delete(id)
+    }
+  }
+
+  // Dead bodies
+  const bodyIds = new Set(deadBodies.value.map(b => b.id))
+  for (const body of deadBodies.value) {
+    if (!bodyMeshes.has(body.id)) {
+      const bm = createDeadBodyMesh3D(body.color)
+      bm.position.set(body.x / S, 0, body.y / S)
+      scene3d.add(bm)
+      bodyMeshes.set(body.id, bm)
+    }
+  }
+  for (const [id, mesh] of bodyMeshes) {
+    if (!bodyIds.has(id)) {
+      scene3d.remove(mesh)
+      bodyMeshes.delete(id)
+    }
+  }
+}
+
+function update3DCamera() {
+  const S = 30
+  const camDist = 4
+  const camHeight = 3
+  const cx = myX / S - Math.sin(cameraYaw) * camDist
+  const cz = myY / S - Math.cos(cameraYaw) * camDist
+  camera3d.position.lerp(new THREE.Vector3(cx, camHeight, cz), 0.12)
+  camera3d.lookAt(new THREE.Vector3(myX / S, 0.5, myY / S))
+}
+
+function onMouseMove3D(e: MouseEvent) {
+  if (document.pointerLockElement) {
+    cameraYaw -= e.movementX * 0.003
+  }
+}
+
+function onResize3D() {
+  if (!renderer3d || !camera3d) return
+  camera3d.aspect = window.innerWidth / window.innerHeight
+  camera3d.updateProjectionMatrix()
+  renderer3d.setSize(window.innerWidth, window.innerHeight)
+}
+
+function handleCanvasClick() {}
 
 // ========== GAME LOOP ==========
 function gameLoop() {
@@ -548,26 +884,37 @@ function gameLoop() {
   updatePlayer()
   if (isBotGame) updateBots()
   checkProximity()
-  draw()
+  update3DPlayers()
+  update3DCamera()
+  if (renderer3d) renderer3d.render(scene3d, camera3d)
 }
 
 function updatePlayer() {
   if (isDead.value) return
-  let dx = 0, dy = 0
-  if (keys['KeyW'] || keys['ArrowUp']) dy -= SPEED
-  if (keys['KeyS'] || keys['ArrowDown']) dy += SPEED
-  if (keys['KeyA'] || keys['ArrowLeft']) dx -= SPEED
-  if (keys['KeyD'] || keys['ArrowRight']) dx += SPEED
+
+  // Camera-relative movement
+  const forward = new THREE.Vector3(-Math.sin(cameraYaw), 0, -Math.cos(cameraYaw))
+  const right = new THREE.Vector3(Math.cos(cameraYaw), 0, -Math.sin(cameraYaw))
+
+  let moveX = 0, moveZ = 0
+  if (keys['KeyW'] || keys['ArrowUp']) { moveX += forward.x; moveZ += forward.z }
+  if (keys['KeyS'] || keys['ArrowDown']) { moveX -= forward.x; moveZ -= forward.z }
+  if (keys['KeyA'] || keys['ArrowLeft']) { moveX -= right.x; moveZ -= right.z }
+  if (keys['KeyD'] || keys['ArrowRight']) { moveX += right.x; moveZ += right.z }
 
   // Mobile joystick
   if (joyX.value !== 0 || joyY.value !== 0) {
-    dx += (joyX.value / 40) * SPEED
-    dy += (joyY.value / 40) * SPEED
+    moveX += (forward.x * (-joyY.value / 40) + right.x * (joyX.value / 40))
+    moveZ += (forward.z * (-joyY.value / 40) + right.z * (joyX.value / 40))
   }
 
-  if (dx !== 0 || dy !== 0) {
-    const newX = myX + dx
-    const newY = myY + dy
+  if (moveX !== 0 || moveZ !== 0) {
+    const len = Math.sqrt(moveX * moveX + moveZ * moveZ)
+    const dx = (moveX / len) * SPEED
+    const dz = (moveZ / len) * SPEED
+    // Convert 3D direction back to 2D map coords (x = x*30, y = z*30)
+    const newX = myX + dx * 30
+    const newY = myY + dz * 30
     if (isWalkable(newX, newY)) {
       myX = newX
       myY = newY
@@ -577,6 +924,13 @@ function updatePlayer() {
   // Update my position in players list
   const me = allGamePlayers.value.find(p => p.id === myId.value)
   if (me) { me.x = myX; me.y = myY }
+
+  // Update own 3D mesh
+  const selfMesh = playerMeshes.get(myId.value + '_self')
+  if (selfMesh) {
+    selfMesh.position.set(myX / 30, 0, myY / 30)
+    selfMesh.rotation.y = cameraYaw
+  }
 }
 
 function isWalkable(x: number, y: number): boolean {
@@ -813,10 +1167,6 @@ function clickButton(n: number) {
 let swiping = false
 function swipeStart() { swiping = true }
 
-function handleCanvasClick() {
-  // For future use
-}
-
 function completeTask() {
   completedTasks.value++
   showTaskGame.value = false
@@ -920,131 +1270,7 @@ function updateBots() {
 }
 
 // ========== DRAWING ==========
-function draw() {
-  if (!ctx) return
-  ctx.clearRect(0, 0, 800, 520)
-
-  // Background
-  ctx.fillStyle = '#0a0a0a'
-  ctx.fillRect(0, 0, 800, 520)
-
-  // Draw hallways
-  ctx.fillStyle = '#1a1a2a'
-  for (const hall of HALLWAYS) {
-    ctx.fillRect(hall.x, hall.y, hall.w, hall.h)
-  }
-
-  // Draw rooms
-  for (const room of MAP_ROOMS) {
-    ctx.fillStyle = room.color
-    ctx.fillRect(room.x, room.y, room.w, room.h)
-
-    // Room border
-    ctx.strokeStyle = '#333'
-    ctx.lineWidth = 2
-    ctx.strokeRect(room.x, room.y, room.w, room.h)
-
-    // Room name
-    ctx.fillStyle = '#888'
-    ctx.font = '10px Arial'
-    ctx.textAlign = 'center'
-    ctx.fillText(room.name, room.x + room.w / 2, room.y + room.h / 2 - 15)
-
-    // Icons
-    if (room.hasEmergency) {
-      ctx.font = '16px serif'
-      ctx.fillText('🚨', room.x + room.w / 2, room.y + room.h / 2 + 8)
-    }
-    if (room.hasTask) {
-      ctx.font = '12px serif'
-      ctx.fillText('📋', room.x + room.w / 2 + 20, room.y + room.h / 2 + 8)
-    }
-    if (room.hasVent) {
-      ctx.font = '12px serif'
-      ctx.fillText('🕳️', room.x + room.w / 2 - 20, room.y + room.h / 2 + 8)
-    }
-  }
-
-  // Draw dead bodies
-  for (const body of deadBodies.value) {
-    ctx.fillStyle = body.color
-    ctx.globalAlpha = 0.7
-    ctx.beginPath()
-    ctx.ellipse(body.x, body.y + 5, 12, 8, 0, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.font = '14px serif'
-    ctx.fillText('☠️', body.x - 7, body.y - 2)
-    ctx.globalAlpha = 1
-  }
-
-  // Vision circle (fog of war)
-  const visionRadius = myRole.value === 'impostor' ? 200 : 150
-
-  // Draw other players (only if in vision)
-  for (const p of allGamePlayers.value) {
-    if (p.id === myId.value) continue
-    if (p.dead && !isDead.value) continue // Living players can't see ghosts
-
-    const dist = Math.sqrt((myX - p.x) ** 2 + (myY - p.y) ** 2)
-    if (dist > visionRadius && !isDead.value) continue
-
-    drawPlayer(p.x, p.y, p.color, p.name, p.dead)
-  }
-
-  // Draw self
-  drawPlayer(myX, myY, myColor, playerName.value, isDead.value)
-
-  // Fog of war overlay
-  if (!isDead.value) {
-    ctx.save()
-    ctx.globalCompositeOperation = 'destination-in'
-    const gradient = ctx.createRadialGradient(myX, myY, 0, myX, myY, visionRadius)
-    gradient.addColorStop(0, 'rgba(255,255,255,1)')
-    gradient.addColorStop(0.7, 'rgba(255,255,255,0.8)')
-    gradient.addColorStop(1, 'rgba(255,255,255,0)')
-    ctx.fillStyle = gradient
-    ctx.fillRect(0, 0, 800, 520)
-    ctx.restore()
-  }
-}
-
-function drawPlayer(x: number, y: number, color: string, name: string, dead: boolean) {
-  if (dead) {
-    ctx.globalAlpha = 0.4
-    ctx.font = '20px serif'
-    ctx.textAlign = 'center'
-    ctx.fillText('👻', x - 10, y + 5)
-    ctx.globalAlpha = 1
-    return
-  }
-
-  // Body (Among Us style)
-  ctx.fillStyle = color
-  // Main body
-  ctx.beginPath()
-  ctx.ellipse(x, y, 12, 16, 0, 0, Math.PI * 2)
-  ctx.fill()
-
-  // Visor
-  ctx.fillStyle = '#87CEEB'
-  ctx.beginPath()
-  ctx.ellipse(x + 4, y - 5, 6, 5, 0, 0, Math.PI * 2)
-  ctx.fill()
-
-  // Backpack
-  ctx.fillStyle = color
-  ctx.fillRect(x - 15, y - 5, 5, 14)
-
-  // Legs
-  ctx.fillRect(x - 7, y + 12, 5, 6)
-  ctx.fillRect(x + 2, y + 12, 5, 6)
-
-  // Name
-  ctx.fillStyle = '#fff'
-  ctx.font = 'bold 9px Arial'
-  ctx.textAlign = 'center'
-  ctx.fillText(name, x, y - 22)
-}
+// Old 2D draw functions removed - using 3D now
 
 // ========== INPUT ==========
 function onKeyDown(e: KeyboardEvent) {
@@ -1111,10 +1337,13 @@ onMounted(() => {
 onUnmounted(() => {
   gameActive = false
   if (animFrame) cancelAnimationFrame(animFrame)
+  if (renderer3d) renderer3d.dispose()
   if (killCooldownTimer) clearInterval(killCooldownTimer)
   if (voteTimerInterval) clearInterval(voteTimerInterval)
   window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('keyup', onKeyUp)
+  window.removeEventListener('mousemove', onMouseMove3D)
+  window.removeEventListener('resize', onResize3D)
   onlineUnsubs.forEach(u => u())
   if (roomCode.value) {
     remove(dbRef(db, `deactivated/rooms/${roomCode.value}/players/${myId.value}`))
@@ -1190,7 +1419,7 @@ onUnmounted(() => {
   min-height: 100vh; background: #000; display: flex; flex-direction: column;
   align-items: center; justify-content: center; position: relative;
 }
-.game-canvas { border: 2px solid #333; border-radius: 8px; }
+.three-container { position: fixed; inset: 0; z-index: 1; }
 
 /* Role Reveal */
 .role-reveal {
