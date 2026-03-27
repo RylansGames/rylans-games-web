@@ -538,13 +538,13 @@ const activeCharTab = ref('character')
 function buyCosmetic(item: Cosmetic) {
   if (money.value < item.price || ownedCosmetics.value.includes(item.id)) return
   money.value -= item.price
-  ownedCosmetics.value.push(item.id)
-  equippedCosmetics.value[item.category] = item.id
+  ownedCosmetics.value = [...ownedCosmetics.value, item.id]
+  equippedCosmetics.value = { ...equippedCosmetics.value, [item.category]: item.id }
   saveGame()
 }
 
 function equipCosmetic(item: Cosmetic) {
-  equippedCosmetics.value[item.category] = item.id
+  equippedCosmetics.value = { ...equippedCosmetics.value, [item.category]: item.id }
   saveGame()
 }
 
