@@ -33,6 +33,12 @@
     <!-- ===== 3D CANVAS ===== -->
     <div ref="canvasContainer" class="canvas-container" v-show="screen !== 'title' && screen !== 'shop' && screen !== 'inventory' && screen !== 'upgrades' && screen !== 'fishindex'"></div>
 
+    <!-- Titanic Event Banner -->
+    <div v-if="titanicMessage" class="titanic-banner">{{ titanicMessage }}</div>
+
+    <!-- Titanic Blessed Indicator -->
+    <div v-if="titanicBlessed && !titanicMessage" class="titanic-blessed">🚢✨ TITANIC BLESSING ACTIVE - Next fish gets 100x value!</div>
+
     <!-- Cast Button -->
     <div v-if="screen === 'fishing'" class="action-area">
       <button class="cast-btn" @click="castLine">🎣 Cast Line</button>
@@ -253,9 +259,15 @@ const traits: Trait[] = [
   { id: 'void', name: 'Void', icon: '🕳️', multiplier: 15, chance: 1, color: '#7c00ff' },
   { id: 'cosmic', name: 'Cosmic', icon: '🌌', multiplier: 20, chance: 0.5, color: '#ff00ff' },
   { id: 'glitch', name: 'Glitch', icon: '👾', multiplier: 50, chance: 0.1, color: '#00ff88' },
+  { id: 'titanic', name: 'Titanic', icon: '🚢', multiplier: 100, chance: 0, color: '#4fc3f7' },
 ]
 
 function rollTrait(): string {
+  // If blessed by titanic event, give titanic trait
+  if (titanicBlessed.value) {
+    titanicBlessed.value = false
+    return 'titanic'
+  }
   const roll = Math.random() * 100
   let cumulative = 0
   for (const t of traits) {
@@ -342,6 +354,16 @@ function buySpeedUpgrade() {
   speedUpgradeLevel.value++
   saveGame()
 }
+
+// Titanic Event
+const titanicBlessed = ref(false)
+const titanicActive = ref(false)
+const titanicMessage = ref('')
+let titanicShip: THREE.Group | null = null
+let titanicPhase: 'sailing' | 'sinking' | 'done' = 'done'
+let titanicTimer: number | null = null
+let titanicSinkY = 0
+let titanicX = 0
 
 // Minigame
 const needlePos = ref(0)
@@ -791,6 +813,128 @@ function showFishingLine(show: boolean) {
   scene3d.add(fishingLine)
 }
 
+// ========== TITANIC EVENT ==========
+function startTitanicChecker() {
+  titanicTimer = setInterval(() => {
+    if (titanicPhase !== 'done') return
+    if (Math.random() < 0.1) {
+      triggerTitanicEvent()
+    }
+  }, 30000) as unknown as number
+}
+
+function triggerTitanicEvent() {
+  titanicActive.value = true
+  titanicMessage.value = '🚢 A ship approaches...'
+  titanicPhase = 'sailing'
+  titanicX = -25
+  titanicSinkY = 0.5
+
+  // Create ship
+  if (titanicShip) scene3d.remove(titanicShip)
+  titanicShip = new THREE.Group()
+
+  // Hull
+  const hullShape = new THREE.Shape()
+  hullShape.moveTo(-2, 0)
+  hullShape.lineTo(-1.5, -0.6)
+  hullShape.lineTo(1.5, -0.6)
+  hullShape.lineTo(2.5, 0)
+  hullShape.lineTo(-2, 0)
+  const hullGeo = new THREE.ExtrudeGeometry(hullShape, { depth: 1, bevelEnabled: false })
+  const hullMat = new THREE.MeshStandardMaterial({ color: '#1a1a1a' })
+  const hull = new THREE.Mesh(hullGeo, hullMat)
+  hull.rotation.y = Math.PI / 2
+  hull.position.z = -0.5
+  titanicShip.add(hull)
+
+  // Red bottom
+  const bottomGeo = new THREE.BoxGeometry(1, 0.3, 4)
+  const bottomMat = new THREE.MeshStandardMaterial({ color: '#8b0000' })
+  const bottom = new THREE.Mesh(bottomGeo, bottomMat)
+  bottom.position.set(0, -0.45, 0)
+  titanicShip.add(bottom)
+
+  // White upper deck
+  const deckGeo = new THREE.BoxGeometry(0.8, 0.4, 3.5)
+  const deckMat = new THREE.MeshStandardMaterial({ color: '#f5f5f0' })
+  const deck = new THREE.Mesh(deckGeo, deckMat)
+  deck.position.set(0, 0.3, 0)
+  titanicShip.add(deck)
+
+  // Bridge
+  const bridgeGeo = new THREE.BoxGeometry(0.6, 0.3, 1.2)
+  const bridge = new THREE.Mesh(bridgeGeo, deckMat)
+  bridge.position.set(0, 0.6, 0.3)
+  titanicShip.add(bridge)
+
+  // Smokestacks
+  const stackMat = new THREE.MeshStandardMaterial({ color: '#cc3333' })
+  const stackTopMat = new THREE.MeshStandardMaterial({ color: '#1a1a1a' })
+  for (let i = 0; i < 3; i++) {
+    const stackGeo = new THREE.CylinderGeometry(0.08, 0.1, 0.6, 8)
+    const stack = new THREE.Mesh(stackGeo, stackMat)
+    stack.position.set(0, 0.8, 0.8 - i * 0.6)
+    titanicShip.add(stack)
+
+    const topGeo = new THREE.CylinderGeometry(0.09, 0.08, 0.1, 8)
+    const top = new THREE.Mesh(topGeo, stackTopMat)
+    top.position.set(0, 1.15, 0.8 - i * 0.6)
+    titanicShip.add(top)
+  }
+
+  // Windows
+  const windowMat = new THREE.MeshStandardMaterial({ color: '#ffd700', emissive: '#ffd700', emissiveIntensity: 0.5 })
+  for (let i = 0; i < 8; i++) {
+    const winGeo = new THREE.BoxGeometry(0.02, 0.08, 0.08)
+    const win = new THREE.Mesh(winGeo, windowMat)
+    win.position.set(0.41, 0.25, -1.2 + i * 0.35)
+    titanicShip.add(win)
+    const win2 = win.clone()
+    win2.position.x = -0.41
+    titanicShip.add(win2)
+  }
+
+  titanicShip.position.set(titanicX, titanicSinkY, -8)
+  titanicShip.scale.set(0.8, 0.8, 0.8)
+  scene3d.add(titanicShip)
+}
+
+function updateTitanic() {
+  if (!titanicShip || titanicPhase === 'done') return
+
+  if (titanicPhase === 'sailing') {
+    titanicX += 0.06
+    titanicShip.position.x = titanicX
+    titanicShip.position.y = titanicSinkY + Math.sin(Date.now() * 0.003) * 0.05
+
+    if (titanicX > 2) {
+      titanicPhase = 'sinking'
+      titanicMessage.value = '🚢💥 The Titanic is sinking!'
+    }
+  }
+
+  if (titanicPhase === 'sinking') {
+    titanicSinkY -= 0.008
+    titanicShip.position.y = titanicSinkY
+    titanicShip.rotation.x += 0.002
+    titanicShip.rotation.z += 0.001
+
+    if (titanicSinkY < -2) {
+      titanicPhase = 'done'
+      titanicBlessed.value = true
+      titanicMessage.value = '🚢✨ The Titanic blessed you! Next fish gets TITANIC trait!'
+      scene3d.remove(titanicShip)
+      titanicShip = null
+
+      setTimeout(() => {
+        titanicActive.value = false
+        titanicMessage.value = ''
+      }, 4000)
+    }
+  }
+}
+
 // ========== ANIMATION ==========
 function animate() {
   animFrame = requestAnimationFrame(animate)
@@ -825,6 +969,9 @@ function animate() {
     fishingLine.geometry.setFromPoints(points)
   }
 
+  // Titanic event
+  updateTitanic()
+
   // Gentle camera sway
   camera.position.x = Math.sin(time * 0.1) * 0.3
   camera.position.y = 8 + Math.sin(time * 0.15) * 0.15
@@ -847,6 +994,7 @@ function startGame() {
   screen.value = 'fishing'
   nextTick(() => {
     if (!renderer) initThree()
+    startTitanicChecker()
   })
 }
 
@@ -1000,6 +1148,7 @@ onUnmounted(() => {
   if (waitTimer) clearTimeout(waitTimer)
   if (dotTimer) clearInterval(dotTimer)
   if (minigameInterval) clearInterval(minigameInterval)
+  if (titanicTimer) clearInterval(titanicTimer)
 })
 </script>
 
@@ -1283,6 +1432,31 @@ onUnmounted(() => {
   display: block; margin: 24px auto; padding: 14px 36px; border-radius: 14px;
   border: none; background: linear-gradient(135deg, #f59e0b, #f97316);
   color: #fff; font-size: 18px; font-weight: 800; cursor: pointer;
+}
+
+/* TITANIC EVENT */
+.titanic-banner {
+  position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(135deg, #0c2d48, #1a6b8a);
+  color: #4fc3f7; padding: 12px 28px; border-radius: 14px;
+  font-size: 16px; font-weight: 800; z-index: 30;
+  border: 2px solid #4fc3f7;
+  box-shadow: 0 0 30px rgba(79,195,247,0.4);
+  animation: titanic-pulse 1s ease-in-out infinite alternate;
+  text-align: center;
+}
+@keyframes titanic-pulse {
+  from { box-shadow: 0 0 20px rgba(79,195,247,0.3); }
+  to { box-shadow: 0 0 40px rgba(79,195,247,0.7); }
+}
+
+.titanic-blessed {
+  position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(135deg, #0c2d48, #1a4a6a);
+  color: #4fc3f7; padding: 10px 24px; border-radius: 12px;
+  font-size: 14px; font-weight: 700; z-index: 30;
+  border: 2px solid #4fc3f7;
+  animation: titanic-pulse 1.5s ease-in-out infinite alternate;
 }
 
 /* INDEX BUTTON */
