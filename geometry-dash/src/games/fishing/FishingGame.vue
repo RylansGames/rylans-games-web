@@ -152,12 +152,12 @@
       <!-- Current look preview -->
       <div class="char-preview">
         <div class="preview-character">
-          <div class="preview-aura">{{ allCosmetics.find(c => c.id === equippedCosmetics.aura)?.icon || '' }}</div>
-          <div class="preview-hat">{{ allCosmetics.find(c => c.id === equippedCosmetics.hat)?.icon || '' }}</div>
-          <div class="preview-body">{{ allCosmetics.find(c => c.id === equippedCosmetics.character)?.icon || '🧑' }}</div>
-          <div class="preview-outfit">{{ allCosmetics.find(c => c.id === equippedCosmetics.outfit)?.icon || '👕' }}</div>
-          <div class="preview-rod">{{ allCosmetics.find(c => c.id === equippedCosmetics['rod-skin'])?.icon || '🎣' }}</div>
-          <div class="preview-trail">{{ allCosmetics.find(c => c.id === equippedCosmetics.trail)?.icon || '' }}</div>
+          <div class="preview-row">
+            <div class="preview-slot" v-for="cat in cosmeticCategories" :key="'prev-'+cat.id">
+              <div class="preview-slot-icon">{{ getEquippedIcon(cat.id) || '❌' }}</div>
+              <div class="preview-slot-label">{{ cat.label }}</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1748,16 +1748,18 @@ onUnmounted(() => {
 }
 .preview-character {
   background: linear-gradient(135deg, #1e293b, #334155);
-  border-radius: 20px; padding: 24px 40px; border: 2px solid #475569;
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  position: relative;
+  border-radius: 20px; padding: 16px 20px; border: 2px solid #475569;
 }
-.preview-aura { font-size: 40px; opacity: 0.6; position: absolute; top: 5px; right: 10px; }
-.preview-hat { font-size: 32px; }
-.preview-body { font-size: 56px; }
-.preview-outfit { font-size: 24px; margin-top: -4px; }
-.preview-rod { font-size: 28px; position: absolute; right: 15px; bottom: 30px; }
-.preview-trail { font-size: 20px; position: absolute; left: 15px; bottom: 15px; opacity: 0.7; }
+.preview-row {
+  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+}
+.preview-slot {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: #0f172a; border-radius: 12px; padding: 10px 14px; min-width: 70px;
+  border: 1px solid #334155;
+}
+.preview-slot-icon { font-size: 32px; }
+.preview-slot-label { font-size: 10px; color: #94a3b8; font-weight: 600; }
 
 .char-tabs {
   display: flex; gap: 6px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px;
