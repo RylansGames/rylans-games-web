@@ -542,13 +542,42 @@ function buyCosmetic(item: Cosmetic) {
   ownedCosmetics.value = [...ownedCosmetics.value, item.id]
   equipped[item.category] = item.id
   equippedVersion.value++
+  if (item.category === 'character') updateCharacterAppearance()
   saveGame()
 }
 
 function equipCosmetic(item: Cosmetic) {
   equipped[item.category] = item.id
   equippedVersion.value++
+  if (item.category === 'character') updateCharacterAppearance()
   saveGame()
+}
+
+const characterColors: Record<string, { body: string; head: string }> = {
+  default: { body: '#3b82f6', head: '#ffd5b4' },
+  pirate: { body: '#1a1a1a', head: '#d4a373' },
+  robot: { body: '#94a3b8', head: '#94a3b8' },
+  ninja: { body: '#1a1a1a', head: '#2d2d2d' },
+  astronaut: { body: '#f5f5f5', head: '#87CEEB' },
+  wizard: { body: '#7c3aed', head: '#ffd5b4' },
+  zombie: { body: '#4a5d23', head: '#7a8c3a' },
+  alien: { body: '#22c55e', head: '#4ade80' },
+  skeleton: { body: '#e2e8f0', head: '#f5f5f5' },
+  king: { body: '#dc2626', head: '#ffd5b4' },
+}
+
+let playerBodyMesh: THREE.Mesh | null = null
+let playerHeadMesh: THREE.Mesh | null = null
+
+function updateCharacterAppearance() {
+  const charId = equipped.character || 'default'
+  const colors = characterColors[charId] || characterColors.default
+  if (playerBodyMesh) {
+    (playerBodyMesh.material as THREE.MeshStandardMaterial).color.set(colors.body)
+  }
+  if (playerHeadMesh) {
+    (playerHeadMesh.material as THREE.MeshStandardMaterial).color.set(colors.head)
+  }
 }
 
 function getEquippedIcon(category: string): string {
@@ -868,19 +897,22 @@ function buildDeck() {
   }
 
   // Character sitting on deck
+  const charColors = characterColors[equipped.character] || characterColors.default
   const bodyGeo = new THREE.CapsuleGeometry(0.35, 0.6, 8, 16)
-  const bodyMat = new THREE.MeshStandardMaterial({ color: '#3b82f6', roughness: 0.7 })
+  const bodyMat = new THREE.MeshStandardMaterial({ color: charColors.body, roughness: 0.7 })
   const body = new THREE.Mesh(bodyGeo, bodyMat)
   body.position.set(0, 0.9, 0.8)
   body.castShadow = true
   deckGroup.add(body)
+  playerBodyMesh = body
 
   const headGeo = new THREE.SphereGeometry(0.3, 16, 16)
-  const headMat = new THREE.MeshStandardMaterial({ color: '#ffd5b4', roughness: 0.7 })
+  const headMat = new THREE.MeshStandardMaterial({ color: charColors.head, roughness: 0.7 })
   const head = new THREE.Mesh(headGeo, headMat)
   head.position.set(0, 1.55, 0.8)
   head.castShadow = true
   deckGroup.add(head)
+  playerHeadMesh = head
 
   // Fishing rod
   const rodCurve = new THREE.CatmullRomCurve3([
