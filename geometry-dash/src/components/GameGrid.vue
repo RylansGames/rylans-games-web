@@ -118,6 +118,16 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'frogger',
+    title: 'Frogger',
+    description: 'Cross the road and river to get home! Dodge cars and hop on logs!',
+    route: '/games/frogger',
+    icon: '🐸',
+    thumbnailColor: '#22c55e',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'basketball',
     title: 'Basketball',
     description: 'Play basketball against friends or bots! Dribble, shoot, and score in a 3D arena!',
