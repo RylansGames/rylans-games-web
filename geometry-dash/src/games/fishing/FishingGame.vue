@@ -42,6 +42,14 @@
     <!-- ===== 3D CANVAS ===== -->
     <div ref="canvasContainer" class="canvas-container" v-show="screen !== 'title' && screen !== 'shop' && screen !== 'inventory' && screen !== 'upgrades' && screen !== 'fishindex' && screen !== 'characters'"></div>
 
+    <!-- Brainrot Countdown Timer -->
+    <div class="brainrot-timer" v-if="inFishingScreens && !brainrotEventActive">
+      🧠 Brainrot Event: {{ formatCountdown(brainrotCountdown) }}
+    </div>
+
+    <!-- Brainrot Event Banner -->
+    <div v-if="brainrotMessage" class="brainrot-banner">{{ brainrotMessage }}</div>
+
     <!-- Cheese Event Banner -->
     <div v-if="cheeseMessage" class="cheese-banner">{{ cheeseMessage }}</div>
 
@@ -654,6 +662,83 @@ function isEquipped(item: Cosmetic): boolean {
 
 function getCosmeticsByCategory(cat: string): Cosmetic[] {
   return allCosmetics.filter(c => c.category === cat)
+}
+
+// Brainrot Event
+const brainrotEventActive = ref(false)
+const brainrotCountdown = ref(4 * 60 * 60) // 4 hours in seconds
+const brainrotMessage = ref('')
+let brainrotCountdownTimer: number | null = null
+let brainrotEndTimer: number | null = null
+
+// Brainrot event fish with tiers (during event only)
+const brainrotEventFish = [
+  { name: 'Skibidi Toilet', emoji: '🚽', value: 10000, chance: 50 },
+  { name: 'Sigma Stare', emoji: '🗿', value: 12000, chance: 20 },
+  { name: 'Ohio Final Boss', emoji: '💀', value: 14000, chance: 10 },
+  { name: 'Rizz Lord', emoji: '😏', value: 15000, chance: 5 },
+  { name: 'Baby Gronk Jr', emoji: '🏈', value: 16000, chance: 5 },
+  { name: 'Fanum Tax Collector', emoji: '🍔', value: 17000, chance: 5 },
+  { name: 'Grimace Shake', emoji: '🟣', value: 18000, chance: 2 },
+  { name: 'Tung Tung Tung', emoji: '🧠', value: 19000, chance: 2 },
+  { name: 'Ice Spice Fish', emoji: '🧊', value: 20000, chance: 1 },
+]
+
+function formatCountdown(seconds: number): string {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = seconds % 60
+  return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+}
+
+function startBrainrotCountdown() {
+  // Load saved countdown
+  const saved = localStorage.getItem('brainrotCountdown')
+  const savedTime = localStorage.getItem('brainrotCountdownTime')
+  if (saved && savedTime) {
+    const elapsed = Math.floor((Date.now() - parseInt(savedTime)) / 1000)
+    brainrotCountdown.value = Math.max(0, parseInt(saved) - elapsed)
+  }
+
+  brainrotCountdownTimer = setInterval(() => {
+    brainrotCountdown.value--
+    // Save every 30 seconds so it persists
+    if (brainrotCountdown.value % 30 === 0) {
+      localStorage.setItem('brainrotCountdown', brainrotCountdown.value.toString())
+      localStorage.setItem('brainrotCountdownTime', Date.now().toString())
+    }
+    if (brainrotCountdown.value <= 0) {
+      triggerBrainrotEvent()
+    }
+  }, 1000) as unknown as number
+}
+
+function triggerBrainrotEvent() {
+  brainrotEventActive.value = true
+  brainrotMessage.value = '🧠 BRAINROT EVENT!!! All fish are brainrot for 10 minutes!'
+
+  // Event lasts 10 minutes
+  brainrotEndTimer = setTimeout(() => {
+    brainrotEventActive.value = false
+    brainrotMessage.value = '🧠 Brainrot event ended!'
+    // Reset countdown to 4 hours
+    brainrotCountdown.value = 4 * 60 * 60
+    localStorage.setItem('brainrotCountdown', brainrotCountdown.value.toString())
+    localStorage.setItem('brainrotCountdownTime', Date.now().toString())
+    setTimeout(() => { brainrotMessage.value = '' }, 3000)
+  }, 10 * 60 * 1000) as unknown as number
+}
+
+function rollBrainrotEventFish(): Fish {
+  const roll = Math.random() * 100
+  let cumulative = 0
+  for (const f of brainrotEventFish) {
+    cumulative += f.chance
+    if (roll < cumulative) {
+      return { name: f.name, emoji: f.emoji, rarity: 'brainrot', value: f.value }
+    }
+  }
+  return { name: brainrotEventFish[0].name, emoji: brainrotEventFish[0].emoji, rarity: 'brainrot', value: brainrotEventFish[0].value }
 }
 
 // Cheese Event
@@ -1376,6 +1461,7 @@ function startGame() {
     if (!renderer) initThree()
     startTitanicChecker()
     startCheeseChecker()
+    startBrainrotCountdown()
   })
 }
 
@@ -1446,8 +1532,13 @@ function reelIn() {
   if (minigameInterval) clearInterval(minigameInterval)
   const inGreen = needlePos.value >= greenStart.value && needlePos.value <= greenStart.value + greenWidth.value
   if (inGreen) {
-    const fishOfRarity = allFish.filter(f => f.rarity === currentFishRarity.value)
-    const baseFish = fishOfRarity[Math.floor(Math.random() * fishOfRarity.length)]
+    let baseFish: Fish
+    if (brainrotEventActive.value) {
+      baseFish = rollBrainrotEventFish()
+    } else {
+      const fishOfRarity = allFish.filter(f => f.rarity === currentFishRarity.value)
+      baseFish = fishOfRarity[Math.floor(Math.random() * fishOfRarity.length)]
+    }
     caughtFish.value = { ...baseFish, trait: rollTrait() }
     registerCatch(caughtFish.value)
     saveGame()
@@ -1542,6 +1633,8 @@ onUnmounted(() => {
   if (titanicTimer) clearInterval(titanicTimer)
   if (cheeseTimer) clearInterval(cheeseTimer)
   if (cheeseEndTimer) clearTimeout(cheeseEndTimer)
+  if (brainrotCountdownTimer) clearInterval(brainrotCountdownTimer)
+  if (brainrotEndTimer) clearTimeout(brainrotEndTimer)
 })
 </script>
 
@@ -1928,6 +2021,28 @@ onUnmounted(() => {
 .char-equip-btn:hover { background: #3b82f6; color: #fff; }
 
 .char-equipped-badge { color: #22c55e; font-size: 13px; font-weight: 700; }
+
+/* BRAINROT EVENT */
+.brainrot-timer {
+  position: fixed; top: 100px; left: 12px; z-index: 10;
+  background: rgba(0,0,0,0.6); color: #ff3366; padding: 6px 12px; border-radius: 8px;
+  font-size: 12px; font-weight: 700; backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,51,102,0.3);
+}
+
+.brainrot-banner {
+  position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(135deg, #ff3366, #00ff00, #ff00ff);
+  color: #fff; padding: 14px 30px; border-radius: 14px;
+  font-size: 18px; font-weight: 900; z-index: 30;
+  box-shadow: 0 0 40px rgba(255,51,102,0.6);
+  animation: brainrot-banner-shake 0.2s ease-in-out infinite alternate;
+  text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+@keyframes brainrot-banner-shake {
+  from { transform: translateX(-50%) rotate(-1deg) scale(1); }
+  to { transform: translateX(-50%) rotate(1deg) scale(1.02); }
+}
 
 /* CHEESE EVENT */
 .cheese-banner {
