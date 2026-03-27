@@ -118,6 +118,26 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'fishing',
+    title: 'Fishing Tycoon',
+    description: 'Catch fish, sell them for money, and buy better rods to find legendary fish!',
+    route: '/games/fishing',
+    icon: '🎣',
+    thumbnailColor: '#0ea5e9',
+    rating: 5.0,
+    available: true
+  },
+  {
+    id: 'island-tag',
+    title: 'Island Tag',
+    description: 'Play tag with friends on a tropical island! Run, hide, and survive!',
+    route: '/games/island-tag',
+    icon: '🏝️',
+    thumbnailColor: '#0ea5e9',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'feedback',
     title: 'Feedback',
     description: 'Got an idea for a new game? Submit it and vote on other ideas!',

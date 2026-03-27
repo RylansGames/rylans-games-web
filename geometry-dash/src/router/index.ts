@@ -55,6 +55,16 @@ const router = createRouter({
       component: () => import('../games/create/CreateGame.vue'),
     },
     {
+      path: '/games/fishing',
+      name: 'fishing',
+      component: () => import('../games/fishing/FishingGame.vue'),
+    },
+    {
+      path: '/games/island-tag',
+      name: 'island-tag',
+      component: () => import('../games/tag/IslandTag.vue'),
+    },
+    {
       path: '/games/feedback',
       name: 'feedback',
       component: () => import('../games/feedback/Feedback.vue'),
