@@ -321,24 +321,32 @@ function registerCatch(fish: Fish) {
 // Upgrades
 const moneyUpgradeLevel = ref(0)
 const speedUpgradeLevel = ref(0)
-const maxMoneyLevel = 10
-const maxSpeedLevel = 8
+const maxMoneyLevel = 25
+const maxSpeedLevel = 20
 
 const moneyMultiplier = computed(() => 1 + moneyUpgradeLevel.value * 0.5)
-// Wait time: starts at 5-9s, goes down to 1-3s at max level
-const currentWaitMin = computed(() => Math.max(1, 5 - speedUpgradeLevel.value * 0.5))
-const currentWaitMax = computed(() => Math.max(3, 9 - speedUpgradeLevel.value * 0.75))
-const nextWaitMin = computed(() => Math.max(1, 5 - (speedUpgradeLevel.value + 1) * 0.5))
-const nextWaitMax = computed(() => Math.max(3, 9 - (speedUpgradeLevel.value + 1) * 0.75))
+// Wait time: starts at 5-9s, goes down to 0.5-1.5s at max level
+const currentWaitMin = computed(() => Math.max(0.5, 5 - speedUpgradeLevel.value * 0.225))
+const currentWaitMax = computed(() => Math.max(1.5, 9 - speedUpgradeLevel.value * 0.375))
+const nextWaitMin = computed(() => Math.max(0.5, 5 - (speedUpgradeLevel.value + 1) * 0.225))
+const nextWaitMax = computed(() => Math.max(1.5, 9 - (speedUpgradeLevel.value + 1) * 0.375))
 
 const moneyUpgradeCost = computed(() => {
-  const costs = [100, 300, 700, 1500, 3000, 6000, 12000, 25000, 50000, 100000]
-  return costs[moneyUpgradeLevel.value] || 999999
+  const costs = [
+    100, 300, 700, 1500, 3000, 6000, 12000, 25000, 50000, 100000,
+    200000, 400000, 750000, 1500000, 3000000, 6000000, 10000000, 20000000, 40000000, 75000000,
+    150000000, 300000000, 500000000, 800000000, 1500000000,
+  ]
+  return costs[moneyUpgradeLevel.value] || 999999999
 })
 
 const speedUpgradeCost = computed(() => {
-  const costs = [150, 500, 1200, 3000, 7000, 15000, 35000, 80000]
-  return costs[speedUpgradeLevel.value] || 999999
+  const costs = [
+    150, 500, 1200, 3000, 7000, 15000, 35000, 80000,
+    200000, 500000, 1000000, 2500000, 5000000, 10000000, 25000000, 50000000,
+    100000000, 250000000, 500000000, 1000000000,
+  ]
+  return costs[speedUpgradeLevel.value] || 999999999
 })
 
 function buyMoneyUpgrade() {
@@ -398,6 +406,12 @@ const rods: Rod[] = [
   { id: 'titanium', name: 'Titanium Pro Rod', icon: '🔩', luck: 4.5, price: 8000, desc: 'Professional grade. Legendary fish fear this rod.' },
   { id: 'golden', name: 'Golden Rod', icon: '👑', luck: 6, price: 25000, desc: 'The ultimate rod. Legends bow before you.' },
   { id: 'mythic', name: 'Mythic Trident', icon: '🔱', luck: 10, price: 100000, desc: 'Forged by Poseidon himself. Nothing escapes.' },
+  { id: 'plasma', name: 'Plasma Rod', icon: '⚡', luck: 15, price: 300000, desc: 'Powered by pure energy. Fish are drawn to it.' },
+  { id: 'void', name: 'Void Caster', icon: '🕳️', luck: 20, price: 750000, desc: 'Reaches into other dimensions to pull fish out.' },
+  { id: 'cosmic', name: 'Cosmic Angler', icon: '🌌', luck: 30, price: 2000000, desc: 'Made from stardust. Even mythic fish tremble.' },
+  { id: 'divine', name: 'Divine Rod', icon: '😇', luck: 50, price: 5000000, desc: 'Blessed by the fishing gods. Insane luck.' },
+  { id: 'galaxy', name: 'Galaxy Destroyer', icon: '🌠', luck: 75, price: 15000000, desc: 'Bends reality itself. Nothing can resist.' },
+  { id: 'omega', name: 'The Omega Rod', icon: '♾️', luck: 100, price: 50000000, desc: 'The final rod. The universe is your pond.' },
 ]
 const ownedRods = ref<string[]>(['wooden'])
 const currentRod = ref<Rod>(rods[0])
