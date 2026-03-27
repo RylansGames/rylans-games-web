@@ -197,7 +197,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import * as THREE from 'three'
 
 type Screen = 'title' | 'fishing' | 'casting' | 'waiting' | 'catch' | 'minigame' | 'result' | 'shop' | 'inventory' | 'upgrades'
-type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'
+type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic'
 
 interface Fish { name: string; emoji: string; rarity: Rarity; value: number }
 interface Rod { id: string; name: string; icon: string; luck: number; price: number; desc: string }
@@ -261,6 +261,7 @@ const inFishingScreens = computed(() =>
 
 const rarityHintText = computed(() => {
   const hints: Record<Rarity, string> = {
+    mythic: '🌟 MYTHIC!!! NO WAY!!!',
     legendary: '⭐ LEGENDARY on the line!',
     epic: '💜 EPIC fish spotted!',
     rare: '💙 Rare fish!',
@@ -314,6 +315,12 @@ const allFish: Fish[] = [
   { name: 'Crystal Jellyfish', emoji: '💎', rarity: 'legendary', value: 4000 },
   { name: "Poseidon's Pet", emoji: '🔱', rarity: 'legendary', value: 8000 },
   { name: 'The Kraken', emoji: '👾', rarity: 'legendary', value: 10000 },
+  // Mythic ($25000-$100000) - insanely rare
+  { name: 'World Serpent', emoji: '🌊', rarity: 'mythic', value: 50000 },
+  { name: 'God Fish', emoji: '👁️', rarity: 'mythic', value: 75000 },
+  { name: 'The Leviathan', emoji: '🌋', rarity: 'mythic', value: 100000 },
+  { name: 'Void Whale', emoji: '🕳️', rarity: 'mythic', value: 60000 },
+  { name: 'Time Shark', emoji: '⏳', rarity: 'mythic', value: 85000 },
 ]
 
 const inventoryValue = computed(() => inventory.value.reduce((sum, f) => sum + Math.floor(f.value * moneyMultiplier.value), 0))
@@ -773,12 +780,14 @@ function castLine() {
 
 function rollFishRarity(): Rarity {
   const luck = currentRod.value.luck
-  const roll = Math.random() * 100
-  const l = 1 * luck, e = 4 * luck, r = 10 * luck, u = 25 * luck
-  if (roll < l) return 'legendary'
-  if (roll < l + e) return 'epic'
-  if (roll < l + e + r) return 'rare'
-  if (roll < l + e + r + u) return 'uncommon'
+  const roll = Math.random() * 1000
+  const m = 0.5 * luck  // Mythic: 0.05% base chance (1 in 2000!)
+  const l = 10 * luck, e = 40 * luck, r = 100 * luck, u = 250 * luck
+  if (roll < m) return 'mythic'
+  if (roll < m + l) return 'legendary'
+  if (roll < m + l + e) return 'epic'
+  if (roll < m + l + e + r) return 'rare'
+  if (roll < m + l + e + r + u) return 'uncommon'
   return 'common'
 }
 
@@ -787,11 +796,11 @@ function startMinigame() {
   const rarity = rollFishRarity()
   currentFishRarity.value = rarity
 
-  const sizes: Record<Rarity, number> = { common: 35, uncommon: 25, rare: 18, epic: 12, legendary: 7 }
+  const sizes: Record<Rarity, number> = { common: 35, uncommon: 25, rare: 18, epic: 12, legendary: 7, mythic: 4 }
   greenWidth.value = sizes[rarity]
   greenStart.value = 20 + Math.random() * (60 - greenWidth.value)
 
-  const speeds: Record<Rarity, number> = { common: 1.2, uncommon: 1.5, rare: 2, epic: 2.5, legendary: 3.2 }
+  const speeds: Record<Rarity, number> = { common: 1.2, uncommon: 1.5, rare: 2, epic: 2.5, legendary: 3.2, mythic: 4.5 }
   needleSpeed = speeds[rarity]
   needlePos.value = 0
   needleDir = 1
@@ -1042,7 +1051,9 @@ onUnmounted(() => {
 .rarity-hint.rare { color: #60a5fa; }
 .rarity-hint.epic { color: #c084fc; }
 .rarity-hint.legendary { color: #fbbf24; animation: legendary-glow 1s ease-in-out infinite alternate; }
+.rarity-hint.mythic { color: #ff00ff; font-size: 18px; animation: mythic-glow 0.5s ease-in-out infinite alternate; }
 @keyframes legendary-glow { from { text-shadow: 0 0 5px #fbbf24; } to { text-shadow: 0 0 20px #fbbf24; } }
+@keyframes mythic-glow { from { text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff; } to { text-shadow: 0 0 30px #ff00ff, 0 0 50px #8b00ff; } }
 
 /* RESULT */
 .result-overlay {
@@ -1056,6 +1067,8 @@ onUnmounted(() => {
   animation: result-pop 0.4s ease-out;
 }
 @keyframes result-pop { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.result-card.mythic { border-color: #ff00ff; box-shadow: 0 0 60px rgba(255,0,255,0.6); animation: mythic-border 1s ease-in-out infinite alternate; }
+@keyframes mythic-border { from { border-color: #ff00ff; } to { border-color: #8b00ff; } }
 .result-card.legendary { border-color: #fbbf24; box-shadow: 0 0 40px rgba(251,191,36,0.4); }
 .result-card.epic { border-color: #c084fc; box-shadow: 0 0 30px rgba(192,132,252,0.3); }
 .result-card.rare { border-color: #60a5fa; }
@@ -1071,6 +1084,7 @@ onUnmounted(() => {
 .result-rarity.rare { background: #1e40af; color: #60a5fa; }
 .result-rarity.epic { background: #581c87; color: #c084fc; }
 .result-rarity.legendary { background: #713f12; color: #fbbf24; }
+.result-rarity.mythic { background: linear-gradient(135deg, #4a0050, #8b00ff); color: #ff66ff; animation: mythic-glow 0.5s ease-in-out infinite alternate; }
 .result-value { color: #fbbf24; font-size: 22px; font-weight: 800; margin-bottom: 20px; }
 .result-miss { color: #94a3b8; font-size: 15px; margin-bottom: 20px; }
 .result-actions { display: flex; gap: 12px; justify-content: center; }
@@ -1139,6 +1153,7 @@ onUnmounted(() => {
 .inv-card {
   background: #1e293b; border-radius: 14px; padding: 16px; text-align: center; border: 2px solid #334155;
 }
+.inv-card.mythic { border-color: #ff00ff; box-shadow: 0 0 15px rgba(255,0,255,0.3); }
 .inv-card.legendary { border-color: #fbbf24; }
 .inv-card.epic { border-color: #c084fc; }
 .inv-card.rare { border-color: #60a5fa; }
@@ -1151,6 +1166,7 @@ onUnmounted(() => {
 .inv-rarity.rare { color: #60a5fa; }
 .inv-rarity.epic { color: #c084fc; }
 .inv-rarity.legendary { color: #fbbf24; }
+.inv-rarity.mythic { color: #ff00ff; animation: mythic-glow 0.5s ease-in-out infinite alternate; }
 .sell-sm-btn {
   padding: 4px 12px; border-radius: 8px; border: none;
   background: #f59e0b; color: #fff; font-size: 12px; font-weight: 700; cursor: pointer;
