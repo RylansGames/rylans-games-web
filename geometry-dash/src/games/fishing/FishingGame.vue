@@ -31,7 +31,7 @@
     </div>
 
     <!-- ===== 3D CANVAS ===== -->
-    <div ref="canvasContainer" class="canvas-container" v-show="screen !== 'title' && screen !== 'shop' && screen !== 'inventory' && screen !== 'upgrades'"></div>
+    <div ref="canvasContainer" class="canvas-container" v-show="screen !== 'title' && screen !== 'shop' && screen !== 'inventory' && screen !== 'upgrades' && screen !== 'fishindex'"></div>
 
     <!-- Cast Button -->
     <div v-if="screen === 'fishing'" class="action-area">
@@ -39,6 +39,7 @@
       <button class="shop-btn" @click="screen = 'shop'">🛒 Shop</button>
       <button class="inv-btn" @click="screen = 'inventory'">🎒 Inventory</button>
       <button class="upgrade-btn" @click="screen = 'upgrades'">⬆️ Upgrades</button>
+      <button class="index-btn" @click="screen = 'fishindex'">📖 Fish Index</button>
     </div>
 
     <!-- Waiting -->
@@ -115,6 +116,37 @@
           </button>
           <button v-else-if="currentRod.id !== rod.id" class="equip-btn" @click="equipRod(rod)">Equip</button>
           <div v-else class="equipped-badge">✅ Equipped</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== FISH INDEX ===== -->
+    <div v-if="screen === 'fishindex'" class="index-screen">
+      <div class="shop-header">
+        <h1>📖 Fish Index ({{ caughtCount }} / {{ allFish.length }})</h1>
+        <button class="close-btn" @click="screen = 'fishing'">✕</button>
+      </div>
+
+      <!-- Rarity sections -->
+      <div v-for="rarity in rarityOrder" :key="rarity" class="index-section">
+        <h2 class="index-rarity-title" :class="rarity">
+          {{ rarityLabels[rarity] }} ({{ caughtByRarity(rarity) }} / {{ fishByRarity(rarity).length }})
+        </h2>
+        <div class="index-grid">
+          <div
+            v-for="fish in fishByRarity(rarity)"
+            :key="fish.name"
+            class="index-card"
+            :class="[rarity, { caught: hasCaughtFish(fish.name), locked: !hasCaughtFish(fish.name) }]"
+          >
+            <div class="index-emoji">{{ hasCaughtFish(fish.name) ? fish.emoji : '❓' }}</div>
+            <div class="index-name">{{ hasCaughtFish(fish.name) ? fish.name : '???' }}</div>
+            <div class="index-value" v-if="hasCaughtFish(fish.name)">${{ fish.value.toLocaleString() }}</div>
+            <div class="index-status">
+              <span v-if="hasCaughtFish(fish.name)" class="caught-badge">✅ Caught</span>
+              <span v-else class="uncaught-badge">🔒 Not Found</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -196,7 +228,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import * as THREE from 'three'
 
-type Screen = 'title' | 'fishing' | 'casting' | 'waiting' | 'catch' | 'minigame' | 'result' | 'shop' | 'inventory' | 'upgrades'
+type Screen = 'title' | 'fishing' | 'casting' | 'waiting' | 'catch' | 'minigame' | 'result' | 'shop' | 'inventory' | 'upgrades' | 'fishindex'
 type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic'
 
 interface Fish { name: string; emoji: string; rarity: Rarity; value: number }
@@ -209,6 +241,35 @@ const caughtFish = ref<Fish | null>(null)
 const currentFishRarity = ref<Rarity>('common')
 const inventory = ref<Fish[]>([])
 const canvasContainer = ref<HTMLElement | null>(null)
+
+// Fish Index - tracks which fish you've ever caught
+const caughtFishNames = ref<string[]>([])
+
+const rarityOrder: Rarity[] = ['mythic', 'legendary', 'epic', 'rare', 'uncommon', 'common']
+const rarityLabels: Record<Rarity, string> = {
+  mythic: '🌟 Mythic', legendary: '⭐ Legendary', epic: '💜 Epic',
+  rare: '💙 Rare', uncommon: '💚 Uncommon', common: '🤍 Common',
+}
+
+function hasCaughtFish(name: string): boolean {
+  return caughtFishNames.value.includes(name)
+}
+
+function fishByRarity(rarity: Rarity): Fish[] {
+  return allFish.filter(f => f.rarity === rarity)
+}
+
+function caughtByRarity(rarity: Rarity): number {
+  return fishByRarity(rarity).filter(f => hasCaughtFish(f.name)).length
+}
+
+const caughtCount = computed(() => caughtFishNames.value.length)
+
+function registerCatch(fish: Fish) {
+  if (!caughtFishNames.value.includes(fish.name)) {
+    caughtFishNames.value.push(fish.name)
+  }
+}
 
 // Upgrades
 const moneyUpgradeLevel = ref(0)
@@ -819,6 +880,8 @@ function reelIn() {
   if (inGreen) {
     const fishOfRarity = allFish.filter(f => f.rarity === currentFishRarity.value)
     caughtFish.value = fishOfRarity[Math.floor(Math.random() * fishOfRarity.length)]
+    registerCatch(caughtFish.value)
+    saveGame()
   } else {
     caughtFish.value = null
   }
@@ -861,6 +924,7 @@ function saveGame() {
     money: money.value, ownedRods: ownedRods.value,
     currentRodId: currentRod.value.id, inventory: inventory.value,
     moneyUpgradeLevel: moneyUpgradeLevel.value, speedUpgradeLevel: speedUpgradeLevel.value,
+    caughtFishNames: caughtFishNames.value,
   }))
 }
 
@@ -875,6 +939,7 @@ function loadGame() {
     if (rod) currentRod.value = rod
     moneyUpgradeLevel.value = d.moneyUpgradeLevel || 0
     speedUpgradeLevel.value = d.speedUpgradeLevel || 0
+    caughtFishNames.value = d.caughtFishNames || []
   }
 }
 
@@ -1176,6 +1241,54 @@ onUnmounted(() => {
   border: none; background: linear-gradient(135deg, #f59e0b, #f97316);
   color: #fff; font-size: 18px; font-weight: 800; cursor: pointer;
 }
+
+/* INDEX BUTTON */
+.index-btn {
+  padding: 16px 24px; border-radius: 16px; border: none;
+  background: rgba(0,0,0,0.5); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+.index-btn:hover { background: rgba(0,0,0,0.7); }
+
+/* FISH INDEX */
+.index-screen {
+  min-height: 100vh; background: #0f172a; padding: 20px; position: relative; z-index: 10;
+  padding-bottom: 40px;
+}
+.index-section { margin-bottom: 28px; }
+.index-rarity-title {
+  font-size: 18px; font-weight: 800; margin: 0 0 12px; padding: 8px 16px;
+  border-radius: 10px; display: inline-block;
+}
+.index-rarity-title.common { color: #cbd5e1; background: rgba(71,85,105,0.3); }
+.index-rarity-title.uncommon { color: #4ade80; background: rgba(22,101,52,0.3); }
+.index-rarity-title.rare { color: #60a5fa; background: rgba(30,64,175,0.3); }
+.index-rarity-title.epic { color: #c084fc; background: rgba(88,28,135,0.3); }
+.index-rarity-title.legendary { color: #fbbf24; background: rgba(113,63,18,0.3); }
+.index-rarity-title.mythic { color: #ff66ff; background: rgba(74,0,80,0.3); }
+
+.index-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+}
+.index-card {
+  background: #1e293b; border-radius: 14px; padding: 14px; text-align: center;
+  border: 2px solid #334155; transition: all 0.15s;
+}
+.index-card.caught { border-color: #475569; }
+.index-card.caught.mythic { border-color: #ff00ff; box-shadow: 0 0 12px rgba(255,0,255,0.3); }
+.index-card.caught.legendary { border-color: #fbbf24; box-shadow: 0 0 8px rgba(251,191,36,0.2); }
+.index-card.caught.epic { border-color: #c084fc; }
+.index-card.caught.rare { border-color: #60a5fa; }
+.index-card.caught.uncommon { border-color: #4ade80; }
+.index-card.locked { opacity: 0.5; }
+.index-card.locked:hover { opacity: 0.7; }
+
+.index-emoji { font-size: 36px; margin-bottom: 4px; }
+.index-name { color: #fff; font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+.index-value { color: #fbbf24; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+.caught-badge { color: #4ade80; font-size: 11px; font-weight: 700; }
+.uncaught-badge { color: #64748b; font-size: 11px; font-weight: 600; }
 
 /* UPGRADES */
 .upgrades-screen {
