@@ -922,10 +922,16 @@ function updateTitanic() {
 
     if (titanicSinkY < -2) {
       titanicPhase = 'done'
-      titanicBlessed.value = true
-      titanicMessage.value = '🚢✨ The Titanic blessed you! Next fish gets TITANIC trait!'
       scene3d.remove(titanicShip)
       titanicShip = null
+
+      // 0.5% chance of being blessed
+      if (Math.random() < 0.005) {
+        titanicBlessed.value = true
+        titanicMessage.value = '🚢✨ The Titanic blessed you! Next fish gets TITANIC trait!'
+      } else {
+        titanicMessage.value = '🚢 The Titanic sank... no blessing this time.'
+      }
 
       setTimeout(() => {
         titanicActive.value = false
