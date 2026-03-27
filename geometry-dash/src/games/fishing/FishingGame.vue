@@ -84,6 +84,9 @@
           <div class="result-emoji">{{ caughtFish.emoji }}</div>
           <h2 class="result-name">{{ caughtFish.name }}</h2>
           <div class="result-rarity" :class="caughtFish.rarity">{{ caughtFish.rarity.toUpperCase() }}</div>
+          <div v-if="caughtFish.trait && caughtFish.trait !== 'none'" class="result-trait" :style="{ color: getTraitInfo(caughtFish.trait).color }">
+            {{ getTraitInfo(caughtFish.trait).icon }} {{ getTraitInfo(caughtFish.trait).name }} Trait ({{ getTraitInfo(caughtFish.trait).multiplier }}x value!)
+          </div>
           <div class="result-value">Worth: ${{ getSellPrice(caughtFish).toLocaleString() }}</div>
           <div class="result-actions">
             <button class="sell-btn" @click="sellFish">💰 Sell for ${{ getSellPrice(caughtFish).toLocaleString() }}</button>
@@ -214,6 +217,9 @@
           <div class="inv-emoji">{{ fish.emoji }}</div>
           <div class="inv-name">{{ fish.name }}</div>
           <div class="inv-rarity" :class="fish.rarity">{{ fish.rarity }}</div>
+          <div v-if="fish.trait && fish.trait !== 'none'" class="inv-trait" :style="{ color: getTraitInfo(fish.trait).color }">
+            {{ getTraitInfo(fish.trait).icon }} {{ getTraitInfo(fish.trait).name }}
+          </div>
           <button class="sell-sm-btn" @click="sellFromInv(i)">${{ getSellPrice(fish).toLocaleString() }}</button>
         </div>
       </div>
@@ -231,8 +237,37 @@ import * as THREE from 'three'
 type Screen = 'title' | 'fishing' | 'casting' | 'waiting' | 'catch' | 'minigame' | 'result' | 'shop' | 'inventory' | 'upgrades' | 'fishindex'
 type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic'
 
-interface Fish { name: string; emoji: string; rarity: Rarity; value: number }
+interface Fish { name: string; emoji: string; rarity: Rarity; value: number; trait?: string }
 interface Rod { id: string; name: string; icon: string; luck: number; price: number; desc: string }
+
+interface Trait { id: string; name: string; icon: string; multiplier: number; chance: number; color: string }
+
+const traits: Trait[] = [
+  { id: 'none', name: 'Normal', icon: '', multiplier: 1, chance: 60, color: '' },
+  { id: 'gold', name: 'Gold', icon: '🥇', multiplier: 3, chance: 12, color: '#fbbf24' },
+  { id: 'diamond', name: 'Diamond', icon: '💎', multiplier: 5, chance: 6, color: '#60d5f7' },
+  { id: 'emerald', name: 'Emerald', icon: '💚', multiplier: 4, chance: 8, color: '#22c55e' },
+  { id: 'storm', name: 'Storm', icon: '⛈️', multiplier: 6, chance: 4, color: '#8b5cf6' },
+  { id: 'cheese', name: 'Cheese', icon: '🧀', multiplier: 7, chance: 3, color: '#fde047' },
+  { id: 'rainbow', name: 'Rainbow', icon: '🌈', multiplier: 10, chance: 2, color: '#ff69b4' },
+  { id: 'void', name: 'Void', icon: '🕳️', multiplier: 15, chance: 1, color: '#7c00ff' },
+  { id: 'cosmic', name: 'Cosmic', icon: '🌌', multiplier: 20, chance: 0.5, color: '#ff00ff' },
+  { id: 'glitch', name: 'Glitch', icon: '👾', multiplier: 50, chance: 0.1, color: '#00ff88' },
+]
+
+function rollTrait(): string {
+  const roll = Math.random() * 100
+  let cumulative = 0
+  for (const t of traits) {
+    cumulative += t.chance
+    if (roll < cumulative) return t.id
+  }
+  return 'none'
+}
+
+function getTraitInfo(traitId: string): Trait {
+  return traits.find(t => t.id === traitId) || traits[0]
+}
 
 const screen = ref<Screen>('title')
 const money = ref(0)
@@ -879,7 +914,8 @@ function reelIn() {
   const inGreen = needlePos.value >= greenStart.value && needlePos.value <= greenStart.value + greenWidth.value
   if (inGreen) {
     const fishOfRarity = allFish.filter(f => f.rarity === currentFishRarity.value)
-    caughtFish.value = fishOfRarity[Math.floor(Math.random() * fishOfRarity.length)]
+    const baseFish = fishOfRarity[Math.floor(Math.random() * fishOfRarity.length)]
+    caughtFish.value = { ...baseFish, trait: rollTrait() }
     registerCatch(caughtFish.value)
     saveGame()
   } else {
@@ -890,7 +926,8 @@ function reelIn() {
 }
 
 function getSellPrice(fish: Fish): number {
-  return Math.floor(fish.value * moneyMultiplier.value)
+  const traitMult = getTraitInfo(fish.trait || 'none').multiplier
+  return Math.floor(fish.value * moneyMultiplier.value * traitMult)
 }
 
 function sellFish() {
@@ -1150,6 +1187,11 @@ onUnmounted(() => {
 .result-rarity.epic { background: #581c87; color: #c084fc; }
 .result-rarity.legendary { background: #713f12; color: #fbbf24; }
 .result-rarity.mythic { background: linear-gradient(135deg, #4a0050, #8b00ff); color: #ff66ff; animation: mythic-glow 0.5s ease-in-out infinite alternate; }
+.result-trait {
+  font-size: 18px; font-weight: 800; margin-bottom: 8px;
+  animation: trait-shine 1s ease-in-out infinite alternate;
+}
+@keyframes trait-shine { from { filter: brightness(1); } to { filter: brightness(1.4); } }
 .result-value { color: #fbbf24; font-size: 22px; font-weight: 800; margin-bottom: 20px; }
 .result-miss { color: #94a3b8; font-size: 15px; margin-bottom: 20px; }
 .result-actions { display: flex; gap: 12px; justify-content: center; }
@@ -1232,6 +1274,7 @@ onUnmounted(() => {
 .inv-rarity.epic { color: #c084fc; }
 .inv-rarity.legendary { color: #fbbf24; }
 .inv-rarity.mythic { color: #ff00ff; animation: mythic-glow 0.5s ease-in-out infinite alternate; }
+.inv-trait { font-size: 11px; font-weight: 700; margin-bottom: 4px; }
 .sell-sm-btn {
   padding: 4px 12px; border-radius: 8px; border: none;
   background: #f59e0b; color: #fff; font-size: 12px; font-weight: 700; cursor: pointer;
