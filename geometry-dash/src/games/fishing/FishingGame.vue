@@ -1,7 +1,7 @@
 <template>
   <div class="fishing-app">
     <!-- Back button -->
-    <button class="back-btn" @click="$router.push('/')" v-if="screen !== 'catch'">← Back</button>
+    <button class="back-btn" @click="screen === 'shop' || screen === 'inventory' || screen === 'upgrades' || screen === 'fishindex' ? screen = 'fishing' : $router.push('/')" v-if="screen !== 'catch' && screen !== 'minigame' && screen !== 'result'">← Back</button>
 
     <!-- Money Display -->
     <div class="money-hud" v-if="screen !== 'title'">
