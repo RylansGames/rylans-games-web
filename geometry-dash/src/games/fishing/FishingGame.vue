@@ -1394,7 +1394,7 @@ function castLine() {
 function rollFishRarity(): Rarity {
   const luck = currentRod.value.luck
   const roll = Math.random() * 1000
-  const s = 0.1 * luck  // Secret: 0.01% base (1 in 10000!)
+  const s = 0.5 * luck  // Secret: 0.05% base (1 in 2000)
   const m = 2 * luck    // Mythic: 0.2% base (was 0.05%, now 4x more common)
   const l = 10 * luck, e = 40 * luck, r = 100 * luck, u = 250 * luck
   if (roll < s) return 'secret'
