@@ -33,6 +33,9 @@
     <!-- ===== 3D CANVAS ===== -->
     <div ref="canvasContainer" class="canvas-container" v-show="screen !== 'title' && screen !== 'shop' && screen !== 'inventory' && screen !== 'upgrades' && screen !== 'fishindex'"></div>
 
+    <!-- Cheese Event Banner -->
+    <div v-if="cheeseMessage" class="cheese-banner">{{ cheeseMessage }}</div>
+
     <!-- Titanic Event Banner -->
     <div v-if="titanicMessage" class="titanic-banner">{{ titanicMessage }}</div>
 
@@ -254,7 +257,7 @@ const traits: Trait[] = [
   { id: 'diamond', name: 'Diamond', icon: '💎', multiplier: 5, chance: 6, color: '#60d5f7' },
   { id: 'emerald', name: 'Emerald', icon: '💚', multiplier: 4, chance: 8, color: '#22c55e' },
   { id: 'storm', name: 'Storm', icon: '⛈️', multiplier: 6, chance: 4, color: '#8b5cf6' },
-  { id: 'cheese', name: 'Cheese', icon: '🧀', multiplier: 7, chance: 3, color: '#fde047' },
+  { id: 'cheese', name: 'Cheese', icon: '🧀', multiplier: 5, chance: 3, color: '#fde047' },
   { id: 'rainbow', name: 'Rainbow', icon: '🌈', multiplier: 10, chance: 2, color: '#ff69b4' },
   { id: 'void', name: 'Void', icon: '🕳️', multiplier: 15, chance: 1, color: '#7c00ff' },
   { id: 'cosmic', name: 'Cosmic', icon: '🌌', multiplier: 20, chance: 0.5, color: '#ff00ff' },
@@ -267,6 +270,10 @@ function rollTrait(): string {
   if (titanicBlessed.value) {
     titanicBlessed.value = false
     return 'titanic'
+  }
+  // During cheese event, guaranteed cheese trait
+  if (cheeseEventActive.value) {
+    return 'cheese'
   }
   const roll = Math.random() * 100
   let cumulative = 0
@@ -362,6 +369,13 @@ function buySpeedUpgrade() {
   speedUpgradeLevel.value++
   saveGame()
 }
+
+// Cheese Event
+const cheeseEventActive = ref(false)
+const cheeseMessage = ref('')
+let cheeseTimer: number | null = null
+let cheeseEndTimer: number | null = null
+let originalWaterColor: string = '#1a7a9b'
 
 // Titanic Event
 const titanicBlessed = ref(false)
@@ -955,6 +969,41 @@ function updateTitanic() {
   }
 }
 
+// ========== CHEESE EVENT ==========
+function startCheeseChecker() {
+  // Cheese event every 15 minutes guaranteed
+  cheeseTimer = setInterval(() => {
+    if (!cheeseEventActive.value) {
+      triggerCheeseEvent()
+    }
+  }, 15 * 60 * 1000) as unknown as number
+}
+
+function triggerCheeseEvent() {
+  cheeseEventActive.value = true
+  cheeseMessage.value = '🧀 CHEESE EVENT! The pond turned to cheese! All fish get the Cheese trait!'
+
+  // Turn water yellow/cheese colored
+  if (waterMesh) {
+    (waterMesh.material as THREE.MeshStandardMaterial).color.set('#fde047')
+    ;(waterMesh.material as THREE.MeshStandardMaterial).opacity = 0.9
+  }
+
+  // Event lasts 30 seconds
+  cheeseEndTimer = setTimeout(() => {
+    cheeseEventActive.value = false
+    cheeseMessage.value = '🧀 Cheese event ended!'
+
+    // Restore water color
+    if (waterMesh) {
+      (waterMesh.material as THREE.MeshStandardMaterial).color.set('#1a7a9b')
+      ;(waterMesh.material as THREE.MeshStandardMaterial).opacity = 0.85
+    }
+
+    setTimeout(() => { cheeseMessage.value = '' }, 3000)
+  }, 30000) as unknown as number
+}
+
 // ========== ANIMATION ==========
 function animate() {
   animFrame = requestAnimationFrame(animate)
@@ -1015,6 +1064,7 @@ function startGame() {
   nextTick(() => {
     if (!renderer) initThree()
     startTitanicChecker()
+    startCheeseChecker()
   })
 }
 
@@ -1169,6 +1219,8 @@ onUnmounted(() => {
   if (dotTimer) clearInterval(dotTimer)
   if (minigameInterval) clearInterval(minigameInterval)
   if (titanicTimer) clearInterval(titanicTimer)
+  if (cheeseTimer) clearInterval(cheeseTimer)
+  if (cheeseEndTimer) clearTimeout(cheeseEndTimer)
 })
 </script>
 
@@ -1452,6 +1504,22 @@ onUnmounted(() => {
   display: block; margin: 24px auto; padding: 14px 36px; border-radius: 14px;
   border: none; background: linear-gradient(135deg, #f59e0b, #f97316);
   color: #fff; font-size: 18px; font-weight: 800; cursor: pointer;
+}
+
+/* CHEESE EVENT */
+.cheese-banner {
+  position: fixed; top: 140px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(135deg, #fde047, #f59e0b);
+  color: #713f12; padding: 12px 28px; border-radius: 14px;
+  font-size: 16px; font-weight: 800; z-index: 30;
+  border: 2px solid #fbbf24;
+  box-shadow: 0 0 30px rgba(253,224,71,0.5);
+  animation: cheese-wobble 0.5s ease-in-out infinite alternate;
+  text-align: center;
+}
+@keyframes cheese-wobble {
+  from { transform: translateX(-50%) rotate(-1deg); }
+  to { transform: translateX(-50%) rotate(1deg); }
 }
 
 /* TITANIC EVENT */
