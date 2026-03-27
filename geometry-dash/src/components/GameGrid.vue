@@ -188,6 +188,16 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'rewatch',
+    title: 'Re Watch',
+    description: 'Watch, share, and discover videos with friends! Like and comment!',
+    route: '/games/rewatch',
+    icon: '▶',
+    thumbnailColor: '#e53e3e',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'de-activated',
     title: 'De-Activated',
     description: 'Find the impostor before its too late! Online multiplayer or play with bots!',
