@@ -542,14 +542,14 @@ function buyCosmetic(item: Cosmetic) {
   ownedCosmetics.value = [...ownedCosmetics.value, item.id]
   equipped[item.category] = item.id
   equippedVersion.value++
-  if (item.category === 'character') updateCharacterAppearance()
+  updateCharacterAppearance()
   saveGame()
 }
 
 function equipCosmetic(item: Cosmetic) {
   equipped[item.category] = item.id
   equippedVersion.value++
-  if (item.category === 'character') updateCharacterAppearance()
+  updateCharacterAppearance()
   saveGame()
 }
 
@@ -566,17 +566,76 @@ const characterColors: Record<string, { body: string; head: string }> = {
   king: { body: '#dc2626', head: '#ffd5b4' },
 }
 
+const hatColors: Record<string, string> = {
+  'hat-none': '', 'hat-cowboy': '#8B6914', 'hat-crown': '#fbbf24', 'hat-tophat': '#1a1a1a',
+  'hat-cap': '#dc2626', 'hat-party': '#ff69b4', 'hat-helmet': '#78716c', 'hat-halo': '#fde68a', 'hat-devil': '#7f1d1d',
+}
+
+const outfitColors: Record<string, string> = {
+  'outfit-default': '', 'outfit-suit': '#1a1a1a', 'outfit-hawaiian': '#f97316',
+  'outfit-armor': '#78716c', 'outfit-lab': '#f5f5f5', 'outfit-gold': '#fbbf24', 'outfit-galaxy': '#7c3aed',
+}
+
+const auraColors: Record<string, string> = {
+  'aura-none': '', 'aura-green': '#22c55e', 'aura-fire': '#f97316', 'aura-ice': '#60d5f7',
+  'aura-electric': '#fde047', 'aura-rainbow': '#ff69b4', 'aura-dark': '#4a0080', 'aura-divine': '#fde68a',
+}
+
 let playerBodyMesh: THREE.Mesh | null = null
 let playerHeadMesh: THREE.Mesh | null = null
+let playerHatMesh: THREE.Mesh | null = null
+let playerAuraMesh: THREE.Mesh | null = null
+let deckGroup3d: THREE.Group | null = null
 
 function updateCharacterAppearance() {
   const charId = equipped.character || 'default'
   const colors = characterColors[charId] || characterColors.default
   if (playerBodyMesh) {
-    (playerBodyMesh.material as THREE.MeshStandardMaterial).color.set(colors.body)
+    const bodyColor = outfitColors[equipped.outfit] || colors.body
+    ;(playerBodyMesh.material as THREE.MeshStandardMaterial).color.set(bodyColor)
   }
   if (playerHeadMesh) {
     (playerHeadMesh.material as THREE.MeshStandardMaterial).color.set(colors.head)
+  }
+  // Hat
+  if (playerHatMesh && deckGroup3d) {
+    deckGroup3d.remove(playerHatMesh)
+    playerHatMesh = null
+  }
+  const hatColor = hatColors[equipped.hat]
+  if (hatColor && deckGroup3d) {
+    const hatId = equipped.hat
+    let hatGeo: THREE.BufferGeometry
+    if (hatId === 'hat-crown' || hatId === 'hat-halo') {
+      hatGeo = new THREE.TorusGeometry(0.25, 0.06, 8, 16)
+    } else if (hatId === 'hat-tophat') {
+      hatGeo = new THREE.CylinderGeometry(0.2, 0.25, 0.4, 12)
+    } else if (hatId === 'hat-party' || hatId === 'hat-devil') {
+      hatGeo = new THREE.ConeGeometry(0.2, 0.35, 8)
+    } else {
+      hatGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.1, 12)
+    }
+    const hatMat = new THREE.MeshStandardMaterial({ color: hatColor, roughness: 0.5 })
+    playerHatMesh = new THREE.Mesh(hatGeo, hatMat)
+    playerHatMesh.position.set(0, 1.85, 0.8)
+    playerHatMesh.castShadow = true
+    deckGroup3d.add(playerHatMesh)
+  }
+  // Aura
+  if (playerAuraMesh && deckGroup3d) {
+    deckGroup3d.remove(playerAuraMesh)
+    playerAuraMesh = null
+  }
+  const auraColor = auraColors[equipped.aura]
+  if (auraColor && deckGroup3d) {
+    const auraGeo = new THREE.SphereGeometry(0.8, 16, 16)
+    const auraMat = new THREE.MeshStandardMaterial({
+      color: auraColor, transparent: true, opacity: 0.2,
+      emissive: auraColor, emissiveIntensity: 0.5,
+    })
+    playerAuraMesh = new THREE.Mesh(auraGeo, auraMat)
+    playerAuraMesh.position.set(0, 1.2, 0.8)
+    deckGroup3d.add(playerAuraMesh)
   }
 }
 
@@ -928,6 +987,8 @@ function buildDeck() {
   deckGroup.add(rod)
 
   scene3d.add(deckGroup)
+  deckGroup3d = deckGroup
+  updateCharacterAppearance()
 }
 
 function createTree(x: number, z: number) {
