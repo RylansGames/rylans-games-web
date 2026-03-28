@@ -18,8 +18,18 @@
       <!-- HUD -->
       <div class="hud-top">
         <div class="hud-money">💰 ${{ money.toLocaleString() }}</div>
+        <div class="hud-gems">💎 {{ gems.toLocaleString() }}</div>
         <div class="hud-income">+${{ income.toLocaleString() }}/s</div>
         <div class="hud-wave" v-if="waveActive">⚔️ Wave {{ currentWave }}</div>
+      </div>
+
+      <!-- Prompt when near pad -->
+      <div v-if="nearPad" class="pad-prompt">
+        <div class="pp-name">{{ nearPad.label }}</div>
+        <div class="pp-cost">{{ nearPad.costText }}</div>
+        <button class="pp-btn" @click="buyPad" :disabled="!canAffordPad">
+          {{ canAffordPad ? '✅ Buy' : '❌ Not enough' }}
+        </button>
       </div>
 
       <!-- Tab buttons -->
@@ -28,6 +38,7 @@
         <button class="tab" :class="{ active: activeTab === 'heroes' }" @click="activeTab = 'heroes'">🦸 Heroes</button>
         <button class="tab" :class="{ active: activeTab === 'battle' }" @click="activeTab = 'battle'">⚔️ Battle</button>
         <button class="tab" :class="{ active: activeTab === 'powers' }" @click="activeTab = 'powers'">💥 Powers</button>
+        <button class="tab" :class="{ active: activeTab === 'shop' }" @click="activeTab = 'shop'">💎 Gem Shop</button>
       </div>
 
       <!-- Base Panel -->
@@ -111,6 +122,37 @@
         <div v-if="deployedHeroData.length === 0" class="no-powers">Deploy heroes first to use their powers!</div>
       </div>
 
+      <!-- Gem Shop Panel -->
+      <div v-if="activeTab === 'shop'" class="panel">
+        <h3>💎 Gem Shop</h3>
+        <p class="shop-sub">Earn gems from waves! Spend them on gold!</p>
+        <div class="gem-balance">Your Gems: 💎 {{ gems.toLocaleString() }}</div>
+        <div class="gem-grid">
+          <div class="gem-card" @click="buyGold(30, 30000)">
+            <div class="gc-gold">💰 30,000</div>
+            <div class="gc-price">💎 30 Gems</div>
+            <button class="gc-btn" :disabled="gems < 30">Buy</button>
+          </div>
+          <div class="gem-card" @click="buyGold(50, 50000)">
+            <div class="gc-gold">💰 50,000</div>
+            <div class="gc-price">💎 50 Gems</div>
+            <button class="gc-btn" :disabled="gems < 50">Buy</button>
+          </div>
+          <div class="gem-card hot" @click="buyGold(100, 1000000)">
+            <div class="gc-tag">🔥 HOT</div>
+            <div class="gc-gold">💰 1,000,000</div>
+            <div class="gc-price">💎 100 Gems</div>
+            <button class="gc-btn" :disabled="gems < 100">Buy</button>
+          </div>
+          <div class="gem-card legendary" @click="buyGold(500, 50000000)">
+            <div class="gc-tag">⭐ BEST VALUE</div>
+            <div class="gc-gold">💰 50,000,000</div>
+            <div class="gc-price">💎 500 Gems</div>
+            <button class="gc-btn" :disabled="gems < 500">Buy</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Wave Complete -->
       <div v-if="showWaveComplete" class="wave-complete-overlay">
         <div class="wc-card">
@@ -132,6 +174,7 @@ import * as THREE from 'three'
 
 const screen = ref<'menu' | 'game'>('menu')
 const money = ref(500)
+const gems = ref(10)
 const activeTab = ref('base')
 const waveActive = ref(false)
 const currentWave = ref(1)
@@ -211,6 +254,60 @@ const totalPower = computed(() => {
   return power
 })
 
+// Pad system
+interface FloorPad {
+  id: string; label: string; costText: string; cost: number; currency: 'money' | 'gems'
+  x: number; z: number; bought: boolean; type: 'building' | 'hero'
+  mesh?: THREE.Mesh
+}
+
+const nearPad = ref<FloorPad | null>(null)
+const canAffordPad = computed(() => {
+  if (!nearPad.value) return false
+  if (nearPad.value.currency === 'gems') return gems.value >= nearPad.value.cost
+  return money.value >= nearPad.value.cost
+})
+
+let floorPads: FloorPad[] = []
+
+function buyGold(gemCost: number, goldAmount: number) {
+  if (gems.value < gemCost) return
+  gems.value -= gemCost
+  money.value += goldAmount
+  addLog(`💎 Bought $${goldAmount.toLocaleString()} for ${gemCost} gems!`, 'power')
+  saveGame()
+}
+
+function buyPad() {
+  if (!nearPad.value || !canAffordPad.value) return
+  const pad = nearPad.value
+  if (pad.currency === 'gems') gems.value -= pad.cost
+  else money.value -= pad.cost
+  pad.bought = true
+
+  if (pad.type === 'building') {
+    const b = buildings.find(bb => bb.id === pad.id)
+    if (b) { b.level++; b.cost = Math.floor(b.baseCost * Math.pow(1.5, b.level)) }
+  } else if (pad.type === 'hero') {
+    if (!ownedHeroes.value.includes(pad.id)) {
+      ownedHeroes.value.push(pad.id)
+      if (deployedHeroes.value.length < 5) deployedHeroes.value.push(pad.id)
+    }
+  }
+
+  // Update 3D pad appearance
+  if (pad.mesh) {
+    (pad.mesh.material as THREE.MeshStandardMaterial).color.set('#22c55e')
+    ;(pad.mesh.material as THREE.MeshStandardMaterial).emissive.set('#22c55e')
+  }
+
+  update3DBuildings()
+  update3DHeroes()
+  addLog(`✅ Bought ${pad.label}!`, 'success')
+  nearPad.value = null
+  saveGame()
+}
+
 // Three.js
 let scene3d: THREE.Scene
 let camera: THREE.PerspectiveCamera
@@ -219,6 +316,12 @@ let animFrame: number
 let buildingMeshes: THREE.Mesh[] = []
 let heroMeshes: THREE.Group[] = []
 let enemyMeshes: THREE.Group[] = []
+let playerMesh: THREE.Group
+let playerX = 0
+let playerZ = 5
+let cameraYaw = 0
+const keys: Record<string, boolean> = {}
+const WALK_SPEED = 0.08
 
 // Timers
 let incomeTimer: number | null = null
@@ -306,6 +409,8 @@ function startWave() {
       waveActive.value = false
       waveReward.value = currentWave.value * 200 + totalPower.value
       money.value += waveReward.value
+      const gemsEarned = 2 + currentWave.value
+      gems.value += gemsEarned
       wavesCleared.value++
       currentWave.value++
       showWaveComplete.value = true
@@ -405,11 +510,96 @@ function init3D() {
   plat.receiveShadow = true
   scene3d.add(plat)
 
+  // Player character
+  playerMesh = new THREE.Group()
+  const pBody = new THREE.CapsuleGeometry(0.25, 0.5, 8, 16)
+  const pMat = new THREE.MeshStandardMaterial({ color: '#3b82f6', roughness: 0.5 })
+  const pMesh = new THREE.Mesh(pBody, pMat)
+  pMesh.position.y = 0.75
+  pMesh.castShadow = true
+  playerMesh.add(pMesh)
+  const pHead = new THREE.SphereGeometry(0.2, 12, 12)
+  const pHeadMat = new THREE.MeshStandardMaterial({ color: '#ddb892' })
+  const pHeadMesh = new THREE.Mesh(pHead, pHeadMat)
+  pHeadMesh.position.y = 1.3
+  playerMesh.add(pHeadMesh)
+  // Cape
+  const capeMat = new THREE.MeshStandardMaterial({ color: '#ef4444', side: THREE.DoubleSide })
+  const capeGeo = new THREE.PlaneGeometry(0.45, 0.5)
+  const cape = new THREE.Mesh(capeGeo, capeMat)
+  cape.position.set(0, 0.7, 0.2)
+  cape.rotation.x = 0.2
+  playerMesh.add(cape)
+  playerMesh.position.set(playerX, 0.5, playerZ)
+  scene3d.add(playerMesh)
+
+  // Create floor pads
+  createFloorPads()
+
   update3DBuildings()
   update3DHeroes()
   animate()
 
   window.addEventListener('resize', onResize)
+  window.addEventListener('keydown', (e) => { keys[e.code] = true })
+  window.addEventListener('keyup', (e) => { keys[e.code] = false })
+}
+
+function createFloorPads() {
+  floorPads = []
+
+  // Building pads in a ring
+  const bPads = buildings.map((b, i) => ({
+    id: b.id, label: b.name + (b.level > 0 ? ` (Lv${b.level + 1})` : ''),
+    costText: '$' + b.cost.toLocaleString(), cost: b.cost, currency: 'money' as const,
+    x: Math.cos((i / buildings.length) * Math.PI * 2) * 5,
+    z: Math.sin((i / buildings.length) * Math.PI * 2) * 5,
+    bought: false, type: 'building' as const,
+  }))
+
+  // Hero pads in outer ring
+  const hPads = allHeroes.slice(0, 10).map((h, i) => ({
+    id: h.id, label: h.name,
+    costText: '$' + h.cost.toLocaleString(), cost: h.cost, currency: 'money' as const,
+    x: Math.cos((i / 10) * Math.PI * 2) * 9,
+    z: Math.sin((i / 10) * Math.PI * 2) * 9,
+    bought: ownedHeroes.value.includes(h.id), type: 'hero' as const,
+  }))
+
+  floorPads = [...bPads, ...hPads]
+
+  // Create 3D pad meshes
+  for (const pad of floorPads) {
+    const padGeo = new THREE.BoxGeometry(1.2, 0.1, 1.2)
+    const padColor = pad.bought ? '#22c55e' : pad.type === 'building' ? '#3b82f6' : '#fbbf24'
+    const padMat = new THREE.MeshStandardMaterial({
+      color: padColor, emissive: padColor, emissiveIntensity: 0.3, roughness: 0.5,
+    })
+    const padMesh = new THREE.Mesh(padGeo, padMat)
+    padMesh.position.set(pad.x, 0.55, pad.z)
+    padMesh.receiveShadow = true
+    scene3d.add(padMesh)
+    pad.mesh = padMesh
+
+    // Label above pad
+    const canvas = document.createElement('canvas')
+    canvas.width = 256; canvas.height = 64
+    const c = canvas.getContext('2d')!
+    c.fillStyle = 'rgba(0,0,0,0.6)'
+    c.fillRect(0, 0, 256, 64)
+    c.fillStyle = '#fff'
+    c.font = 'bold 16px Arial'
+    c.textAlign = 'center'
+    c.fillText(pad.label.substring(0, 20), 128, 25)
+    c.fillStyle = pad.bought ? '#4ade80' : '#fbbf24'
+    c.font = '14px Arial'
+    c.fillText(pad.bought ? '✅ Owned' : pad.costText, 128, 48)
+    const tex = new THREE.CanvasTexture(canvas)
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }))
+    sprite.position.set(pad.x, 1.5, pad.z)
+    sprite.scale.set(1.8, 0.45, 1)
+    scene3d.add(sprite)
+  }
 }
 
 function update3DBuildings() {
@@ -534,10 +724,47 @@ function animate() {
   animFrame = requestAnimationFrame(animate)
   const time = Date.now() * 0.001
 
-  // Rotate camera slowly
-  camera.position.x = Math.sin(time * 0.1) * 15
-  camera.position.z = Math.cos(time * 0.1) * 15
-  camera.lookAt(0, 2, 0)
+  // Player movement (WASD)
+  let dx = 0, dz = 0
+  if (keys['KeyW'] || keys['ArrowUp']) dz -= WALK_SPEED
+  if (keys['KeyS'] || keys['ArrowDown']) dz += WALK_SPEED
+  if (keys['KeyA'] || keys['ArrowLeft']) dx -= WALK_SPEED
+  if (keys['KeyD'] || keys['ArrowRight']) dx += WALK_SPEED
+
+  if (dx !== 0 || dz !== 0) {
+    playerX = Math.max(-15, Math.min(15, playerX + dx))
+    playerZ = Math.max(-15, Math.min(15, playerZ + dz))
+    if (playerMesh) {
+      playerMesh.position.set(playerX, 0.5, playerZ)
+      playerMesh.rotation.y = Math.atan2(dx, dz)
+    }
+  }
+
+  // Walking bob
+  if (playerMesh && (dx !== 0 || dz !== 0)) {
+    playerMesh.position.y = 0.5 + Math.abs(Math.sin(time * 8)) * 0.06
+  }
+
+  // Check near floor pads
+  nearPad.value = null
+  for (const pad of floorPads) {
+    if (pad.bought) continue
+    const dist = Math.sqrt((playerX - pad.x) ** 2 + (playerZ - pad.z) ** 2)
+    if (dist < 1.2) {
+      nearPad.value = pad
+      // Glow the pad
+      if (pad.mesh) {
+        (pad.mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.6 + Math.sin(time * 4) * 0.3
+      }
+      break
+    }
+  }
+
+  // Third person camera follows player
+  const camDist = 6
+  const camHeight = 4
+  camera.position.lerp(new THREE.Vector3(playerX, camHeight, playerZ + camDist), 0.08)
+  camera.lookAt(playerX, 1, playerZ)
 
   // Bob heroes
   heroMeshes.forEach((m, i) => {
@@ -550,6 +777,13 @@ function animate() {
     e.position.x += dir.x * 0.005
     e.position.z += dir.z * 0.005
     e.lookAt(0, e.position.y, 0)
+  }
+
+  // Pulse unbought pads
+  for (const pad of floorPads) {
+    if (!pad.bought && pad.mesh && pad !== nearPad.value) {
+      (pad.mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.2 + Math.sin(time * 2) * 0.1
+    }
   }
 
   renderer.render(scene3d, camera)
@@ -566,6 +800,7 @@ function onResize() {
 function saveGame() {
   localStorage.setItem('heroTycoon', JSON.stringify({
     money: money.value,
+    gems: gems.value,
     buildings: buildings.map(b => ({ id: b.id, level: b.level, cost: b.cost })),
     ownedHeroes: ownedHeroes.value,
     deployedHeroes: deployedHeroes.value,
@@ -579,6 +814,7 @@ function loadGame() {
   if (saved) {
     const d = JSON.parse(saved)
     money.value = d.money || 500
+    gems.value = d.gems || 10
     if (d.buildings) {
       for (const sb of d.buildings) {
         const b = buildings.find(bb => bb.id === sb.id)
@@ -640,8 +876,24 @@ onUnmounted(() => {
   font-size: 14px; font-weight: 700; backdrop-filter: blur(4px);
 }
 .hud-money { color: #fbbf24; }
+.hud-gems { color: #60d5f7; }
 .hud-income { color: #4ade80; }
 .hud-wave { color: #ef4444; }
+
+/* Pad prompt */
+.pad-prompt {
+  position: fixed; bottom: 55vh; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.85); padding: 12px 20px; border-radius: 12px;
+  text-align: center; z-index: 15; border: 2px solid #fbbf24;
+  backdrop-filter: blur(4px);
+}
+.pp-name { color: #fff; font-size: 16px; font-weight: 800; }
+.pp-cost { color: #fbbf24; font-size: 14px; font-weight: 700; margin: 4px 0; }
+.pp-btn {
+  padding: 6px 20px; border-radius: 8px; border: none; background: #22c55e;
+  color: #fff; font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.pp-btn:disabled { background: #ef4444; opacity: 0.7; }
 
 /* Tabs */
 .tab-bar {
@@ -746,6 +998,30 @@ onUnmounted(() => {
 }
 .pw-btn:disabled { opacity: 0.3; }
 .no-powers { color: #666; font-size: 14px; text-align: center; padding: 20px; }
+
+/* Gem Shop */
+.shop-sub { color: #94a3b8; font-size: 13px; margin: 0 0 8px; }
+.gem-balance { color: #60d5f7; font-size: 18px; font-weight: 800; margin-bottom: 12px; }
+.gem-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.gem-card {
+  background: #1a1a2e; border: 2px solid #333; border-radius: 14px; padding: 14px;
+  text-align: center; cursor: pointer; transition: all 0.15s; position: relative;
+}
+.gem-card:hover { border-color: #60d5f7; transform: translateY(-2px); }
+.gem-card.hot { border-color: #f97316; }
+.gem-card.legendary { border-color: #fbbf24; box-shadow: 0 0 15px rgba(251,191,36,0.3); }
+.gc-tag {
+  position: absolute; top: -8px; right: -4px; background: #f97316; color: #fff;
+  padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 800;
+}
+.gem-card.legendary .gc-tag { background: #fbbf24; color: #000; }
+.gc-gold { color: #fbbf24; font-size: 18px; font-weight: 900; margin-bottom: 4px; }
+.gc-price { color: #60d5f7; font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.gc-btn {
+  padding: 6px 18px; border-radius: 8px; border: none; background: #3b82f6;
+  color: #fff; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.gc-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 /* Wave complete */
 .wave-complete-overlay {
