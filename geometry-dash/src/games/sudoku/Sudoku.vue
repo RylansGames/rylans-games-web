@@ -150,6 +150,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { gameState } from '../../components/shared/GameState'
+import { playerTracker } from '../../components/shared/PlayerTracker'
+import { OnlineTracker } from '../../components/shared/OnlineTracker'
 
 type Difficulty = 'easy' | 'medium' | 'hard' | 'expert'
 
@@ -536,9 +539,13 @@ function onKeyDown(e: KeyboardEvent) {
 onMounted(() => {
   loadStats()
   window.addEventListener('keydown', onKeyDown)
+  playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Sudoku')
+  OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Sudoku')
 })
 
 onUnmounted(() => {
+  playerTracker.endSession()
+  OnlineTracker.goOffline()
   if (timerInterval) clearInterval(timerInterval)
   window.removeEventListener('keydown', onKeyDown)
 })

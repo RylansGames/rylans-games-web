@@ -220,6 +220,9 @@ import { useRouter } from 'vue-router'
 import { db } from '../../firebase'
 import { ref as dbRef, push, onValue, set, remove, get, onDisconnect } from 'firebase/database'
 import * as THREE from 'three'
+import { gameState } from '../../components/shared/GameState'
+import { playerTracker } from '../../components/shared/PlayerTracker'
+import { OnlineTracker } from '../../components/shared/OnlineTracker'
 
 const router = useRouter()
 
@@ -1306,6 +1309,8 @@ onMounted(() => {
   if (saved) playerName.value = saved
   xp.value = parseInt(localStorage.getItem('daXP') || '0')
   wins.value = parseInt(localStorage.getItem('daWins') || '0')
+  playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'De-Activated')
+  OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'De-Activated')
 
   // Swipe handler
   window.addEventListener('mousemove', (e) => {
@@ -1335,6 +1340,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  playerTracker.endSession()
+  OnlineTracker.goOffline()
   gameActive = false
   if (animFrame) cancelAnimationFrame(animFrame)
   if (renderer3d) renderer3d.dispose()

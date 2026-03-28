@@ -66,6 +66,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { gameState } from '../../components/shared/GameState'
+import { playerTracker } from '../../components/shared/PlayerTracker'
+import { OnlineTracker } from '../../components/shared/OnlineTracker'
 
 type GameMode = 'classic' | 'double' | 'cavity' | 'progressive'
 
@@ -651,6 +654,8 @@ function handleTouch(clientX: number) {
 
 onMounted(() => {
   highScore.value = parseInt(localStorage.getItem('breakoutHighScore') || '0')
+  playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Super Breakout')
+  OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Super Breakout')
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
   window.addEventListener('mousemove', onMouseMove)
@@ -661,6 +666,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  playerTracker.endSession()
+  OnlineTracker.goOffline()
   if (animFrame) cancelAnimationFrame(animFrame)
   window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('keyup', onKeyUp)

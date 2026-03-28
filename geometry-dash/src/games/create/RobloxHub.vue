@@ -141,9 +141,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { gameState } from '../../components/shared/GameState'
+import { playerTracker } from '../../components/shared/PlayerTracker'
+import { OnlineTracker } from '../../components/shared/OnlineTracker'
 import { getPublishedGames } from './gameStore'
 import type { GameData } from './types'
 
@@ -211,6 +213,13 @@ function playPublished(_game: FakeGame) {
 onMounted(() => {
   playerName.value = gameState.getPlayerName() || 'Player'
   publishedGames.value = getPublishedGames()
+  playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Roblox')
+  OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Roblox')
+})
+
+onUnmounted(() => {
+  playerTracker.endSession()
+  OnlineTracker.goOffline()
 })
 </script>
 

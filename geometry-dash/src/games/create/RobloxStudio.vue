@@ -305,9 +305,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { gameState } from '../../components/shared/GameState'
+import { playerTracker } from '../../components/shared/PlayerTracker'
+import { OnlineTracker } from '../../components/shared/OnlineTracker'
 
 const router = useRouter()
 const view = ref<'home' | 'editor'>('home')
@@ -448,6 +450,13 @@ function getSelectedColor(): string {
 
 onMounted(() => {
   playerName.value = gameState.getPlayerName() || 'Player'
+  playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Roblox Studio')
+  OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Roblox Studio')
+})
+
+onUnmounted(() => {
+  playerTracker.endSession()
+  OnlineTracker.goOffline()
 })
 </script>
 

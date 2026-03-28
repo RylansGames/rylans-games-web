@@ -110,6 +110,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import * as THREE from 'three'
+import { gameState } from '../../components/shared/GameState'
+import { playerTracker } from '../../components/shared/PlayerTracker'
+import { OnlineTracker } from '../../components/shared/OnlineTracker'
 
 const screen = ref<'menu' | 'game'>('menu')
 const selectedFighter = ref('')
@@ -771,9 +774,13 @@ function onResize() {
 onMounted(() => {
   totalWins.value = parseInt(localStorage.getItem('wrestlingWins') || '0')
   totalLosses.value = parseInt(localStorage.getItem('wrestlingLosses') || '0')
+  playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Wrestling Mania')
+  OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Wrestling Mania')
 })
 
 onUnmounted(() => {
+  playerTracker.endSession()
+  OnlineTracker.goOffline()
   if (renderer) renderer.dispose()
   if (animFrame) cancelAnimationFrame(animFrame)
   if (cooldownInterval) clearInterval(cooldownInterval)

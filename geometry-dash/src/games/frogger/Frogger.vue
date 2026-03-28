@@ -55,6 +55,9 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { db } from '../../firebase'
 import { ref as dbRef, onValue, set, get } from 'firebase/database'
+import { gameState } from '../../components/shared/GameState'
+import { playerTracker } from '../../components/shared/PlayerTracker'
+import { OnlineTracker } from '../../components/shared/OnlineTracker'
 
 const screen = ref<'menu' | 'game'>('menu')
 const gameCanvas = ref<HTMLCanvasElement | null>(null)
@@ -438,9 +441,13 @@ function onKeyDown(e: KeyboardEvent) {
 onMounted(() => {
   loadHighScore()
   window.addEventListener('keydown', onKeyDown)
+  playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Frogger')
+  OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Frogger')
 })
 
 onUnmounted(() => {
+  playerTracker.endSession()
+  OnlineTracker.goOffline()
   gameActive = false
   if (animFrame) cancelAnimationFrame(animFrame)
   window.removeEventListener('keydown', onKeyDown)

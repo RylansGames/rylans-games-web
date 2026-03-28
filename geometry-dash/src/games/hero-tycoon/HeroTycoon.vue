@@ -178,6 +178,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, reactive } from 'vue'
 import * as THREE from 'three'
+import { gameState } from '../../components/shared/GameState'
+import { playerTracker } from '../../components/shared/PlayerTracker'
+import { OnlineTracker } from '../../components/shared/OnlineTracker'
 
 const screen = ref<'menu' | 'game'>('menu')
 const money = ref(500)
@@ -858,9 +861,14 @@ function loadGame() {
   }
 }
 
-onMounted(() => {})
+onMounted(() => {
+  playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Superheroes Tycoon')
+  OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Superheroes Tycoon')
+})
 
 onUnmounted(() => {
+  playerTracker.endSession()
+  OnlineTracker.goOffline()
   if (renderer) renderer.dispose()
   if (animFrame) cancelAnimationFrame(animFrame)
   if (incomeTimer) clearInterval(incomeTimer)

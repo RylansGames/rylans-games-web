@@ -104,6 +104,9 @@ import { useRouter } from 'vue-router'
 import { db } from '../../firebase'
 import { ref as dbRef, push, onValue, set, remove, onDisconnect, get } from 'firebase/database'
 import * as THREE from 'three'
+import { gameState } from '../../components/shared/GameState'
+import { playerTracker } from '../../components/shared/PlayerTracker'
+import { OnlineTracker } from '../../components/shared/OnlineTracker'
 
 const router = useRouter()
 
@@ -862,9 +865,13 @@ function onResize() {
 onMounted(() => {
   const saved = localStorage.getItem('gunName')
   if (saved) playerName.value = saved
+  playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Gun Fight')
+  OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Gun Fight')
 })
 
 onUnmounted(() => {
+  playerTracker.endSession()
+  OnlineTracker.goOffline()
   if (isOnline) remove(dbRef(db, `gunfight/players/${myId.value}`))
   if (renderer) renderer.dispose()
   if (animFrame) cancelAnimationFrame(animFrame)

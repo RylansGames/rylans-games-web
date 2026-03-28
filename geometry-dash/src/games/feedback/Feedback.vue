@@ -86,9 +86,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { db } from '../../firebase'
 import { ref as dbRef, push, onValue, set, get } from 'firebase/database'
+import { gameState } from '../../components/shared/GameState'
+import { playerTracker } from '../../components/shared/PlayerTracker'
+import { OnlineTracker } from '../../components/shared/OnlineTracker'
 
 const authorName = ref('')
 const ideaText = ref('')
@@ -221,6 +224,13 @@ onMounted(() => {
       likedByMe: !!(val.likedBy && val.likedBy[myId]),
     }))
   })
+  playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Feedback')
+  OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Feedback')
+})
+
+onUnmounted(() => {
+  playerTracker.endSession()
+  OnlineTracker.goOffline()
 })
 </script>
 

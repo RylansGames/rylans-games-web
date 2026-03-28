@@ -325,6 +325,9 @@ import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { db } from '../../firebase'
 import { ref as dbRef, onValue, set, get } from 'firebase/database'
 import * as THREE from 'three'
+import { gameState } from '../../components/shared/GameState'
+import { playerTracker } from '../../components/shared/PlayerTracker'
+import { OnlineTracker } from '../../components/shared/OnlineTracker'
 
 type Screen = 'title' | 'fishing' | 'casting' | 'waiting' | 'catch' | 'minigame' | 'result' | 'shop' | 'inventory' | 'upgrades' | 'fishindex' | 'characters'
 type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'secret' | 'brainrot'
@@ -1626,9 +1629,13 @@ function onKeyDown(e: KeyboardEvent) {
 onMounted(() => {
   loadGame()
   window.addEventListener('keydown', onKeyDown)
+  playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Fishing Tycoon')
+  OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Fishing Tycoon')
 })
 
 onUnmounted(() => {
+  playerTracker.endSession()
+  OnlineTracker.goOffline()
   window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('resize', onResize)
   if (renderer) renderer.dispose()
