@@ -192,6 +192,16 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'hero-tycoon',
+    title: 'Superheroes Tycoon',
+    description: 'Build your base, recruit heroes with superpowers, and fight waves of villains!',
+    route: '/games/hero-tycoon',
+    icon: '🦸',
+    thumbnailColor: '#fbbf24',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'wrestling',
     title: 'Wrestling Mania',
     description: 'WWE-style wrestling! Pick your fighter, punch, kick, grab, and use special moves!',
