@@ -192,6 +192,16 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'centipede',
+    title: 'The Centipede',
+    description: 'A survival horror story! Lock your doors before the giant centipede gets in!',
+    route: '/games/centipede',
+    icon: '🐛',
+    thumbnailColor: '#4a0a0a',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'hero-tycoon',
     title: 'Superheroes Tycoon',
     description: 'Build your base, recruit heroes with superpowers, and fight waves of villains!',
