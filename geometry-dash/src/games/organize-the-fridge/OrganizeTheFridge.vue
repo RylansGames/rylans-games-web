@@ -473,20 +473,30 @@ const handleMouseUp = () => {
 
 // Touch event handlers for iPad/mobile
 const handleTouchStart = (e: TouchEvent) => {
-  e.preventDefault()
-  const touch = e.touches[0]
-  handleMouseDown({ clientX: touch.clientX, clientY: touch.clientY } as MouseEvent)
+  // Only prevent default if touching the game canvas area, not buttons
+  const target = e.target as HTMLElement
+  if (target.tagName === 'BUTTON' || target.closest('button') || target.closest('.back-button') || target.closest('.start-screen') || target.closest('.game-over-screen')) {
+    return // Let buttons work normally
+  }
+  if (gameStarted.value && !gameOver.value) {
+    e.preventDefault()
+    const touch = e.touches[0]
+    handleMouseDown({ clientX: touch.clientX, clientY: touch.clientY } as MouseEvent)
+  }
 }
 
 const handleTouchMove = (e: TouchEvent) => {
-  e.preventDefault()
-  const touch = e.touches[0]
-  handleMouseMove({ clientX: touch.clientX, clientY: touch.clientY } as MouseEvent)
+  if (gameStarted.value && !gameOver.value && isDragging) {
+    e.preventDefault()
+    const touch = e.touches[0]
+    handleMouseMove({ clientX: touch.clientX, clientY: touch.clientY } as MouseEvent)
+  }
 }
 
 const handleTouchEnd = (e: TouchEvent) => {
-  e.preventDefault()
-  handleMouseUp()
+  if (gameStarted.value && !gameOver.value) {
+    handleMouseUp()
+  }
 }
 
 const updateFoodItems = () => {
