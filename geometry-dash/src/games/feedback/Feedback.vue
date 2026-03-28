@@ -74,7 +74,10 @@
             </span>
             <span class="idea-time">{{ timeAgo(idea.timestamp) }}</span>
           </div>
-          <div class="idea-text">{{ idea.text }}</div>
+          <div class="idea-text-row">
+            <div class="idea-text">{{ idea.text }}</div>
+            <button class="copy-btn" @click="copyText(idea.text)" title="Copy to clipboard">{{ copiedId === idea.text ? '✅' : '📋' }}</button>
+          </div>
           <div class="idea-author">— {{ idea.author }}</div>
         </div>
       </div>
@@ -135,6 +138,15 @@ function getCatLabel(id: string): string {
   const cat = categories.find(c => c.id === id)
   return cat ? cat.label : 'Other'
 }
+
+function copyText(text: string) {
+  navigator.clipboard?.writeText(text).then(() => {
+    copiedId.value = text
+    setTimeout(() => { copiedId.value = '' }, 1500)
+  })
+}
+
+const copiedId = ref('')
 
 function timeAgo(timestamp: number): string {
   const seconds = Math.floor((Date.now() - timestamp) / 1000)
@@ -427,12 +439,34 @@ onMounted(() => {
 
 .idea-time { font-size: 11px; color: #4a5568; }
 
+.idea-text-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
 .idea-text {
   font-size: 15px;
   color: #e2e8f0;
   line-height: 1.5;
   margin-bottom: 6px;
   word-break: break-word;
+  flex: 1;
+}
+
+.copy-btn {
+  background: none;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.copy-btn:hover {
+  background: #334155;
+  border-color: #475569;
 }
 
 .idea-author { font-size: 13px; color: #8892b0; font-weight: 600; }
