@@ -640,6 +640,7 @@ onUnmounted(() => {
   width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;
   border: 1px solid #334155; cursor: pointer; position: relative;
   font-size: 20px; font-weight: 700; transition: background 0.1s;
+  box-sizing: border-box; flex-shrink: 0;
 }
 .cell:hover { background: rgba(59,130,246,0.1); }
 .cell.selected { background: rgba(59,130,246,0.3); }
@@ -707,8 +708,27 @@ onUnmounted(() => {
 .win-btn.next { background: #22c55e; color: #fff; }
 .win-btn.menu { background: #334155; color: #fff; }
 
-@media (max-width: 420px) {
-  .cell { width: 36px; height: 36px; font-size: 17px; }
-  .num-btn { width: 36px; height: 36px; font-size: 18px; }
+@media (max-width: 500px) {
+  .menu-card { padding: 24px 16px; }
+  .diff-buttons { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .game-screen { padding: 8px; }
+  .game-header { margin-bottom: 4px; }
+  .mistakes-bar { font-size: 12px; margin-bottom: 6px; }
+  .cell { width: calc((100vw - 24px) / 9); height: calc((100vw - 24px) / 9); font-size: 18px; }
+  .board { width: calc(100vw - 16px); }
+  .board-row { width: 100%; }
+  .numpad { gap: 4px; margin: 8px 0; }
+  .num-btn { width: calc((100vw - 80px) / 9); height: 44px; font-size: 20px; border-radius: 8px; }
+  .controls { gap: 4px; flex-wrap: wrap; justify-content: center; }
+  .ctrl-btn { padding: 8px 10px; font-size: 12px; }
+  .note { font-size: 7px; line-height: 10px; }
+  .win-card { padding: 24px 16px; }
+  .win-stats { flex-wrap: wrap; }
+}
+
+@media (max-width: 360px) {
+  .cell { font-size: 16px; }
+  .num-btn { height: 38px; font-size: 18px; }
+  .ctrl-btn { font-size: 11px; padding: 6px 8px; }
 }
 </style>
