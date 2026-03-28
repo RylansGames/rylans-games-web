@@ -269,21 +269,29 @@ function update() {
     if (ball.x + ball.radius >= canvasW) { ball.x = canvasW - ball.radius; ball.dx = -Math.abs(ball.dx) }
     if (ball.y - ball.radius <= 0) { ball.y = ball.radius; ball.dy = Math.abs(ball.dy) }
 
-    // Paddle bounce
+    // Cap ball speed so it doesn't skip through paddle
+    const maxSpeed = 8
+    if (Math.abs(ball.dx) > maxSpeed) ball.dx = Math.sign(ball.dx) * maxSpeed
+    if (Math.abs(ball.dy) > maxSpeed) ball.dy = Math.sign(ball.dy) * maxSpeed
+
+    // Paddle bounce - generous detection zone
     const paddleY = canvasH - PADDLE_Y_OFFSET
-    if (ball.dy > 0 && ball.y + ball.radius >= paddleY && ball.y + ball.radius <= paddleY + PADDLE_H + 4 &&
-        ball.x >= paddleX - 4 && ball.x <= paddleX + paddleW + 4) {
-      ball.dy = -Math.abs(ball.dy)
+    const ballBottom = ball.y + ball.radius
+    const ballWasAbove = ballBottom - ball.dy <= paddleY + 2
+    if (ball.dy > 0 && ballBottom >= paddleY && ballBottom <= paddleY + PADDLE_H + ball.dy + 8 &&
+        ball.x >= paddleX - 8 && ball.x <= paddleX + paddleW + 8 && ballWasAbove) {
+      ball.y = paddleY - ball.radius - 1
       // Angle based on where ball hits paddle
       const hitPos = (ball.x - paddleX) / paddleW // 0 to 1
-      const angle = (hitPos - 0.5) * 2.5 // -1.25 to 1.25
-      ball.dx = angle * ball.speed
-      ball.dy = -Math.sqrt(ball.speed * ball.speed - ball.dx * ball.dx)
-      if (Math.abs(ball.dy) < 1) ball.dy = -1
+      const angle = (hitPos - 0.5) * 2.5
+      const speed = Math.min(ball.speed, maxSpeed)
+      ball.dx = angle * speed
+      ball.dy = -Math.sqrt(speed * speed - ball.dx * ball.dx)
+      if (Math.abs(ball.dy) < 1.5) ball.dy = -1.5
     }
 
-    // Ball lost - check if below paddle area
-    if (ball.y > canvasH - PADDLE_Y_OFFSET + 40 || ball.y > canvasH + 20) {
+    // Ball lost - check if below paddle
+    if (ball.y > paddleY + PADDLE_H + 20) {
       ball.active = false
     }
 
