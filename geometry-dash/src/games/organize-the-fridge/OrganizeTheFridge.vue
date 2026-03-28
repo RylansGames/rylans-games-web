@@ -890,8 +890,11 @@ onUnmounted(() => {
   .back-button {
     top: 10px;
     left: 10px;
-    padding: 6px 12px;
-    font-size: 13px;
+    padding: 10px 18px;
+    font-size: 15px;
+    z-index: 9999;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
   .game-hud {
     top: 10px;
@@ -911,6 +914,10 @@ onUnmounted(() => {
   }
   .instructions-overlay p {
     font-size: 12px;
+  }
+  .start-button, .restart-button, .exit-button {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 

@@ -153,6 +153,13 @@
         </div>
       </div>
 
+      <!-- Mobile Joystick -->
+      <div class="mobile-joy" v-if="activeTab !== 'shop'">
+        <div class="joy-area" @touchstart.prevent="joyStart" @touchmove.prevent="joyMove" @touchend.prevent="joyEnd">
+          <div class="joy-knob" :style="{ transform: `translate(${joyX}px, ${joyY}px)` }"></div>
+        </div>
+      </div>
+
       <!-- Wave Complete -->
       <div v-if="showWaveComplete" class="wave-complete-overlay">
         <div class="wc-card">
@@ -322,6 +329,25 @@ let playerZ = 5
 let cameraYaw = 0
 const keys: Record<string, boolean> = {}
 const WALK_SPEED = 0.08
+const joyX = ref(0)
+const joyY = ref(0)
+let joyTouchId: number | null = null
+let joyCenter = { x: 0, y: 0 }
+
+function joyStart(e: TouchEvent) {
+  const t = e.touches[0]
+  joyTouchId = t.identifier
+  joyCenter = { x: t.clientX, y: t.clientY }
+}
+function joyMove(e: TouchEvent) {
+  for (const t of Array.from(e.touches)) {
+    if (t.identifier === joyTouchId) {
+      joyX.value = Math.max(-40, Math.min(40, t.clientX - joyCenter.x))
+      joyY.value = Math.max(-40, Math.min(40, t.clientY - joyCenter.y))
+    }
+  }
+}
+function joyEnd() { joyTouchId = null; joyX.value = 0; joyY.value = 0 }
 
 // Timers
 let incomeTimer: number | null = null
@@ -724,12 +750,16 @@ function animate() {
   animFrame = requestAnimationFrame(animate)
   const time = Date.now() * 0.001
 
-  // Player movement (WASD)
+  // Player movement (WASD + joystick)
   let dx = 0, dz = 0
   if (keys['KeyW'] || keys['ArrowUp']) dz -= WALK_SPEED
   if (keys['KeyS'] || keys['ArrowDown']) dz += WALK_SPEED
   if (keys['KeyA'] || keys['ArrowLeft']) dx -= WALK_SPEED
   if (keys['KeyD'] || keys['ArrowRight']) dx += WALK_SPEED
+  if (joyX.value !== 0 || joyY.value !== 0) {
+    dx += (joyX.value / 40) * WALK_SPEED
+    dz += (joyY.value / 40) * WALK_SPEED
+  }
 
   if (dx !== 0 || dz !== 0) {
     playerX = Math.max(-15, Math.min(15, playerX + dx))
@@ -1041,6 +1071,24 @@ onUnmounted(() => {
   position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.5);
   color: #fff; border: none; padding: 6px 12px; border-radius: 8px;
   font-size: 12px; cursor: pointer; z-index: 10;
+}
+
+/* Mobile joystick */
+.mobile-joy {
+  display: none; position: fixed; bottom: 56vh; left: 16px; z-index: 12;
+}
+.joy-area {
+  width: 100px; height: 100px; background: rgba(255,255,255,0.1);
+  border-radius: 50%; border: 2px solid rgba(255,255,255,0.2);
+  display: flex; align-items: center; justify-content: center;
+}
+.joy-knob {
+  width: 40px; height: 40px; background: rgba(255,255,255,0.3);
+  border-radius: 50%;
+}
+
+@media (max-width: 800px), (pointer: coarse) {
+  .mobile-joy { display: block; }
 }
 
 @media (max-width: 600px) {
