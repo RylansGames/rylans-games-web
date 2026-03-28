@@ -282,8 +282,8 @@ function update() {
       if (Math.abs(ball.dy) < 1) ball.dy = -1
     }
 
-    // Ball lost
-    if (ball.y - ball.radius > canvasH) {
+    // Ball lost - check if below paddle area
+    if (ball.y > canvasH - PADDLE_Y_OFFSET + 40 || ball.y > canvasH + 20) {
       ball.active = false
     }
 
@@ -336,14 +336,18 @@ function update() {
     }
   }
 
-  // Check if all balls lost
-  const activeBalls = balls.filter(b => b.active)
-  if (activeBalls.length === 0 && ballLaunched.value) {
-    lives.value--
-    if (lives.value <= 0) {
-      endGame(false)
-    } else {
-      resetBalls()
+  // Check if all balls lost - must happen every frame
+  if (ballLaunched.value) {
+    const anyActive = balls.some(b => b.active)
+    if (!anyActive) {
+      lives.value--
+      if (lives.value <= 0) {
+        endGame(false)
+        return
+      } else {
+        resetBalls()
+        return
+      }
     }
   }
 
