@@ -188,6 +188,16 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'sudoku',
+    title: 'Sudoku',
+    description: '10,000 puzzles! Pick your difficulty and solve them all!',
+    route: '/games/sudoku',
+    icon: '🧩',
+    thumbnailColor: '#3b82f6',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'rewatch',
     title: 'Re Watch',
     description: 'Watch, share, and discover videos with friends! Like and comment!',

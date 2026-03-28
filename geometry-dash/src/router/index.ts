@@ -55,6 +55,11 @@ const router = createRouter({
       component: () => import('../games/create/CreateGame.vue'),
     },
     {
+      path: '/games/sudoku',
+      name: 'sudoku',
+      component: () => import('../games/sudoku/Sudoku.vue'),
+    },
+    {
       path: '/games/rewatch',
       name: 'rewatch',
       component: () => import('../games/rewatch/ReWatch.vue'),
