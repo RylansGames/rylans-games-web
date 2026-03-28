@@ -192,6 +192,16 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'wrestling',
+    title: 'Wrestling Mania',
+    description: 'WWE-style wrestling! Pick your fighter, punch, kick, grab, and use special moves!',
+    route: '/games/wrestling',
+    icon: '🤼',
+    thumbnailColor: '#ef4444',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'breakout',
     title: 'Super Breakout',
     description: 'Smash all the bricks with your ball and paddle! 4 game modes!',
