@@ -3,6 +3,19 @@
     <AdminAbuseSign />
     <Settings />
     <h1 class="portal-title">Rylans Games</h1>
+    <div class="search-container">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search games..."
+          class="search-input"
+        />
+        <button v-if="searchQuery" class="search-clear" @click="searchQuery = ''">✕</button>
+      </div>
+      <div v-if="searchQuery && filteredCount === 0" class="no-results">No games found for "{{ searchQuery }}"</div>
+    </div>
     <button v-if="hasActiveEffects" class="stop-effects-btn" @click="stopEffects">STOP EFFECTS</button>
     <div class="game-grid">
       <GameCard
@@ -29,6 +42,7 @@ import { PlayerTracker } from './shared/PlayerTracker'
 
 const showAdmin = ref(false)
 const hasActiveEffects = ref(false)
+const searchQuery = ref('')
 
 const stopEffects = () => {
   PlayerTracker.stopAllAbuseEffects()
@@ -178,6 +192,16 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'breakout',
+    title: 'Super Breakout',
+    description: 'Smash all the bricks with your ball and paddle! 4 game modes!',
+    route: '/games/breakout',
+    icon: '🧱',
+    thumbnailColor: '#3b82f6',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'sudoku',
     title: 'Sudoku',
     description: '10,000 puzzles! Pick your difficulty and solve them all!',
@@ -227,15 +251,21 @@ const games: Game[] = [
   }
 ]
 
-// Filter games to hide admin panel unless authenticated
+// Filter games to hide admin panel unless authenticated, and search
 const visibleGames = computed(() => {
   return games.filter(game => {
     if (game.id === 'brainrot-admin') {
       return showAdmin.value
     }
+    if (searchQuery.value) {
+      const q = searchQuery.value.toLowerCase()
+      return game.title.toLowerCase().includes(q) || game.description.toLowerCase().includes(q)
+    }
     return true
   })
 })
+
+const filteredCount = computed(() => visibleGames.value.length)
 
 let effectCheckInterval: number | null = null
 
@@ -298,6 +328,27 @@ onUnmounted(() => {
   from { box-shadow: 0 0 20px rgba(239, 68, 68, 0.5); }
   to { box-shadow: 0 0 30px rgba(251, 191, 36, 0.6); }
 }
+
+/* Search */
+.search-container { max-width: 500px; margin: 0 auto 24px; }
+.search-box {
+  display: flex; align-items: center; background: #2d3748;
+  border: 2px solid #4a5568; border-radius: 14px; padding: 0 16px;
+  transition: border-color 0.2s;
+}
+.search-box:focus-within { border-color: #63b3ed; }
+.search-icon { font-size: 18px; margin-right: 10px; opacity: 0.6; }
+.search-input {
+  flex: 1; background: none; border: none; color: #fff;
+  font-size: 16px; padding: 12px 0; outline: none; font-family: inherit;
+}
+.search-input::placeholder { color: #718096; }
+.search-clear {
+  background: none; border: none; color: #718096; font-size: 18px;
+  cursor: pointer; padding: 4px 8px;
+}
+.search-clear:hover { color: #fff; }
+.no-results { text-align: center; color: #718096; font-size: 16px; margin-top: 12px; }
 
 .game-grid {
   display: grid;

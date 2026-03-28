@@ -55,6 +55,11 @@ const router = createRouter({
       component: () => import('../games/create/CreateGame.vue'),
     },
     {
+      path: '/games/breakout',
+      name: 'breakout',
+      component: () => import('../games/breakout/Breakout.vue'),
+    },
+    {
       path: '/games/sudoku',
       name: 'sudoku',
       component: () => import('../games/sudoku/Sudoku.vue'),
