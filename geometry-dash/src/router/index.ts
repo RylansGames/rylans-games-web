@@ -100,11 +100,6 @@ const router = createRouter({
       component: () => import('../games/feedback/Feedback.vue'),
     },
     {
-      path: '/games/chat',
-      name: 'chat',
-      component: () => import('../games/chat/RylanChat.vue'),
-    },
-    {
       path: '/about',
       name: 'about',
       component: () => import('../views/AboutView.vue'),

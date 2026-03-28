@@ -178,16 +178,6 @@ const games: Game[] = [
     available: true
   },
   {
-    id: 'chat',
-    title: 'Rylan Chat',
-    description: 'Chat, voice call, and video call with your friends!',
-    route: '/games/chat',
-    icon: '💬',
-    thumbnailColor: '#5a67d8',
-    rating: 5.0,
-    available: true
-  },
-  {
     id: 'sudoku',
     title: 'Sudoku',
     description: '10,000 puzzles! Pick your difficulty and solve them all!',

@@ -837,4 +837,95 @@ onUnmounted(() => {
   80% { opacity: 1; }
   100% { opacity: 0; }
 }
+
+/* Mobile responsiveness */
+@media (max-width: 700px) {
+  .start-screen {
+    padding: 20px 24px;
+    width: 85%;
+    box-sizing: border-box;
+  }
+  .start-screen h1 {
+    font-size: 28px;
+  }
+  .subtitle {
+    font-size: 16px;
+    margin-bottom: 16px;
+  }
+  .instructions {
+    font-size: 14px;
+  }
+  .warning {
+    font-size: 14px;
+    margin: 10px 0;
+  }
+  .start-button {
+    padding: 12px 28px;
+    font-size: 18px;
+    margin-top: 16px;
+  }
+  .game-over-screen {
+    padding: 24px 20px;
+    width: 85%;
+    box-sizing: border-box;
+  }
+  .game-over-screen h1 {
+    font-size: 28px;
+    margin-bottom: 12px;
+  }
+  .score-text {
+    font-size: 20px;
+    margin: 10px 0;
+  }
+  .coins-text {
+    font-size: 18px;
+  }
+  .high-score-text {
+    font-size: 16px;
+  }
+  .restart-button, .exit-button {
+    padding: 10px 20px;
+    font-size: 15px;
+  }
+  .back-button {
+    top: 10px;
+    left: 10px;
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+  .game-hud {
+    top: 10px;
+    right: 10px;
+    gap: 6px;
+  }
+  .hud-item {
+    padding: 6px 10px;
+    font-size: 13px;
+    min-width: 80px;
+  }
+  .instructions-overlay {
+    bottom: 20px;
+    padding: 10px 16px;
+    width: 85%;
+    box-sizing: border-box;
+  }
+  .instructions-overlay p {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 400px) {
+  .start-screen h1 {
+    font-size: 22px;
+  }
+  .subtitle {
+    font-size: 14px;
+  }
+  .game-over-screen h1 {
+    font-size: 22px;
+  }
+  .score-text {
+    font-size: 18px;
+  }
+}
 </style>
