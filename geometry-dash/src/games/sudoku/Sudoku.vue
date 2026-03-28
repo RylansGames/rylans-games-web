@@ -541,6 +541,11 @@ onMounted(() => {
   window.addEventListener('keydown', onKeyDown)
   playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Sudoku')
   OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Sudoku')
+  OnlineTracker.onAdminAction((action) => {
+    if (action.type === 'grantCoins' && action.amount) {
+      gameState.addCoins(action.amount)
+    }
+  })
 })
 
 onUnmounted(() => {

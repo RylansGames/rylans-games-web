@@ -452,6 +452,11 @@ onMounted(() => {
   playerName.value = gameState.getPlayerName() || 'Player'
   playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Roblox Studio')
   OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Roblox Studio')
+  OnlineTracker.onAdminAction((action) => {
+    if (action.type === 'grantCoins' && action.amount) {
+      gameState.addCoins(action.amount)
+    }
+  })
 })
 
 onUnmounted(() => {

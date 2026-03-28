@@ -663,6 +663,11 @@ onMounted(() => {
   window.addEventListener('touchstart', onTouchStart, { passive: false })
   window.addEventListener('touchmove', onTouchMove, { passive: false })
   window.addEventListener('touchend', onTouchEnd)
+  OnlineTracker.onAdminAction((action) => {
+    if (action.type === 'grantCoins' && action.amount) {
+      gameState.addCoins(action.amount)
+    }
+  })
 })
 
 onUnmounted(() => {

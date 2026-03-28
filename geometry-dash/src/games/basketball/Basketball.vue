@@ -834,6 +834,11 @@ onMounted(() => {
   if (saved) playerName.value = saved
   playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Basketball')
   OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Basketball')
+  OnlineTracker.onAdminAction((action) => {
+    if (action.type === 'grantCoins' && action.amount) {
+      gameState.addCoins(action.amount)
+    }
+  })
 })
 
 onUnmounted(() => {

@@ -1337,6 +1337,11 @@ onMounted(() => {
   window.addEventListener('touchend', () => {
     if (swiping) { swiping = false; swipePos.value = 0 }
   })
+  OnlineTracker.onAdminAction((action) => {
+    if (action.type === 'grantCoins' && action.amount) {
+      gameState.addCoins(action.amount)
+    }
+  })
 })
 
 onUnmounted(() => {
