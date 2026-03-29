@@ -660,10 +660,13 @@ function doInteract() {
 }
 
 function updateCamera() {
-  // Fixed camera behind player looking into the house (toward -Z)
+  // Camera orbits around player based on mouse yaw
+  const camDist = 3.5
   const camHeight = playerY + 1.5
-  camera.position.lerp(new THREE.Vector3(playerX, camHeight, playerZ + 3.5), 0.12)
-  camera.lookAt(playerX, playerY + 0.8, playerZ - 1)
+  const cx = playerX + Math.sin(playerYaw) * camDist
+  const cz = playerZ + Math.cos(playerYaw) * camDist
+  camera.position.lerp(new THREE.Vector3(cx, camHeight, cz), 0.12)
+  camera.lookAt(playerX, playerY + 0.8, playerZ)
 }
 
 // ===== HOMEWORK =====
