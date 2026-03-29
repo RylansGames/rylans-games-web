@@ -595,30 +595,19 @@ function gameLoop() {
 function updatePlayer() {
   let dx = 0, dz = 0
 
-  // Camera-relative movement: W=forward where camera looks, S=back, A=left, D=right
-  let inputForward = 0
-  let inputRight = 0
-  if (keys['KeyW'] || keys['ArrowUp']) inputForward += 1
-  if (keys['KeyS'] || keys['ArrowDown']) inputForward -= 1
-  if (keys['KeyA'] || keys['ArrowLeft']) inputRight -= 1
-  if (keys['KeyD'] || keys['ArrowRight']) inputRight += 1
+  // W=forward(-Z into house), S=back(+Z), A=left(-X), D=right(+X)
+  if (keys['KeyW'] || keys['ArrowUp']) dz -= SPEED
+  if (keys['KeyS'] || keys['ArrowDown']) dz += SPEED
+  if (keys['KeyA'] || keys['ArrowLeft']) dx -= SPEED
+  if (keys['KeyD'] || keys['ArrowRight']) dx += SPEED
 
   // Joystick
   if (joyX.value !== 0 || joyY.value !== 0) {
-    inputRight += joyX.value / 40
-    inputForward -= joyY.value / 40
+    dx += (joyX.value / 40) * SPEED
+    dz += (joyY.value / 40) * SPEED
   }
 
-  if (inputForward !== 0 || inputRight !== 0) {
-    // Forward direction is opposite of camera (camera is behind player)
-    const forwardX = -Math.sin(playerYaw)
-    const forwardZ = -Math.cos(playerYaw)
-    const rightX = Math.cos(playerYaw)
-    const rightZ = -Math.sin(playerYaw)
-
-    dx = (forwardX * inputForward + rightX * inputRight) * SPEED
-    dz = (forwardZ * inputForward + rightZ * inputRight) * SPEED
-
+  if (dx !== 0 || dz !== 0) {
     playerX += dx
     playerZ += dz
 
@@ -681,13 +670,10 @@ function doInteract() {
 }
 
 function updateCamera() {
-  // Camera orbits around player based on mouse yaw
-  const camDist = 3.5
+  // Fixed camera behind player - always looking toward -Z (into the house)
   const camHeight = playerY + 1.5
-  const cx = playerX + Math.sin(playerYaw) * camDist
-  const cz = playerZ + Math.cos(playerYaw) * camDist
-  camera.position.lerp(new THREE.Vector3(cx, camHeight, cz), 0.12)
-  camera.lookAt(playerX, playerY + 0.8, playerZ)
+  camera.position.lerp(new THREE.Vector3(playerX, camHeight, playerZ + 4), 0.12)
+  camera.lookAt(playerX, playerY + 0.8, playerZ - 1)
 }
 
 // ===== HOMEWORK =====
