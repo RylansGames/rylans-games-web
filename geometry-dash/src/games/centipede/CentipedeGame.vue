@@ -315,17 +315,17 @@ function init3D() {
   renderer.shadowMap.enabled = true
   threeContainer.value.appendChild(renderer.domElement)
 
-  // Mouse look directly on the canvas
-  renderer.domElement.addEventListener('click', () => {
-    renderer.domElement.requestPointerLock?.()
-  })
+  // Mouse look - track mouse X position on canvas to rotate camera
+  let lastMouseX = -1
   renderer.domElement.addEventListener('mousemove', (e: MouseEvent) => {
-    if (document.pointerLockElement === renderer.domElement) {
-      playerYaw -= e.movementX * 0.004
+    if (lastMouseX >= 0) {
+      const deltaX = e.clientX - lastMouseX
+      playerYaw -= deltaX * 0.005
     }
+    lastMouseX = e.clientX
   })
-  renderer.domElement.addEventListener('mousedown', () => { mouseDown = true })
-  renderer.domElement.addEventListener('mouseup', () => { mouseDown = false })
+  renderer.domElement.addEventListener('mouseleave', () => { lastMouseX = -1 })
+  renderer.domElement.addEventListener('mouseenter', (e: MouseEvent) => { lastMouseX = e.clientX })
 
   scene.add(new THREE.AmbientLight('#888899', 0.7))
 
@@ -341,8 +341,6 @@ function init3D() {
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
   window.addEventListener('mousemove', onMouseMove)
-  window.addEventListener('mousedown', () => { mouseDown = true })
-  window.addEventListener('mouseup', () => { mouseDown = false })
   window.addEventListener('resize', onResize)
 
   gameLoop()
@@ -859,14 +857,8 @@ function onKeyDown(e: KeyboardEvent) {
 }
 function onKeyUp(e: KeyboardEvent) { keys[e.code] = false }
 
-let mouseDown = false
-
-function onMouseMove(e: MouseEvent) {
-  if (document.pointerLockElement) {
-    playerYaw -= e.movementX * 0.004
-  } else if (mouseDown) {
-    playerYaw -= e.movementX * 0.006
-  }
+function onMouseMove() {
+  // Mouse look handled directly on canvas element
 }
 
 function joyStart(e: TouchEvent) {
