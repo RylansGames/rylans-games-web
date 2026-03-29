@@ -192,6 +192,16 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'golf',
+    title: 'Platform Golf',
+    description: '9 holes of crazy 2D golf with sand, water, ice, wind, and powerups!',
+    route: '/games/golf',
+    icon: '⛳',
+    thumbnailColor: '#22c55e',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'centipede',
     title: 'The Centipede',
     description: 'A survival horror story! Lock your doors before the giant centipede gets in!',
