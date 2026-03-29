@@ -546,14 +546,30 @@ function buildHouse() {
   deskLamp.position.set(2.6, 4.1, -2.2)
   scene.add(deskLamp)
 
-  // Desk chair
+  // Desk chair - with legs
   const chairMat = new THREE.MeshStandardMaterial({ color: '#333' })
-  const chair = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.5), chairMat)
-  chair.position.set(2, 3.4, -1.4)
-  scene.add(chair)
-  const chairBack = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.08), chairMat)
-  chairBack.position.set(2, 3.7, -1.65)
+  // Seat
+  const chairSeat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.06, 0.5), chairMat)
+  chairSeat.position.set(2, 3.55, -1.4)
+  scene.add(chairSeat)
+  // Back
+  const chairBack = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.06), chairMat)
+  chairBack.position.set(2, 3.85, -1.65)
   scene.add(chairBack)
+  // 4 Legs
+  const legMat = new THREE.MeshStandardMaterial({ color: '#222' })
+  for (const [lx, lz] of [[-0.2, -0.2], [0.2, -0.2], [-0.2, 0.15], [0.2, 0.15]]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.4, 6), legMat)
+    leg.position.set(2 + lx, 3.32, -1.4 + lz)
+    scene.add(leg)
+  }
+  // Wheel base (like an office chair)
+  const wheelBase = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.25, 8), legMat)
+  wheelBase.position.set(2, 3.12, -1.4)
+  scene.add(wheelBase)
+  const wheelStar = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.03, 5), legMat)
+  wheelStar.position.set(2, 3.12, -1.4)
+  scene.add(wheelStar)
 
   // Upstairs lights
   const ul1 = new THREE.PointLight('#ffddaa', 1.5, 12)
@@ -704,6 +720,14 @@ function checkAnswer() {
 function finishHomework() {
   phase.value = 'explore'
   nextTick(() => {
+    // Re-attach renderer if needed
+    if (renderer && threeContainer.value && !threeContainer.value.contains(renderer.domElement)) {
+      threeContainer.value.appendChild(renderer.domElement)
+    }
+    // Restart game loop
+    if (animFrame) cancelAnimationFrame(animFrame)
+    gameLoop()
+
     dialogueText.value = "Dang, that was hard!"
     setTimeout(() => {
       dialogueText.value = "OH MY! It's night! I need to lock my doors QUICK!!!!!"
@@ -712,7 +736,6 @@ function finishHomework() {
         startLockDoors()
       }, 3000)
     }, 2000)
-    gameLoop()
   })
 }
 
