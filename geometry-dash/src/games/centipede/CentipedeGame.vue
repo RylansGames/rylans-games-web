@@ -333,6 +333,8 @@ function init3D() {
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
   window.addEventListener('mousemove', onMouseMove)
+  window.addEventListener('mousedown', onMouseDown)
+  window.addEventListener('mouseup', onMouseUp)
   window.addEventListener('resize', onResize)
 
   gameLoop()
@@ -826,9 +828,17 @@ function onKeyDown(e: KeyboardEvent) {
 }
 function onKeyUp(e: KeyboardEvent) { keys[e.code] = false }
 
+let mouseDown = false
+
+function onMouseDown() { mouseDown = true }
+function onMouseUp() { mouseDown = false }
+
 function onMouseMove(e: MouseEvent) {
+  // Works with pointer lock OR mouse drag (hold right click)
   if (document.pointerLockElement) {
     playerYaw -= e.movementX * 0.003
+  } else if (mouseDown) {
+    playerYaw -= e.movementX * 0.005
   }
 }
 
