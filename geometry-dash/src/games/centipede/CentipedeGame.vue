@@ -228,7 +228,7 @@ let animFrame: number
 let playerX = 0
 let playerY = 0 // 0 = downstairs, 5 = upstairs
 let playerZ = 3
-let playerYaw = Math.PI
+let playerYaw = 0
 const SPEED = 0.08
 const keys: Record<string, boolean> = {}
 
@@ -315,9 +315,17 @@ function init3D() {
   renderer.shadowMap.enabled = true
   threeContainer.value.appendChild(renderer.domElement)
 
+  // Mouse look directly on the canvas
   renderer.domElement.addEventListener('click', () => {
     renderer.domElement.requestPointerLock?.()
   })
+  renderer.domElement.addEventListener('mousemove', (e: MouseEvent) => {
+    if (document.pointerLockElement === renderer.domElement) {
+      playerYaw -= e.movementX * 0.004
+    }
+  })
+  renderer.domElement.addEventListener('mousedown', () => { mouseDown = true })
+  renderer.domElement.addEventListener('mouseup', () => { mouseDown = false })
 
   scene.add(new THREE.AmbientLight('#888899', 0.7))
 
@@ -333,8 +341,8 @@ function init3D() {
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
   window.addEventListener('mousemove', onMouseMove)
-  window.addEventListener('mousedown', onMouseDown)
-  window.addEventListener('mouseup', onMouseUp)
+  window.addEventListener('mousedown', () => { mouseDown = true })
+  window.addEventListener('mouseup', () => { mouseDown = false })
   window.addEventListener('resize', onResize)
 
   gameLoop()
@@ -830,15 +838,11 @@ function onKeyUp(e: KeyboardEvent) { keys[e.code] = false }
 
 let mouseDown = false
 
-function onMouseDown() { mouseDown = true }
-function onMouseUp() { mouseDown = false }
-
 function onMouseMove(e: MouseEvent) {
-  // Works with pointer lock OR mouse drag (hold right click)
   if (document.pointerLockElement) {
-    playerYaw -= e.movementX * 0.003
+    playerYaw -= e.movementX * 0.004
   } else if (mouseDown) {
-    playerYaw -= e.movementX * 0.005
+    playerYaw -= e.movementX * 0.006
   }
 }
 
