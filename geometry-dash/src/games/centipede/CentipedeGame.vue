@@ -320,7 +320,7 @@ function init3D() {
   renderer.domElement.addEventListener('mousemove', (e: MouseEvent) => {
     if (lastMouseX >= 0) {
       const deltaX = e.clientX - lastMouseX
-      playerYaw -= deltaX * 0.005
+      playerYaw += deltaX * 0.005
     }
     lastMouseX = e.clientX
   })
