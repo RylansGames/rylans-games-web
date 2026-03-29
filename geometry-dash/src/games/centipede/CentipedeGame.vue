@@ -319,7 +319,7 @@ function init3D() {
     renderer.domElement.requestPointerLock?.()
   })
 
-  scene.add(new THREE.AmbientLight('#444455', 0.3))
+  scene.add(new THREE.AmbientLight('#888899', 0.7))
 
   buildHouse()
   setupZones()
@@ -369,8 +369,8 @@ function buildHouse() {
   addWall(-6, 1.5, 2, 0.2, 3, 10)   // left wall
   addWall(6, 1.5, 2, 0.2, 3, 10)    // right wall
 
-  // Ceiling/Floor between floors
-  const ceil1 = new THREE.Mesh(new THREE.BoxGeometry(12, 0.2, 10), ceilMat)
+  // Ceiling/Floor between floors - only visible from below
+  const ceil1 = new THREE.Mesh(new THREE.BoxGeometry(12, 0.1, 10), new THREE.MeshStandardMaterial({ color: '#e8e0d0', roughness: 1, side: THREE.FrontSide }))
   ceil1.position.set(0, 3, 2)
   scene.add(ceil1)
 
@@ -546,11 +546,11 @@ function buildHouse() {
   scene.add(chairBack)
 
   // Upstairs lights
-  const ul1 = new THREE.PointLight('#ffddaa', 0.8, 8)
+  const ul1 = new THREE.PointLight('#ffddaa', 1.5, 12)
   ul1.position.set(3, 5.5, 0)
   scene.add(ul1)
   upstairsLights.push(ul1)
-  const ul2 = new THREE.PointLight('#ffddaa', 0.5, 6)
+  const ul2 = new THREE.PointLight('#ffddaa', 1.2, 10)
   ul2.position.set(0, 5.5, 3)
   scene.add(ul2)
   upstairsLights.push(ul2)
@@ -559,8 +559,8 @@ function buildHouse() {
 function setupZones() {
   zones = [
     { x: 5, z: 2, y: 0, radius: 1.5, id: 'stairs-up', label: 'Go Upstairs' },
-    { x: 5, z: 2, y: 5, radius: 1.5, id: 'stairs-down', label: 'Go Downstairs' },
-    { x: 2, z: -1.4, y: 5, radius: 1, id: 'desk', label: '📚 Sit at Desk' },
+    { x: 5, z: 2, y: 3.2, radius: 1.5, id: 'stairs-down', label: 'Go Downstairs' },
+    { x: 2, z: -1.4, y: 3.2, radius: 1, id: 'desk', label: '📚 Sit at Desk' },
     { x: 3, z: 6.8, y: 0, radius: 1.2, id: 'front-door', label: '🔒 Lock Front Door' },
     { x: -4, z: -2.5, y: 0, radius: 1.2, id: 'back-door', label: '🔒 Lock Back Door' },
   ]
@@ -585,6 +585,7 @@ function gameLoop() {
 function updatePlayer() {
   let dx = 0, dz = 0
 
+  // Simple world-direction movement: W=forward(into house), S=back, A=left, D=right
   if (keys['KeyW'] || keys['ArrowUp']) dz -= SPEED
   if (keys['KeyS'] || keys['ArrowDown']) dz += SPEED
   if (keys['KeyA'] || keys['ArrowLeft']) dx -= SPEED
@@ -597,15 +598,8 @@ function updatePlayer() {
   }
 
   if (dx !== 0 || dz !== 0) {
-    // Camera-relative movement
-    const forward = new THREE.Vector3(-Math.sin(playerYaw), 0, -Math.cos(playerYaw))
-    const right = new THREE.Vector3(Math.cos(playerYaw), 0, -Math.sin(playerYaw))
-    const moveX = forward.x * (-dz / SPEED) + right.x * (dx / SPEED)
-    const moveZ = forward.z * (-dz / SPEED) + right.z * (dx / SPEED)
-    const len = Math.sqrt(moveX * moveX + moveZ * moveZ)
-
-    playerX += (moveX / len) * SPEED
-    playerZ += (moveZ / len) * SPEED
+    playerX += dx
+    playerZ += dz
 
     // Bounds
     playerX = Math.max(-5.5, Math.min(5.5, playerX))
@@ -641,7 +635,7 @@ function doInteract() {
     const dist = Math.sqrt((playerX - zone.x) ** 2 + (playerZ - zone.z) ** 2)
     if (dist < zone.radius) {
       if (zone.id === 'stairs-up' && playerY < 3) {
-        playerY = 5; playerX = 4; playerZ = 2
+        playerY = 3.2; playerX = 4; playerZ = 2
         showArrow.value = true
         arrowLabel.value = 'Go to your room'
       } else if (zone.id === 'stairs-down' && playerY > 3) {
@@ -666,12 +660,10 @@ function doInteract() {
 }
 
 function updateCamera() {
-  const camDist = 3
-  const camHeight = playerY + 1.7
-  const cx = playerX - Math.sin(playerYaw) * camDist
-  const cz = playerZ - Math.cos(playerYaw) * camDist
-  camera.position.lerp(new THREE.Vector3(cx, camHeight, cz), 0.1)
-  camera.lookAt(playerX, playerY + 1.5, playerZ)
+  // Fixed camera behind player looking into the house (toward -Z)
+  const camHeight = playerY + 1.5
+  camera.position.lerp(new THREE.Vector3(playerX, camHeight, playerZ + 3.5), 0.12)
+  camera.lookAt(playerX, playerY + 0.8, playerZ - 1)
 }
 
 // ===== HOMEWORK =====
@@ -718,7 +710,7 @@ function finishHomework() {
 function startLockDoors() {
   phase.value = 'lock-doors'
   lockTimer.value = 30
-  playerY = 5 // Still upstairs
+  playerY = 3.2 // Still upstairs
   showArrow.value = true
   arrowLabel.value = 'Go downstairs and lock the doors!'
 
