@@ -59,6 +59,24 @@
     <!-- Titanic Blessed Indicator -->
     <div v-if="titanicBlessed && !titanicMessage" class="titanic-blessed">🚢✨ TITANIC BLESSING ACTIVE - Next fish gets 100x value!</div>
 
+    <!-- Admin Panel Button -->
+    <button v-if="isAdmin && inFishingScreens" class="admin-toggle-btn" @click="showAdminPanel = !showAdminPanel">⚙️</button>
+
+    <!-- Admin Panel -->
+    <div v-if="showAdminPanel && isAdmin" class="fish-admin-panel">
+      <div class="fap-header">
+        <span>⚙️ Fishing Admin</span>
+        <button class="fap-close" @click="showAdminPanel = false">✕</button>
+      </div>
+      <div class="fap-buttons">
+        <button class="fap-btn money-btn" @click="adminGiveMoney">💰 Give 1 Trillion</button>
+        <button class="fap-btn rod-btn" @click="adminGiveBestRod">🎣 Give Best Rod</button>
+        <button class="fap-btn brain-btn" @click="adminGiveBrainrot">🧠 Give Brainrot</button>
+        <button class="fap-btn avatar-btn" @click="adminGiveAllCosmetics">👤 Give All Avatar Items</button>
+      </div>
+      <div v-if="adminMessage" class="fap-msg">{{ adminMessage }}</div>
+    </div>
+
     <!-- Cast Button -->
     <div v-if="screen === 'fishing'" class="action-area">
       <button class="cast-btn" @click="castLine">🎣 Cast Line</button>
@@ -381,6 +399,44 @@ const caughtFish = ref<Fish | null>(null)
 const currentFishRarity = ref<Rarity>('common')
 const inventory = ref<Fish[]>([])
 const canvasContainer = ref<HTMLElement | null>(null)
+
+// Admin Panel
+const isAdmin = ref(false)
+const showAdminPanel = ref(false)
+const adminMessage = ref('')
+const nextCatchBrainrot = ref(false)
+
+function adminGiveMoney() {
+  money.value += 1000000000000 // 1 trillion
+  adminMessage.value = '💰 +1 Trillion coins!'
+  saveGame()
+  setTimeout(() => { adminMessage.value = '' }, 2000)
+}
+
+function adminGiveBestRod() {
+  const bestRod = rods[rods.length - 1] // Omega Rod
+  if (!ownedRods.value.includes(bestRod.id)) {
+    ownedRods.value = [...ownedRods.value, bestRod.id]
+  }
+  currentRod.value = bestRod
+  adminMessage.value = '🎣 Got the Omega Rod!'
+  saveGame()
+  setTimeout(() => { adminMessage.value = '' }, 2000)
+}
+
+function adminGiveBrainrot() {
+  nextCatchBrainrot.value = true
+  adminMessage.value = '🧠 Next catch will be the best Brainrot fish!'
+  setTimeout(() => { adminMessage.value = '' }, 2000)
+}
+
+function adminGiveAllCosmetics() {
+  const allIds = allCosmetics.map(c => c.id)
+  ownedCosmetics.value = [...allIds]
+  adminMessage.value = '👤 All avatar items unlocked!'
+  saveGame()
+  setTimeout(() => { adminMessage.value = '' }, 2000)
+}
 
 // Fish Index - tracks which fish you've ever caught
 const caughtFishNames = ref<string[]>([])
@@ -1542,7 +1598,12 @@ function reelIn() {
   const inGreen = needlePos.value >= greenStart.value && needlePos.value <= greenStart.value + greenWidth.value
   if (inGreen) {
     let baseFish: Fish
-    if (brainrotEventActive.value) {
+    if (nextCatchBrainrot.value) {
+      // Admin gave brainrot - give the best one (Tung Tung Sahur Fish)
+      const bestBrainrot = allFish.filter(f => f.rarity === 'brainrot').sort((a, b) => b.value - a.value)[0]
+      baseFish = bestBrainrot
+      nextCatchBrainrot.value = false
+    } else if (brainrotEventActive.value) {
       baseFish = rollBrainrotEventFish()
     } else {
       const fishOfRarity = allFish.filter(f => f.rarity === currentFishRarity.value)
@@ -1628,6 +1689,7 @@ function onKeyDown(e: KeyboardEvent) {
 
 onMounted(() => {
   loadGame()
+  isAdmin.value = localStorage.getItem('adminAuth') === 'true'
   window.addEventListener('keydown', onKeyDown)
   playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Fishing Tycoon')
   OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Fishing Tycoon')
@@ -2061,6 +2123,37 @@ onUnmounted(() => {
   from { transform: translateX(-50%) rotate(-1deg) scale(1); }
   to { transform: translateX(-50%) rotate(1deg) scale(1.02); }
 }
+
+/* ADMIN PANEL */
+.admin-toggle-btn {
+  position: fixed; top: 12px; left: 60px; z-index: 50;
+  background: rgba(0,0,0,0.6); color: #fbbf24; border: 1px solid #fbbf24;
+  width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+.admin-toggle-btn:hover { background: rgba(251,191,36,0.2); }
+
+.fish-admin-panel {
+  position: fixed; top: 60px; left: 12px; z-index: 50;
+  background: rgba(0,0,0,0.9); border: 2px solid #fbbf24; border-radius: 14px;
+  padding: 14px; width: 220px; backdrop-filter: blur(8px);
+}
+.fap-header {
+  display: flex; justify-content: space-between; align-items: center;
+  color: #fbbf24; font-size: 14px; font-weight: 800; margin-bottom: 10px;
+}
+.fap-close { background: none; border: none; color: #888; font-size: 16px; cursor: pointer; }
+.fap-buttons { display: flex; flex-direction: column; gap: 6px; }
+.fap-btn {
+  padding: 8px 12px; border-radius: 8px; border: none; font-size: 13px;
+  font-weight: 700; cursor: pointer; color: #fff; text-align: left;
+}
+.fap-btn:hover { transform: scale(1.02); }
+.money-btn { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.rod-btn { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.brain-btn { background: linear-gradient(135deg, #ff3366, #cc0044); }
+.avatar-btn { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.fap-msg { color: #4ade80; font-size: 12px; font-weight: 700; margin-top: 8px; text-align: center; }
 
 /* CHEESE EVENT */
 .cheese-banner {
