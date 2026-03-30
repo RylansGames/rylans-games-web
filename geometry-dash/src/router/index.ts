@@ -55,6 +55,11 @@ const router = createRouter({
       component: () => import('../games/create/CreateGame.vue'),
     },
     {
+      path: '/games/teddy',
+      name: 'teddy',
+      component: () => import('../games/teddy/TeddyGame.vue'),
+    },
+    {
       path: '/games/golf',
       name: 'golf',
       component: () => import('../games/golf/PlatformGolf.vue'),

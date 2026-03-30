@@ -192,6 +192,16 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'teddy',
+    title: 'Teddy',
+    description: 'You woke up as a teddy bear. Survive, hide, and uncover the mystery!',
+    route: '/games/teddy',
+    icon: '🧸',
+    thumbnailColor: '#c4956a',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'golf',
     title: 'Platform Golf',
     description: '9 holes of crazy 2D golf with sand, water, ice, wind, and powerups!',
