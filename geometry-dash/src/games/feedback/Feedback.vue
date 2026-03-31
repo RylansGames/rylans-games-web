@@ -223,6 +223,7 @@ onMounted(() => {
       likes: val.likes || 0,
       likedByMe: !!(val.likedBy && val.likedBy[myId]),
     }))
+    localStorage.setItem('lastSeenFeedbackCount', ideas.value.length.toString())
   })
   playerTracker.startSession(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Feedback')
   OnlineTracker.goOnline(gameState.playerName || 'Player', gameState.getCoins(), 1, 0, 0, 'Feedback')

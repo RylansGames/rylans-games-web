@@ -28,6 +28,7 @@
         :thumbnail-color="game.thumbnailColor"
         :rating="game.rating"
         :available="game.available"
+        :badge="game.id === 'feedback' ? newFeedbackCount : 0"
       />
     </div>
   </div>
@@ -39,10 +40,13 @@ import GameCard from './GameCard.vue'
 import Settings from './Settings.vue'
 import AdminAbuseSign from './shared/AdminAbuseSign.vue'
 import { PlayerTracker } from './shared/PlayerTracker'
+import { db } from '../firebase'
+import { ref as dbRef, onValue } from 'firebase/database'
 
 const showAdmin = ref(false)
 const hasActiveEffects = ref(false)
 const searchQuery = ref('')
+const newFeedbackCount = ref(0)
 
 const stopEffects = () => {
   PlayerTracker.stopAllAbuseEffects()
@@ -329,6 +333,14 @@ onMounted(() => {
   effectCheckInterval = setInterval(() => {
     hasActiveEffects.value = PlayerTracker.checkForAbuseEffects().length > 0
   }, 500)
+
+  // Listen for new feedback
+  const lastSeenFeedback = parseInt(localStorage.getItem('lastSeenFeedbackCount') || '0')
+  onValue(dbRef(db, 'feedback/ideas'), (snap) => {
+    const data = snap.val()
+    const total = data ? Object.keys(data).length : 0
+    newFeedbackCount.value = Math.max(0, total - lastSeenFeedback)
+  })
 })
 
 onUnmounted(() => {

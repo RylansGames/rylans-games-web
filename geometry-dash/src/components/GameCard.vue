@@ -2,6 +2,7 @@
   <div class="game-card" @click="playGame">
     <div class="game-thumbnail" :style="{ backgroundColor: thumbnailColor }">
       <div class="game-icon">{{ icon }}</div>
+      <div v-if="badge && badge > 0" class="game-badge">{{ badge > 99 ? '99+' : badge }}</div>
     </div>
     <h3 class="game-title">{{ title }}</h3>
     <p class="game-description">{{ description }}</p>
@@ -24,13 +25,15 @@ interface Props {
   thumbnailColor?: string
   rating?: number
   available?: boolean
+  badge?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
   icon: '🎮',
   thumbnailColor: '#4a5568',
   rating: 4.5,
-  available: true
+  available: true,
+  badge: 0,
 })
 
 const router = useRouter()
@@ -73,6 +76,31 @@ const playGame = () => {
   align-items: center;
   justify-content: center;
   margin-bottom: 15px;
+  position: relative;
+}
+
+.game-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.5);
+  animation: badge-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }
 
 .game-icon {
