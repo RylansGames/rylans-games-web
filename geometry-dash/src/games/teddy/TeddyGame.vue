@@ -43,11 +43,10 @@
     <div v-if="phase === 'explore' || phase === 'rush-back' || phase === 'investigate'" class="game-screen">
       <div ref="threeContainer" class="three-container"></div>
 
-      <!-- Dialogue overlay -->
-      <div v-if="gameDialogue" class="game-dialogue">
+      <!-- Dialogue overlay - doesn't block movement -->
+      <div v-if="gameDialogue" class="game-dialogue" style="pointer-events: none;">
         <div class="gd-speaker">{{ gameDialogueSpeaker }}</div>
         <div class="gd-text">{{ gameDialogue }}</div>
-        <button class="gd-next" @click="clearDialogue">OK</button>
       </div>
 
       <!-- Timer (rush back to bed) -->
@@ -278,29 +277,35 @@ function init3D(mode: string) {
   buildBedroom()
 
   if (mode === 'explore') {
-    // Start on the bed
-    playerX = 0; playerZ = 0; playerY = 0.6
+    // Start AWAY from the bed so you need to run back
+    playerX = 1.5; playerZ = 2; playerY = 0
     playerYaw = 0
-    gameDialogueSpeaker.value = 'You (Mr. Teddy)'
-    gameDialogue.value = "I got off the bed... I need to look around. Wait... I hear something!"
-    zones = [{ x: 0, z: 0, radius: 1, id: 'bed', label: '🛏️ Get on Bed' }]
+    zones = [{ x: 0, z: 0, radius: 1.2, id: 'bed', label: '🛏️ Get on Bed' }]
 
-    // After 3 seconds, trigger the noises
+    // Auto dialogue sequence - doesn't block movement
+    gameDialogueSpeaker.value = 'You (Mr. Teddy)'
+    gameDialogue.value = "I got off the bed... I need to look around."
+    setTimeout(() => {
+      gameDialogue.value = ''
+    }, 2500)
+
+    // After 5 seconds, trigger the noises
     setTimeout(() => {
       if (phase.value !== 'explore') return
       gameDialogueSpeaker.value = '???'
       gameDialogue.value = '*footsteps... giggling...*'
       setTimeout(() => {
+        if (phase.value !== 'explore') return
         gameDialogueSpeaker.value = 'You (Mr. Teddy)'
-        gameDialogue.value = "What is that?! It sounds like... children?! I need to get back on the bed! QUICK!"
+        gameDialogue.value = "Children?! I need to get back on the bed! QUICK!"
         setTimeout(() => {
           gameDialogue.value = ''
           startRushBack()
-        }, 3000)
+        }, 2500)
       }, 2000)
-    }, 4000)
+    }, 5000)
   } else if (mode === 'investigate') {
-    playerX = 0; playerZ = 0; playerY = 0.6
+    playerX = 0; playerZ = 1; playerY = 0
     playerYaw = 0
     gameDialogueSpeaker.value = 'You (Mr. Teddy)'
     gameDialogue.value = "Now I can explore... Let me look around this room."
