@@ -196,6 +196,16 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'learn-code',
+    title: 'Learn to Code',
+    description: 'Learn HTML, CSS, JavaScript, and Python with interactive lessons!',
+    route: '/games/learn-code',
+    icon: '💻',
+    thumbnailColor: '#3b82f6',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'forest',
     title: '99 Nights in the Forest',
     description: 'Survive 99 nights in the dark forest! Play solo or with up to 5 friends!',

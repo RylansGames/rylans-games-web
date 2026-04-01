@@ -55,6 +55,11 @@ const router = createRouter({
       component: () => import('../games/create/CreateGame.vue'),
     },
     {
+      path: '/games/learn-code',
+      name: 'learn-code',
+      component: () => import('../games/learn-code/LearnCode.vue'),
+    },
+    {
       path: '/games/forest',
       name: 'forest',
       component: () => import('../games/forest/ForestNights.vue'),
