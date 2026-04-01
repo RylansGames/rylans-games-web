@@ -603,7 +603,8 @@ const forestDead = ref(false)
 interface InvItem { id: string; name: string; icon: string; count: number }
 const hotbar = ref<(InvItem | null)[]>([
   { id: 'old-axe', name: 'Old Axe', icon: '🪓', count: 1 },
-  null, null, null, null, null,
+  { id: 'old-sack', name: 'Old Sack', icon: '🎒', count: 1 },
+  null, null, null, null,
 ])
 
 // Resources
@@ -702,13 +703,15 @@ function initForest() {
   fRenderer.shadowMap.enabled = true
   forestContainer.value.appendChild(fRenderer.domElement)
 
-  // Mouse look
-  fRenderer.domElement.addEventListener('mousemove', (e: MouseEvent) => {
-    if (fLastMouseX >= 0) fPlayerYaw += (e.clientX - fLastMouseX) * 0.005
-    fLastMouseX = e.clientX
+  // Mouse look - click to lock, move to look
+  fRenderer.domElement.addEventListener('click', () => {
+    fRenderer.domElement.requestPointerLock?.()
   })
-  fRenderer.domElement.addEventListener('mouseleave', () => { fLastMouseX = -1 })
-  fRenderer.domElement.addEventListener('mouseenter', (e: MouseEvent) => { fLastMouseX = e.clientX })
+  document.addEventListener('mousemove', (e: MouseEvent) => {
+    if (document.pointerLockElement === fRenderer.domElement) {
+      fPlayerYaw -= e.movementX * 0.003
+    }
+  })
 
   // Lights
   fScene.add(new THREE.AmbientLight('#445533', 0.5))
@@ -735,8 +738,11 @@ function initForest() {
   sackItems.value = 0
   hotbar.value = [
     { id: 'old-axe', name: 'Old Axe', icon: '🪓', count: 1 },
-    null, null, null, null, null,
+    { id: 'old-sack', name: 'Old Sack', icon: '🎒', count: 1 },
+    null, null, null, null,
   ]
+  hasSack.value = true
+  sackItems.value = 0
 
   startDayNightCycle()
 
@@ -994,16 +1000,25 @@ function forestGameLoop() {
 }
 
 function updateForestPlayer() {
-  let dx = 0, dz = 0
-  if (fKeys['KeyW'] || fKeys['ArrowUp']) dz -= 0.07
-  if (fKeys['KeyS'] || fKeys['ArrowDown']) dz += 0.07
-  if (fKeys['KeyA'] || fKeys['ArrowLeft']) dx -= 0.07
-  if (fKeys['KeyD'] || fKeys['ArrowRight']) dx += 0.07
+  // Camera-relative: W = forward where camera looks
+  const SPD = 0.07
+  const forwardX = -Math.sin(fPlayerYaw)
+  const forwardZ = -Math.cos(fPlayerYaw)
+  const rightX = Math.cos(fPlayerYaw)
+  const rightZ = -Math.sin(fPlayerYaw)
+
+  let inputF = 0, inputR = 0
+  if (fKeys['KeyW'] || fKeys['ArrowUp']) inputF += 1
+  if (fKeys['KeyS'] || fKeys['ArrowDown']) inputF -= 1
+  if (fKeys['KeyA'] || fKeys['ArrowLeft']) inputR -= 1
+  if (fKeys['KeyD'] || fKeys['ArrowRight']) inputR += 1
   if (fjoyX.value !== 0 || fjoyY.value !== 0) {
-    dx += (fjoyX.value / 40) * 0.07
-    dz += (fjoyY.value / 40) * 0.07
+    inputR += fjoyX.value / 40
+    inputF -= fjoyY.value / 40
   }
-  if (dx !== 0 || dz !== 0) {
+  if (inputF !== 0 || inputR !== 0) {
+    const dx = (forwardX * inputF + rightX * inputR) * SPD
+    const dz = (forwardZ * inputF + rightZ * inputR) * SPD
     fPlayerX += dx
     fPlayerZ += dz
     fPlayerX = Math.max(-25, Math.min(25, fPlayerX))
