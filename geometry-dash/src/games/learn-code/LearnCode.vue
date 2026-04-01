@@ -8,11 +8,11 @@
         <p class="step-sub">Start your coding journey today!</p>
         <div class="step-info">
           <p>Before we begin, you'll need a code editor.</p>
-          <p>We recommend <strong>Visual Studio Code</strong> (VS Code)</p>
-          <p class="download-hint">It's free! Download it from:</p>
+          <p><strong>On Computer:</strong> Download Visual Studio Code (VS Code)</p>
           <a href="https://code.visualstudio.com" target="_blank" class="download-link">
             📥 code.visualstudio.com
           </a>
+          <p style="margin-top: 12px"><strong>On iPad:</strong> Search "Code App" or "Textastic" in the App Store</p>
         </div>
         <div class="step-buttons">
           <button class="step-btn ready" @click="step = 'setup'">I already have it</button>
