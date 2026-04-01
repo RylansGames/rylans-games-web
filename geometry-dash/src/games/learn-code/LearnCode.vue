@@ -12,7 +12,7 @@
           <a href="https://code.visualstudio.com" target="_blank" class="download-link">
             📥 code.visualstudio.com
           </a>
-          <p style="margin-top: 12px"><strong>On iPad:</strong> Search "Code App" or "Textastic" in the App Store</p>
+          <p style="margin-top: 12px"><strong>On iPad:</strong> Search "Visual Code" in the App Store</p>
         </div>
         <div class="step-buttons">
           <button class="step-btn ready" @click="step = 'setup'">I already have it</button>
