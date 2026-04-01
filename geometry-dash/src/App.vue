@@ -22,7 +22,7 @@ let unsubLock: Unsubscribe | null = null
 
 onMounted(() => {
   // Kick out old admin sessions - change this number to force logout everyone
-  const ADMIN_VERSION = '2'
+  const ADMIN_VERSION = '3'
   if (localStorage.getItem('adminVersion') !== ADMIN_VERSION) {
     localStorage.removeItem('adminAuth')
     localStorage.removeItem('adminOwnerKey')
@@ -47,7 +47,7 @@ onUnmounted(() => {
 })
 
 const checkAdminCode = () => {
-  if (adminCode.value === 'rylan2027') {
+  if (adminCode.value === 'violinmaster123') {
     // If locked and not the owner, reclaim ownership with a new key
     if (adminLocked.value && !isOwner.value) {
       const newKey = `owner_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
