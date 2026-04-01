@@ -196,6 +196,16 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'forest',
+    title: '99 Nights in the Forest',
+    description: 'Survive 99 nights in the dark forest! Play solo or with up to 5 friends!',
+    route: '/games/forest',
+    icon: '🌲',
+    thumbnailColor: '#1a3a1a',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'teddy',
     title: 'Teddy',
     description: 'You woke up as a teddy bear. Survive, hide, and uncover the mystery!',
