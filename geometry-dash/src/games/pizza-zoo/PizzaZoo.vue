@@ -1077,7 +1077,10 @@ function onKeyUp(e: KeyboardEvent) {
 }
 
 function onMouseMove(e: MouseEvent) {
-  if (mouseDown) {
+  if (document.pointerLockElement === renderer?.domElement) {
+    mouseMovX += e.movementX
+    mouseMovY += e.movementY
+  } else if (mouseDown) {
     mouseMovX += e.movementX || (e.clientX - prevMouseX)
     mouseMovY += e.movementY || (e.clientY - prevMouseY)
   }
@@ -1089,6 +1092,9 @@ function onMouseDown(e: MouseEvent) {
   mouseDown = true
   prevMouseX = e.clientX
   prevMouseY = e.clientY
+  if (renderer && !document.pointerLockElement) {
+    renderer.domElement.requestPointerLock()
+  }
 }
 
 function onMouseUp() {
