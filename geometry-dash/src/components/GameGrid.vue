@@ -206,6 +206,16 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'ai-game',
+    title: "AI's Game",
+    description: 'Explore an alien planet, collect crystals, fly with jetpack, build a base!',
+    route: '/games/ai-game',
+    icon: '🚀',
+    thumbnailColor: '#7c3aed',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'forest',
     title: '99 Nights in the Forest',
     description: 'Survive 99 nights in the dark forest! Play solo or with up to 5 friends!',
