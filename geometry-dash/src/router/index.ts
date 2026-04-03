@@ -70,6 +70,11 @@ const router = createRouter({
       component: () => import('../games/pizza-zoo/PizzaZoo.vue'),
     },
     {
+      path: '/games/spelling',
+      name: 'spelling',
+      component: () => import('../games/spelling/SpellingGame.vue'),
+    },
+    {
       path: '/games/forest',
       name: 'forest',
       component: () => import('../games/forest/ForestNights.vue'),

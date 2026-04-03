@@ -226,6 +226,16 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'spelling',
+    title: 'Spelling Champion',
+    description: 'Practice your spelling words, earn points, win rewards for other games!',
+    route: '/games/spelling',
+    icon: '\u{1F4DD}',
+    thumbnailColor: '#f59e0b',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'forest',
     title: '99 Nights in the Forest',
     description: 'Survive 99 nights in the dark forest! Play solo or with up to 5 friends!',
