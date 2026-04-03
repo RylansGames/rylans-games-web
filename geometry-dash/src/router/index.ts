@@ -65,6 +65,11 @@ const router = createRouter({
       component: () => import('../games/ai-game/AIsGame.vue'),
     },
     {
+      path: '/games/pizza-zoo',
+      name: 'pizza-zoo',
+      component: () => import('../games/pizza-zoo/PizzaZoo.vue'),
+    },
+    {
       path: '/games/forest',
       name: 'forest',
       component: () => import('../games/forest/ForestNights.vue'),

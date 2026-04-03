@@ -216,6 +216,16 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'pizza-zoo',
+    title: 'Pizza Zoo Treasure',
+    description: 'Deliver pizzas, explore temples, build a zoo! The craziest game ever!',
+    route: '/games/pizza-zoo',
+    icon: '\u{1F355}',
+    thumbnailColor: '#dc2626',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'forest',
     title: '99 Nights in the Forest',
     description: 'Survive 99 nights in the dark forest! Play solo or with up to 5 friends!',
