@@ -75,6 +75,11 @@ const router = createRouter({
       component: () => import('../games/spelling/SpellingGame.vue'),
     },
     {
+      path: '/games/noise-monitor',
+      name: 'noise-monitor',
+      component: () => import('../games/noise-monitor/NoiseMonitor.vue'),
+    },
+    {
       path: '/games/forest',
       name: 'forest',
       component: () => import('../games/forest/ForestNights.vue'),

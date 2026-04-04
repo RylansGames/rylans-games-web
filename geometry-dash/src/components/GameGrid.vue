@@ -236,6 +236,16 @@ const games: Game[] = [
     available: true
   },
   {
+    id: 'noise-monitor',
+    title: 'Classroom Noise Monitor',
+    description: 'Keep the class quiet! Monitor noise levels with your microphone.',
+    route: '/games/noise-monitor',
+    icon: '\u{1F3A4}',
+    thumbnailColor: '#059669',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'forest',
     title: '99 Nights in the Forest',
     description: 'Survive 99 nights in the dark forest! Play solo or with up to 5 friends!',
