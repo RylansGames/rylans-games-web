@@ -102,11 +102,12 @@ async function scrollToBottom() {
 }
 
 // ======= IMAGE =======
+interface ImgItem { id: number; prompt: string; url: string; style: string; status: 'loading' | 'ready' | 'error' }
 const imgPrompt = ref('')
 const imgStyle = ref('realistic')
-const imgHistory = ref<{ prompt: string; url: string; style: string }[]>([])
-const imgLoading = ref(false)
+const imgHistory = ref<ImgItem[]>([])
 const imgError = ref('')
+let imgSeq = 1
 
 const IMG_STYLES = [
   { id: 'realistic', label: '📷 Realistic', suffix: ', highly detailed, realistic photo' },
@@ -117,7 +118,9 @@ const IMG_STYLES = [
   { id: 'lego', label: '🧱 Lego', suffix: ', lego style, plastic bricks' },
 ]
 
-async function generateImage() {
+const imgLoading = computed(() => imgHistory.value.some((x) => x.status === 'loading'))
+
+function generateImage() {
   const p = imgPrompt.value.trim()
   if (!p) return
   if (!isSafe(p)) {
@@ -125,23 +128,35 @@ async function generateImage() {
     return
   }
   imgError.value = ''
-  imgLoading.value = true
   const style = IMG_STYLES.find((s) => s.id === imgStyle.value)
   const fullPrompt = p + (style?.suffix ?? '')
   const seed = Math.floor(Math.random() * 1_000_000)
-  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?width=512&height=512&seed=${seed}&nologo=true&safe=true`
-  // Preload
-  const img = new Image()
-  img.onload = () => {
-    imgLoading.value = false
-    imgHistory.value.unshift({ prompt: p, url, style: style?.label ?? '' })
-    save()
-  }
-  img.onerror = () => {
-    imgLoading.value = false
-    imgError.value = 'Image failed to load. Try again?'
-  }
-  img.src = url
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?width=512&height=512&seed=${seed}&nologo=true`
+  imgHistory.value.unshift({
+    id: imgSeq++,
+    prompt: p,
+    url,
+    style: style?.label ?? '',
+    status: 'loading',
+  })
+}
+
+function onImgLoad(item: ImgItem) {
+  item.status = 'ready'
+  save()
+}
+function onImgError(item: ImgItem) {
+  item.status = 'error'
+}
+function retryImage(item: ImgItem) {
+  item.status = 'loading'
+  const u = new URL(item.url)
+  u.searchParams.set('seed', String(Math.floor(Math.random() * 1_000_000)))
+  item.url = u.toString()
+}
+function removeImage(id: number) {
+  imgHistory.value = imgHistory.value.filter((x) => x.id !== id)
+  save()
 }
 
 function downloadImage(url: string, prompt: string) {
@@ -312,31 +327,45 @@ onBeforeUnmount(() => {
             @click="imgStyle = s.id"
           >{{ s.label }}</button>
         </div>
-        <button class="ai-btn big" :disabled="imgLoading || !imgPrompt.trim()" @click="generateImage">
-          {{ imgLoading ? '✨ Thinking…' : '🎨 Make it!' }}
+        <button class="ai-btn big" :disabled="!imgPrompt.trim()" @click="generateImage">
+          🎨 Make it!
         </button>
         <div v-if="imgError" class="ai-error">{{ imgError }}</div>
       </div>
 
-      <div v-if="imgLoading" class="ai-loader">
-        <div class="ai-spin">✨</div>
-        <p>Pixie is painting your picture…</p>
-      </div>
-
       <div v-if="imgHistory.length" class="ai-gallery">
-        <div v-for="(img, i) in imgHistory" :key="i" class="ai-gal-item">
-          <img :src="img.url" :alt="img.prompt" loading="lazy" />
+        <div v-for="img in imgHistory" :key="img.id" class="ai-gal-item">
+          <div class="ai-gal-imgwrap">
+            <div v-if="img.status === 'loading'" class="ai-gal-overlay">
+              <div class="ai-spin">✨</div>
+              <div>Pixie is painting…<br /><small>(can take 10–30s)</small></div>
+            </div>
+            <div v-if="img.status === 'error'" class="ai-gal-overlay err">
+              <div>😿 Failed to load</div>
+              <button class="ai-btn mini" @click="retryImage(img)">↻ Retry</button>
+            </div>
+            <img
+              :src="img.url"
+              :alt="img.prompt"
+              loading="eager"
+              @load="onImgLoad(img)"
+              @error="onImgError(img)"
+            />
+          </div>
           <div class="ai-gal-info">
-            <div class="ai-gal-prompt">“{{ img.prompt }}”</div>
+            <div class="ai-gal-prompt">"{{ img.prompt }}"</div>
             <div class="ai-gal-style">{{ img.style }}</div>
-            <button class="ai-btn mini" @click="downloadImage(img.url, img.prompt)">⬇ Download</button>
+            <div class="ai-gal-actions">
+              <button class="ai-btn mini" :disabled="img.status !== 'ready'" @click="downloadImage(img.url, img.prompt)">⬇ Download</button>
+              <button class="ai-btn ghost mini" @click="removeImage(img.id)">✖</button>
+            </div>
           </div>
         </div>
       </div>
-      <div v-else-if="!imgLoading" class="ai-empty">
+      <div v-else class="ai-empty">
         <div class="ai-empty-icon">🖼️</div>
         <p>Type something above and tap "Make it!" to generate an AI picture.</p>
-        <p class="ai-hint">Powered by Pollinations.ai · free · client-side</p>
+        <p class="ai-hint">Powered by Pollinations.ai · free · client-side<br />First image can take 10–30 seconds.</p>
       </div>
     </main>
   </div>
@@ -444,10 +473,18 @@ onBeforeUnmount(() => {
 .ai-gal-item {
   background: #2a1b4f; border-radius: 14px; overflow: hidden; border: 2px solid #3a2766;
 }
+.ai-gal-imgwrap { position: relative; aspect-ratio: 1; background: #1a1030; }
 .ai-gal-item img { width: 100%; display: block; aspect-ratio: 1; object-fit: cover; }
+.ai-gal-overlay {
+  position: absolute; inset: 0; display: grid; place-items: center; gap: 10px;
+  background: rgba(13, 8, 32, 0.88); color: #f1e6ff; text-align: center;
+  font-weight: 700; z-index: 2; padding: 14px;
+}
+.ai-gal-overlay.err { background: rgba(127, 29, 29, 0.9); }
 .ai-gal-info { padding: 10px; display: grid; gap: 6px; }
 .ai-gal-prompt { font-size: 14px; font-style: italic; }
 .ai-gal-style { font-size: 11px; color: #bca6e0; text-transform: uppercase; letter-spacing: 1px; }
+.ai-gal-actions { display: flex; gap: 6px; justify-content: space-between; }
 
 .ai-empty { text-align: center; padding: 50px 20px; color: #bca6e0; }
 .ai-empty-icon { font-size: 80px; opacity: 0.4; }
