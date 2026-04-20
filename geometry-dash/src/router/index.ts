@@ -160,6 +160,16 @@ const router = createRouter({
       component: () => import('../games/feedback/Feedback.vue'),
     },
     {
+      path: '/games/code-quest',
+      name: 'code-quest',
+      component: () => import('../games/code-quest/CodeQuest.vue'),
+    },
+    {
+      path: '/games/ai-studio',
+      name: 'ai-studio',
+      component: () => import('../games/ai-studio/AIStudio.vue'),
+    },
+    {
       path: '/about',
       name: 'about',
       component: () => import('../views/AboutView.vue'),

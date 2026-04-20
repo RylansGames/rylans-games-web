@@ -66,6 +66,26 @@ interface Game {
 
 const games: Game[] = [
   {
+    id: 'code-quest',
+    title: 'Code Quest',
+    description: 'Learn to code Duolingo-style! 8 units, hearts, XP, and a real code sandbox.',
+    route: '/games/code-quest',
+    icon: '🧠',
+    thumbnailColor: '#58cc02',
+    rating: 5.0,
+    available: true
+  },
+  {
+    id: 'ai-studio',
+    title: 'AI Studio',
+    description: 'Chat with Pixie and make real AI pictures. Voices & accents too!',
+    route: '/games/ai-studio',
+    icon: '✨',
+    thumbnailColor: '#ff4b82',
+    rating: 5.0,
+    available: true
+  },
+  {
     id: 'geometry-dash',
     title: 'Geometry Dash',
     description: 'Jump over obstacles in this fast-paced rhythm game!',
