@@ -102,7 +102,8 @@ async function scrollToBottom() {
 }
 
 // ======= IMAGE =======
-interface ImgItem { id: number; prompt: string; url: string; style: string; status: 'loading' | 'ready' | 'error' }
+interface ImgItem { id: number; prompt: string; url: string; style: string; status: 'loading' | 'ready' | 'error'; attempts: number }
+const MAX_IMG_ATTEMPTS = 5
 const imgPrompt = ref('')
 const imgStyle = ref('realistic')
 const imgHistory = ref<ImgItem[]>([])
@@ -138,6 +139,7 @@ function generateImage() {
     url,
     style: style?.label ?? '',
     status: 'loading',
+    attempts: 1,
   })
 }
 
@@ -146,13 +148,22 @@ function onImgLoad(item: ImgItem) {
   save()
 }
 function onImgError(item: ImgItem) {
-  item.status = 'error'
+  if (item.attempts < MAX_IMG_ATTEMPTS) {
+    item.attempts += 1
+    const u = new URL(item.url)
+    u.searchParams.set('seed', String(Math.floor(Math.random() * 1_000_000)))
+    item.url = u.toString()
+    item.status = 'loading'
+  } else {
+    item.status = 'error'
+  }
 }
 function retryImage(item: ImgItem) {
-  item.status = 'loading'
+  item.attempts = 1
   const u = new URL(item.url)
   u.searchParams.set('seed', String(Math.floor(Math.random() * 1_000_000)))
   item.url = u.toString()
+  item.status = 'loading'
 }
 function removeImage(id: number) {
   imgHistory.value = imgHistory.value.filter((x) => x.id !== id)
@@ -338,7 +349,11 @@ onBeforeUnmount(() => {
           <div class="ai-gal-imgwrap">
             <div v-if="img.status === 'loading'" class="ai-gal-overlay">
               <div class="ai-spin">✨</div>
-              <div>Pixie is painting…<br /><small>(can take 10–30s)</small></div>
+              <div>
+                Pixie is painting…
+                <br /><small v-if="img.attempts > 1">Try #{{ img.attempts }}</small>
+                <small v-else>(can take 10–30s)</small>
+              </div>
             </div>
             <div v-if="img.status === 'error'" class="ai-gal-overlay err">
               <div>😿 Failed to load</div>
