@@ -348,6 +348,8 @@ onBeforeUnmount(() => {
               :src="img.url"
               :alt="img.prompt"
               loading="eager"
+              referrerpolicy="no-referrer"
+              crossorigin="anonymous"
               @load="onImgLoad(img)"
               @error="onImgError(img)"
             />
