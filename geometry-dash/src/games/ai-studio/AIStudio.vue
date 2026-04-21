@@ -19,55 +19,64 @@ function isSafe(text: string) {
 }
 
 // ======= CHAT =======
-interface Msg { role: 'user' | 'ai'; text: string; time: number }
+interface Msg { role: 'user' | 'ai'; text: string; time: number; pending?: boolean }
 const chat = ref<Msg[]>([
-  { role: 'ai', text: "Hey Rylan! I'm Pixie — your AI buddy. Ask me anything, or try the Image tab to make pictures!", time: Date.now() },
+  { role: 'ai', text: "Hey Rylan! I'm Pixie — your real AI buddy. Ask me anything, or try the Image tab to make pictures!", time: Date.now() },
 ])
 const draft = ref('')
 const chatScroll = ref<HTMLDivElement | null>(null)
+const aiThinking = ref(false)
 
-function aiReply(userText: string): string {
+const SYSTEM_PREFIX =
+  "You are Pixie, a fun, friendly AI assistant talking to Rylan, an 8-year-old kid who loves coding and games. " +
+  "Keep answers kid-safe, short (2-4 sentences max), cheerful, and easy to understand. " +
+  "Never mention dangerous topics. If asked to code, give tiny simple examples. " +
+  "Answer this question from Rylan: "
+
+async function askPollinations(userText: string, signal: AbortSignal): Promise<string> {
+  const prompt = SYSTEM_PREFIX + userText
+  const url = `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai`
+  const res = await fetch(url, { signal, referrerPolicy: 'no-referrer' })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const text = await res.text()
+  return cleanResponse(text)
+}
+
+function cleanResponse(raw: string): string {
+  // Strip markdown bold/italic/headers and collapse whitespace a bit
+  let t = raw.trim()
+  t = t.replace(/\*\*(.*?)\*\*/g, '$1')
+  t = t.replace(/\*(.*?)\*/g, '$1')
+  t = t.replace(/^#+\s+/gm, '')
+  t = t.replace(/\n{3,}/g, '\n\n')
+  // Enforce length cap so the chat bubble doesn't explode
+  if (t.length > 900) t = t.slice(0, 900).replace(/\s+\S*$/, '') + '…'
+  return t
+}
+
+function fallbackReply(userText: string): string {
   const q = userText.toLowerCase().trim()
   if (!q) return "Hmm, say something!"
-  if (!isSafe(userText)) return "Let's keep it kid-safe! Try a different question."
-  // pattern matching for smart-ish answers
   const patterns: [RegExp, () => string][] = [
-    [/hello|hi|hey/, () => 'Hi Rylan! What do you want to build today?'],
-    [/your name|who are you/, () => "I'm Pixie, your pretend-AI pal. I can chat and make pictures!"],
-    [/how are you/, () => "I'm amazing! I ran out of coffee though. Robots drink coffee, right?"],
+    [/hello|hi |^hi$|hey/, () => 'Hi Rylan! What do you want to build today?'],
+    [/your name|who are you/, () => "I'm Pixie, your AI pal. I chat and make pictures!"],
+    [/how are you/, () => "I'm great! Full of code and vibes."],
     [/joke/, () => pick(JOKES)],
-    [/love|like/, () => "Aw, I like you too! High-five! ✋"],
-    [/weather/, () => 'I can\'t check real weather (no internet brain), but I bet it\'s sunny in your coding world!'],
-    [/time/, () => `It's ${new Date().toLocaleTimeString()} on your computer.`],
-    [/date|day/, () => `Today is ${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}.`],
-    [/code|coding|javascript|js/, () => 'Code is like giving the computer a recipe! Try the Code Quest game to learn.'],
-    [/game|play/, () => 'I love games! My favorite is one where the player is the hero. Got an idea?'],
-    [/color|colour/, () => `My favorite color is ${pick(['neon pink', 'electric blue', 'galaxy purple', 'lava orange'])}!`],
-    [/math|add|plus/, () => tryMath(userText) ?? 'Try "what is 5 + 3"'],
-    [/what can you do/, () => "I can chat, tell jokes, do simple math, and make AI pictures (try the Image tab!)."],
+    [/time/, () => `It's ${new Date().toLocaleTimeString()}.`],
+    [/date|today/, () => `Today is ${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}.`],
     [/picture|image|draw|paint/, () => 'Switch to the Image tab and type what you want me to draw!'],
-    [/bye|goodbye/, () => 'Bye Rylan! Come back soon!'],
-    [/thank/, () => "You're welcome! 🎉"],
-    [/no|nope/, () => 'Ok, no worries!'],
-    [/yes|yeah|yep/, () => 'Awesome!'],
-    [/why/, () => "Because magic. Or physics. Or both!"],
-    [/how/, () => "Good question! Usually with a lot of practice and snacks."],
   ]
   for (const [re, fn] of patterns) if (re.test(q)) return fn()
-  return pick(GENERIC_REPLIES).replace('{q}', userText)
+  const math = tryMath(userText)
+  if (math) return math
+  return "My AI brain hiccuped! Try again in a sec."
 }
+
 const JOKES = [
-  'Why did the coder go broke? Because he used up all his cache! 💰',
+  'Why did the coder go broke? They used up all their cache! 💰',
   'Why was the computer cold? It left its Windows open! ❄️',
   'What does a baby computer call its dad? Data! 👨',
-  'Why did the JS developer leave? Because he didn\'t get arrays.',
-  'How many programmers does it take to change a bulb? None — that\'s a hardware issue!',
-]
-const GENERIC_REPLIES = [
-  "Hmm, that\'s interesting! Tell me more about \"{q}\".",
-  "I think \"{q}\" sounds cool! What else?",
-  "Whoa! I haven\'t learned about that yet. Want to code one with me?",
-  "Cool question. I\'d say yes? Maybe? Let\'s pretend it\'s yes.",
+  'Why did the JS developer leave? They didn\'t get arrays.',
 ]
 function pick<T>(arr: T[]) { return arr[Math.floor(Math.random() * arr.length)] }
 function tryMath(t: string): string | null {
@@ -83,18 +92,43 @@ function tryMath(t: string): string | null {
   return `${a} ${op} ${b} = ${r}`
 }
 
+let aiAbort: AbortController | null = null
 async function send() {
   const t = draft.value.trim()
   if (!t) return
   chat.value.push({ role: 'user', text: t, time: Date.now() })
   draft.value = ''
   await scrollToBottom()
-  setTimeout(async () => {
-    const reply = aiReply(t)
-    chat.value.push({ role: 'ai', text: reply, time: Date.now() })
-    speak(reply)
+
+  if (!isSafe(t)) {
+    chat.value.push({ role: 'ai', text: "Let's keep it kid-safe! Try a different question.", time: Date.now() })
     await scrollToBottom()
-  }, 300 + Math.random() * 500)
+    return
+  }
+
+  const placeholder: Msg = { role: 'ai', text: '…', time: Date.now(), pending: true }
+  chat.value.push(placeholder)
+  aiThinking.value = true
+  await scrollToBottom()
+
+  aiAbort?.abort()
+  aiAbort = new AbortController()
+  const timer = setTimeout(() => aiAbort?.abort(), 25000)
+  try {
+    const reply = await askPollinations(t, aiAbort.signal)
+    placeholder.text = reply || fallbackReply(t)
+    placeholder.pending = false
+    speak(placeholder.text)
+  } catch {
+    placeholder.text = fallbackReply(t)
+    placeholder.pending = false
+    speak(placeholder.text)
+  } finally {
+    clearTimeout(timer)
+    aiThinking.value = false
+    save()
+    await scrollToBottom()
+  }
 }
 async function scrollToBottom() {
   await nextTick()
@@ -302,7 +336,12 @@ onBeforeUnmount(() => {
       <div ref="chatScroll" class="ai-msgs">
         <div v-for="(m, i) in chat" :key="i" class="ai-msg" :class="m.role">
           <div class="ai-avatar">{{ m.role === 'ai' ? '🤖' : '🧒' }}</div>
-          <div class="ai-bubble">{{ m.text }}</div>
+          <div class="ai-bubble" :class="{ pending: m.pending }">
+            <span v-if="m.pending" class="ai-typing">
+              <span></span><span></span><span></span>
+            </span>
+            <span v-else>{{ m.text }}</span>
+          </div>
         </div>
       </div>
       <div class="ai-input-row">
@@ -446,6 +485,15 @@ onBeforeUnmount(() => {
   max-width: 75%; line-height: 1.45; border: 2px solid #3a2766;
 }
 .ai-msg.user .ai-bubble { background: #ff4b82; border-color: #ff4b82; }
+.ai-bubble.pending { padding: 14px 18px; }
+.ai-typing { display: inline-flex; gap: 5px; }
+.ai-typing span {
+  width: 8px; height: 8px; background: #bca6e0; border-radius: 50%;
+  animation: aibounce 1s infinite;
+}
+.ai-typing span:nth-child(2) { animation-delay: 0.15s; }
+.ai-typing span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes aibounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-6px); opacity: 1; } }
 
 .ai-input-row { display: flex; gap: 8px; padding: 10px 0; align-items: center; }
 .ai-input {
