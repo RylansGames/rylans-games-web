@@ -2,6 +2,9 @@
   <div class="game-grid-container">
     <AdminAbuseSign />
     <Settings />
+    <div class="portal-nav">
+      <button class="portal-nav-btn" @click="$router.push('/')">🛒 Back to Shop</button>
+    </div>
     <h1 class="portal-title">Rylans Games</h1>
     <div class="search-container">
       <div class="search-box">
@@ -442,6 +445,13 @@ onUnmounted(() => {
   margin-bottom: 40px;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
+.portal-nav { display: flex; gap: 10px; margin-bottom: 20px; }
+.portal-nav-btn {
+  background: #f59e0b; border: none; color: #0f172a;
+  padding: 10px 18px; border-radius: 10px; font-weight: 900; cursor: pointer;
+  font-family: inherit; box-shadow: 0 4px 0 #b45309;
+}
+.portal-nav-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #b45309; }
 
 .stop-effects-btn {
   display: block;
