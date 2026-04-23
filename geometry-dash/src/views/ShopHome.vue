@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { db } from '../firebase'
-import { ref as dbRef, onValue, push, update, remove, set } from 'firebase/database'
 import { gameState } from '../components/shared/GameState'
 
 const router = useRouter()
@@ -79,7 +77,7 @@ interface JobClaim {
   createdAt: number
 }
 
-// ======= FIREBASE STATE =======
+// ======= STATE =======
 const items = ref<ShopItem[]>([])
 const orders = ref<Order[]>([])
 const jobs = ref<Job[]>([])
@@ -93,44 +91,36 @@ const myClaims = computed(() =>
   jobClaims.value.filter((c) => c.claimerName === playerName.value),
 )
 
-// ======= SUBSCRIPTIONS =======
-const unsubs: Array<() => void> = []
-function subscribe() {
-  const itemsRef = dbRef(db, 'feedback/shop/items')
-  const u1 = onValue(itemsRef, (snap) => {
-    const data = snap.val() ?? {}
-    items.value = Object.entries(data).map(([id, v]) => ({ id, ...(v as Omit<ShopItem, 'id'>) }))
-  })
-  unsubs.push(u1)
-
-  const ordersRef = dbRef(db, 'feedback/shop/orders')
-  const u2 = onValue(ordersRef, (snap) => {
-    const data = snap.val() ?? {}
-    orders.value = Object.entries(data).map(([id, v]) => ({ id, ...(v as Omit<Order, 'id'>) }))
-      .sort((a, b) => b.createdAt - a.createdAt)
-  })
-  unsubs.push(u2)
-
-  const jobsRef = dbRef(db, 'feedback/shop/jobs')
-  const u3 = onValue(jobsRef, (snap) => {
-    const data = snap.val()
-    if (!data) {
-      // Seed default jobs on first load
-      seedDefaultJobs()
-      return
-    }
-    jobs.value = Object.entries(data).map(([id, v]) => ({ id, ...(v as Omit<Job, 'id'>) }))
-  })
-  unsubs.push(u3)
-
-  const claimsRef = dbRef(db, 'feedback/shop/jobClaims')
-  const u4 = onValue(claimsRef, (snap) => {
-    const data = snap.val() ?? {}
-    jobClaims.value = Object.entries(data).map(([id, v]) => ({ id, ...(v as Omit<JobClaim, 'id'>) }))
-      .sort((a, b) => b.createdAt - a.createdAt)
-  })
-  unsubs.push(u4)
+// ======= LOCAL STORAGE =======
+const STORE_KEY = 'rylan-shop-v1'
+function save() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      items: items.value,
+      orders: orders.value,
+      jobs: jobs.value,
+      jobClaims: jobClaims.value,
+    }))
+  } catch (e) {
+    console.error('shop save failed', e)
+  }
 }
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY)
+    if (!raw) return false
+    const data = JSON.parse(raw)
+    items.value = data.items ?? []
+    orders.value = (data.orders ?? []).sort((a: Order, b: Order) => b.createdAt - a.createdAt)
+    jobs.value = data.jobs ?? []
+    jobClaims.value = (data.jobClaims ?? []).sort((a: JobClaim, b: JobClaim) => b.createdAt - a.createdAt)
+    return true
+  } catch (e) {
+    console.error('shop load failed', e)
+    return false
+  }
+}
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7) }
 
 const DEFAULT_JOBS: Omit<Job, 'id'>[] = [
   { title: 'Walk the dog', icon: '🐕', reward: 5, description: 'Take the dog for a walk.', active: true },
@@ -155,18 +145,12 @@ const DEFAULT_JOBS: Omit<Job, 'id'>[] = [
   { title: 'Read a book', icon: '📖', reward: 5, description: 'Read for 20 minutes.', active: true },
 ]
 function seedDefaultJobs() {
-  const base = dbRef(db, 'feedback/shop/jobs')
-  const data: Record<string, Omit<Job, 'id'>> = {}
-  DEFAULT_JOBS.forEach((j, i) => { data['job_' + (i + 1)] = j })
-  set(base, data).catch((e) => {
-    console.error('seed jobs failed (maybe Firebase rules):', e)
-    // Fallback: show jobs locally even if Firebase write failed
-    jobs.value = DEFAULT_JOBS.map((j, i) => ({ id: 'local_job_' + (i + 1), ...j }))
-  })
+  jobs.value = DEFAULT_JOBS.map((j, i) => ({ id: 'job_' + (i + 1), ...j }))
+  save()
 }
 
 // ======= ACTIONS =======
-async function buyItem(item: ShopItem) {
+function buyItem(item: ShopItem) {
   if (item.stock <= 0) return alert('Out of stock!')
   if (coins.value < item.price) return alert('Not enough coins. Do some jobs to earn more!')
   const note = prompt(
@@ -176,8 +160,8 @@ async function buyItem(item: ShopItem) {
   if (note === null) return
   if (!gameState.spendCoins(item.price)) return alert('Something went wrong.')
   refreshCoins()
-  const orderRef = push(dbRef(db, 'feedback/shop/orders'))
-  const order: Omit<Order, 'id'> = {
+  const order: Order = {
+    id: genId(),
     itemId: item.id,
     itemName: item.name,
     itemIcon: item.icon,
@@ -187,18 +171,20 @@ async function buyItem(item: ShopItem) {
     status: 'new',
     createdAt: Date.now(),
   }
-  await set(orderRef, order)
-  await update(dbRef(db, `feedback/shop/items/${item.id}`), { stock: Math.max(0, item.stock - 1) })
+  orders.value = [order, ...orders.value]
+  const idx = items.value.findIndex((i) => i.id === item.id)
+  if (idx >= 0) items.value[idx].stock = Math.max(0, items.value[idx].stock - 1)
+  save()
   flash(`🛒 Ordered ${item.name}! Rylan will deliver it soon.`)
 }
 
-async function claimJob(job: Job) {
+function claimJob(job: Job) {
   const already = jobClaims.value.find(
     (c) => c.jobId === job.id && c.claimerName === playerName.value && c.status === 'pending',
   )
   if (already) return flash('You already claimed this — waiting for Rylan to approve!')
-  const r = push(dbRef(db, 'feedback/shop/jobClaims'))
-  const claim: Omit<JobClaim, 'id'> = {
+  const claim: JobClaim = {
+    id: genId(),
     jobId: job.id,
     jobTitle: job.title,
     reward: job.reward,
@@ -206,24 +192,31 @@ async function claimJob(job: Job) {
     status: 'pending',
     createdAt: Date.now(),
   }
-  await set(r, claim)
+  jobClaims.value = [claim, ...jobClaims.value]
+  save()
   flash(`⏳ ${job.title} claimed! Waiting for Rylan to approve.`)
 }
 
-async function approveClaim(c: JobClaim) {
-  await update(dbRef(db, `feedback/shop/jobClaims/${c.id}`), { status: 'approved' })
+function approveClaim(c: JobClaim) {
+  const idx = jobClaims.value.findIndex((x) => x.id === c.id)
+  if (idx >= 0) jobClaims.value[idx].status = 'approved'
   if (c.claimerName === playerName.value) {
     gameState.addCoins(c.reward)
     refreshCoins()
   }
+  save()
   flash(`✅ Approved ${c.claimerName} — +${c.reward} coins`)
 }
-async function rejectClaim(c: JobClaim) {
-  await update(dbRef(db, `feedback/shop/jobClaims/${c.id}`), { status: 'rejected' })
+function rejectClaim(c: JobClaim) {
+  const idx = jobClaims.value.findIndex((x) => x.id === c.id)
+  if (idx >= 0) jobClaims.value[idx].status = 'rejected'
+  save()
 }
 
-async function markDelivered(o: Order) {
-  await update(dbRef(db, `feedback/shop/orders/${o.id}`), { status: 'delivered' })
+function markDelivered(o: Order) {
+  const idx = orders.value.findIndex((x) => x.id === o.id)
+  if (idx >= 0) orders.value[idx].status = 'delivered'
+  save()
 }
 
 // ======= OWNER: add/edit items & jobs =======
@@ -232,53 +225,47 @@ const draftItem = ref<Omit<ShopItem, 'id'>>({
   name: '', icon: '🎁', price: 10, stock: 1, location: 'my block',
   description: '', kind: '3d', active: true,
 })
-async function saveItem() {
+function saveItem() {
   if (!draftItem.value.name.trim()) {
     flash('⚠️ Please type a name for the item.')
     return
   }
-  try {
-    const r = push(dbRef(db, 'feedback/shop/items'))
-    await set(r, { ...draftItem.value })
-    showAddItem.value = false
-    draftItem.value = { name: '', icon: '🎁', price: 10, stock: 1, location: 'my block', description: '', kind: '3d', active: true }
-    flash('✅ Item added!')
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e)
-    flash(`❌ Could not save: ${msg}`)
-    console.error('saveItem failed:', e)
-  }
+  const newItem: ShopItem = { id: genId(), ...draftItem.value }
+  items.value = [newItem, ...items.value]
+  save()
+  showAddItem.value = false
+  draftItem.value = { name: '', icon: '🎁', price: 10, stock: 1, location: 'my block', description: '', kind: '3d', active: true }
+  flash('✅ Item added!')
 }
-async function deleteItem(id: string) {
+function deleteItem(id: string) {
   if (!confirm('Delete this item?')) return
-  try { await remove(dbRef(db, `feedback/shop/items/${id}`)) } catch (e) { flash('❌ Delete failed: ' + (e as Error).message) }
+  items.value = items.value.filter((i) => i.id !== id)
+  save()
 }
-async function changeStock(item: ShopItem, delta: number) {
-  try { await update(dbRef(db, `feedback/shop/items/${item.id}`), { stock: Math.max(0, item.stock + delta) }) }
-  catch (e) { flash('❌ Stock update failed: ' + (e as Error).message) }
+function changeStock(item: ShopItem, delta: number) {
+  const idx = items.value.findIndex((i) => i.id === item.id)
+  if (idx < 0) return
+  items.value[idx].stock = Math.max(0, items.value[idx].stock + delta)
+  save()
 }
 
 const showAddJob = ref(false)
 const draftJob = ref<Omit<Job, 'id'>>({ title: '', icon: '💼', reward: 5, description: '', active: true })
-async function saveJob() {
+function saveJob() {
   if (!draftJob.value.title.trim()) {
     flash('⚠️ Please type a job title.')
     return
   }
-  try {
-    const r = push(dbRef(db, 'feedback/shop/jobs'))
-    await set(r, { ...draftJob.value })
-    showAddJob.value = false
-    draftJob.value = { title: '', icon: '💼', reward: 5, description: '', active: true }
-    flash('✅ Job added!')
-  } catch (e) {
-    flash('❌ Could not save: ' + (e as Error).message)
-    console.error('saveJob failed:', e)
-  }
+  jobs.value = [{ id: genId(), ...draftJob.value }, ...jobs.value]
+  save()
+  showAddJob.value = false
+  draftJob.value = { title: '', icon: '💼', reward: 5, description: '', active: true }
+  flash('✅ Job added!')
 }
-async function deleteJob(id: string) {
+function deleteJob(id: string) {
   if (!confirm('Delete this job?')) return
-  try { await remove(dbRef(db, `feedback/shop/jobs/${id}`)) } catch (e) { flash('❌ Delete failed: ' + (e as Error).message) }
+  jobs.value = jobs.value.filter((j) => j.id !== id)
+  save()
 }
 
 // ======= UI STATE =======
@@ -293,13 +280,16 @@ function flash(msg: string) {
 const panel = ref<'items' | 'orders' | 'claims' | 'jobs'>('items')
 
 onMounted(() => {
-  subscribe()
+  const had = load()
+  if (!had || jobs.value.length === 0) seedDefaultJobs()
   coinTimer = window.setInterval(refreshCoins, 600)
 })
 onUnmounted(() => {
-  unsubs.forEach((fn) => { try { fn() } catch {} })
   if (coinTimer) clearInterval(coinTimer)
 })
+
+// Keep localStorage in sync if anything changes from outside actions
+watch([items, orders, jobs, jobClaims], save, { deep: true })
 </script>
 
 <template>
