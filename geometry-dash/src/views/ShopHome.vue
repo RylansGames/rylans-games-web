@@ -96,14 +96,14 @@ const myClaims = computed(() =>
 // ======= SUBSCRIPTIONS =======
 const unsubs: Array<() => void> = []
 function subscribe() {
-  const itemsRef = dbRef(db, 'shop/items')
+  const itemsRef = dbRef(db, 'feedback/shop/items')
   const u1 = onValue(itemsRef, (snap) => {
     const data = snap.val() ?? {}
     items.value = Object.entries(data).map(([id, v]) => ({ id, ...(v as Omit<ShopItem, 'id'>) }))
   })
   unsubs.push(u1)
 
-  const ordersRef = dbRef(db, 'shop/orders')
+  const ordersRef = dbRef(db, 'feedback/shop/orders')
   const u2 = onValue(ordersRef, (snap) => {
     const data = snap.val() ?? {}
     orders.value = Object.entries(data).map(([id, v]) => ({ id, ...(v as Omit<Order, 'id'>) }))
@@ -111,7 +111,7 @@ function subscribe() {
   })
   unsubs.push(u2)
 
-  const jobsRef = dbRef(db, 'shop/jobs')
+  const jobsRef = dbRef(db, 'feedback/shop/jobs')
   const u3 = onValue(jobsRef, (snap) => {
     const data = snap.val()
     if (!data) {
@@ -123,7 +123,7 @@ function subscribe() {
   })
   unsubs.push(u3)
 
-  const claimsRef = dbRef(db, 'shop/jobClaims')
+  const claimsRef = dbRef(db, 'feedback/shop/jobClaims')
   const u4 = onValue(claimsRef, (snap) => {
     const data = snap.val() ?? {}
     jobClaims.value = Object.entries(data).map(([id, v]) => ({ id, ...(v as Omit<JobClaim, 'id'>) }))
@@ -155,7 +155,7 @@ const DEFAULT_JOBS: Omit<Job, 'id'>[] = [
   { title: 'Read a book', icon: '📖', reward: 5, description: 'Read for 20 minutes.', active: true },
 ]
 function seedDefaultJobs() {
-  const base = dbRef(db, 'shop/jobs')
+  const base = dbRef(db, 'feedback/shop/jobs')
   const data: Record<string, Omit<Job, 'id'>> = {}
   DEFAULT_JOBS.forEach((j, i) => { data['job_' + (i + 1)] = j })
   set(base, data).catch((e) => {
@@ -176,7 +176,7 @@ async function buyItem(item: ShopItem) {
   if (note === null) return
   if (!gameState.spendCoins(item.price)) return alert('Something went wrong.')
   refreshCoins()
-  const orderRef = push(dbRef(db, 'shop/orders'))
+  const orderRef = push(dbRef(db, 'feedback/shop/orders'))
   const order: Omit<Order, 'id'> = {
     itemId: item.id,
     itemName: item.name,
@@ -188,7 +188,7 @@ async function buyItem(item: ShopItem) {
     createdAt: Date.now(),
   }
   await set(orderRef, order)
-  await update(dbRef(db, `shop/items/${item.id}`), { stock: Math.max(0, item.stock - 1) })
+  await update(dbRef(db, `feedback/shop/items/${item.id}`), { stock: Math.max(0, item.stock - 1) })
   flash(`🛒 Ordered ${item.name}! Rylan will deliver it soon.`)
 }
 
@@ -197,7 +197,7 @@ async function claimJob(job: Job) {
     (c) => c.jobId === job.id && c.claimerName === playerName.value && c.status === 'pending',
   )
   if (already) return flash('You already claimed this — waiting for Rylan to approve!')
-  const r = push(dbRef(db, 'shop/jobClaims'))
+  const r = push(dbRef(db, 'feedback/shop/jobClaims'))
   const claim: Omit<JobClaim, 'id'> = {
     jobId: job.id,
     jobTitle: job.title,
@@ -211,7 +211,7 @@ async function claimJob(job: Job) {
 }
 
 async function approveClaim(c: JobClaim) {
-  await update(dbRef(db, `shop/jobClaims/${c.id}`), { status: 'approved' })
+  await update(dbRef(db, `feedback/shop/jobClaims/${c.id}`), { status: 'approved' })
   if (c.claimerName === playerName.value) {
     gameState.addCoins(c.reward)
     refreshCoins()
@@ -219,11 +219,11 @@ async function approveClaim(c: JobClaim) {
   flash(`✅ Approved ${c.claimerName} — +${c.reward} coins`)
 }
 async function rejectClaim(c: JobClaim) {
-  await update(dbRef(db, `shop/jobClaims/${c.id}`), { status: 'rejected' })
+  await update(dbRef(db, `feedback/shop/jobClaims/${c.id}`), { status: 'rejected' })
 }
 
 async function markDelivered(o: Order) {
-  await update(dbRef(db, `shop/orders/${o.id}`), { status: 'delivered' })
+  await update(dbRef(db, `feedback/shop/orders/${o.id}`), { status: 'delivered' })
 }
 
 // ======= OWNER: add/edit items & jobs =======
@@ -238,7 +238,7 @@ async function saveItem() {
     return
   }
   try {
-    const r = push(dbRef(db, 'shop/items'))
+    const r = push(dbRef(db, 'feedback/shop/items'))
     await set(r, { ...draftItem.value })
     showAddItem.value = false
     draftItem.value = { name: '', icon: '🎁', price: 10, stock: 1, location: 'my block', description: '', kind: '3d', active: true }
@@ -251,10 +251,10 @@ async function saveItem() {
 }
 async function deleteItem(id: string) {
   if (!confirm('Delete this item?')) return
-  try { await remove(dbRef(db, `shop/items/${id}`)) } catch (e) { flash('❌ Delete failed: ' + (e as Error).message) }
+  try { await remove(dbRef(db, `feedback/shop/items/${id}`)) } catch (e) { flash('❌ Delete failed: ' + (e as Error).message) }
 }
 async function changeStock(item: ShopItem, delta: number) {
-  try { await update(dbRef(db, `shop/items/${item.id}`), { stock: Math.max(0, item.stock + delta) }) }
+  try { await update(dbRef(db, `feedback/shop/items/${item.id}`), { stock: Math.max(0, item.stock + delta) }) }
   catch (e) { flash('❌ Stock update failed: ' + (e as Error).message) }
 }
 
@@ -266,7 +266,7 @@ async function saveJob() {
     return
   }
   try {
-    const r = push(dbRef(db, 'shop/jobs'))
+    const r = push(dbRef(db, 'feedback/shop/jobs'))
     await set(r, { ...draftJob.value })
     showAddJob.value = false
     draftJob.value = { title: '', icon: '💼', reward: 5, description: '', active: true }
@@ -278,7 +278,7 @@ async function saveJob() {
 }
 async function deleteJob(id: string) {
   if (!confirm('Delete this job?')) return
-  try { await remove(dbRef(db, `shop/jobs/${id}`)) } catch (e) { flash('❌ Delete failed: ' + (e as Error).message) }
+  try { await remove(dbRef(db, `feedback/shop/jobs/${id}`)) } catch (e) { flash('❌ Delete failed: ' + (e as Error).message) }
 }
 
 // ======= UI STATE =======
