@@ -158,7 +158,11 @@ function seedDefaultJobs() {
   const base = dbRef(db, 'shop/jobs')
   const data: Record<string, Omit<Job, 'id'>> = {}
   DEFAULT_JOBS.forEach((j, i) => { data['job_' + (i + 1)] = j })
-  set(base, data)
+  set(base, data).catch((e) => {
+    console.error('seed jobs failed (maybe Firebase rules):', e)
+    // Fallback: show jobs locally even if Firebase write failed
+    jobs.value = DEFAULT_JOBS.map((j, i) => ({ id: 'local_job_' + (i + 1), ...j }))
+  })
 }
 
 // ======= ACTIONS =======
@@ -229,39 +233,61 @@ const draftItem = ref<Omit<ShopItem, 'id'>>({
   description: '', kind: '3d', active: true,
 })
 async function saveItem() {
-  if (!draftItem.value.name.trim()) return
-  const r = push(dbRef(db, 'shop/items'))
-  await set(r, { ...draftItem.value })
-  showAddItem.value = false
-  draftItem.value = { name: '', icon: '🎁', price: 10, stock: 1, location: 'my block', description: '', kind: '3d', active: true }
+  if (!draftItem.value.name.trim()) {
+    flash('⚠️ Please type a name for the item.')
+    return
+  }
+  try {
+    const r = push(dbRef(db, 'shop/items'))
+    await set(r, { ...draftItem.value })
+    showAddItem.value = false
+    draftItem.value = { name: '', icon: '🎁', price: 10, stock: 1, location: 'my block', description: '', kind: '3d', active: true }
+    flash('✅ Item added!')
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    flash(`❌ Could not save: ${msg}`)
+    console.error('saveItem failed:', e)
+  }
 }
 async function deleteItem(id: string) {
   if (!confirm('Delete this item?')) return
-  await remove(dbRef(db, `shop/items/${id}`))
+  try { await remove(dbRef(db, `shop/items/${id}`)) } catch (e) { flash('❌ Delete failed: ' + (e as Error).message) }
 }
 async function changeStock(item: ShopItem, delta: number) {
-  await update(dbRef(db, `shop/items/${item.id}`), { stock: Math.max(0, item.stock + delta) })
+  try { await update(dbRef(db, `shop/items/${item.id}`), { stock: Math.max(0, item.stock + delta) }) }
+  catch (e) { flash('❌ Stock update failed: ' + (e as Error).message) }
 }
 
 const showAddJob = ref(false)
 const draftJob = ref<Omit<Job, 'id'>>({ title: '', icon: '💼', reward: 5, description: '', active: true })
 async function saveJob() {
-  if (!draftJob.value.title.trim()) return
-  const r = push(dbRef(db, 'shop/jobs'))
-  await set(r, { ...draftJob.value })
-  showAddJob.value = false
-  draftJob.value = { title: '', icon: '💼', reward: 5, description: '', active: true }
+  if (!draftJob.value.title.trim()) {
+    flash('⚠️ Please type a job title.')
+    return
+  }
+  try {
+    const r = push(dbRef(db, 'shop/jobs'))
+    await set(r, { ...draftJob.value })
+    showAddJob.value = false
+    draftJob.value = { title: '', icon: '💼', reward: 5, description: '', active: true }
+    flash('✅ Job added!')
+  } catch (e) {
+    flash('❌ Could not save: ' + (e as Error).message)
+    console.error('saveJob failed:', e)
+  }
 }
 async function deleteJob(id: string) {
   if (!confirm('Delete this job?')) return
-  await remove(dbRef(db, `shop/jobs/${id}`))
+  try { await remove(dbRef(db, `shop/jobs/${id}`)) } catch (e) { flash('❌ Delete failed: ' + (e as Error).message) }
 }
 
 // ======= UI STATE =======
 const toast = ref('')
+const toastBad = ref(false)
 function flash(msg: string) {
   toast.value = msg
-  setTimeout(() => { toast.value = '' }, 2500)
+  toastBad.value = /❌|⚠️/.test(msg)
+  setTimeout(() => { toast.value = '' }, toastBad.value ? 6000 : 2500)
 }
 
 const panel = ref<'items' | 'orders' | 'claims' | 'jobs'>('items')
@@ -291,7 +317,7 @@ onUnmounted(() => {
       </div>
     </header>
 
-    <div v-if="toast" class="shop-toast">{{ toast }}</div>
+    <div v-if="toast" class="shop-toast" :class="{ bad: toastBad }">{{ toast }}</div>
 
     <!-- Owner login prompt -->
     <div v-if="showOwnerPrompt" class="modal-back" @click.self="showOwnerPrompt = false">
@@ -385,29 +411,39 @@ onUnmounted(() => {
 
       <!-- Items panel -->
       <div v-if="panel === 'items'" class="op-body">
-        <button class="btn block" @click="showAddItem = true">➕ Add Item</button>
+        <button v-if="!showAddItem" class="btn block" @click="showAddItem = true">➕ Add Item</button>
         <div v-if="showAddItem" class="form-block">
-          <input v-model="draftItem.name" placeholder="Name" />
-          <input v-model="draftItem.icon" placeholder="Icon (emoji)" maxlength="4" />
-          <textarea v-model="draftItem.description" placeholder="Description" rows="2" />
+          <div class="form-head">📝 New item</div>
+          <label class="lbl">Name
+            <input v-model="draftItem.name" placeholder="e.g. Liquid Death" @keydown.enter="saveItem" />
+          </label>
+          <label class="lbl">Icon (one emoji)
+            <input v-model="draftItem.icon" placeholder="🎁" maxlength="4" />
+          </label>
+          <label class="lbl">Description
+            <textarea v-model="draftItem.description" placeholder="What is it?" rows="2" />
+          </label>
           <div class="form-row">
-            <label>Price 💰<input v-model.number="draftItem.price" type="number" min="0" /></label>
-            <label>Stock 📦<input v-model.number="draftItem.stock" type="number" min="0" /></label>
+            <label class="lbl">Price 💰<input v-model.number="draftItem.price" type="number" min="0" /></label>
+            <label class="lbl">Stock 📦<input v-model.number="draftItem.stock" type="number" min="0" /></label>
           </div>
           <div class="form-row">
-            <label>Kind
+            <label class="lbl">Kind
               <select v-model="draftItem.kind">
                 <option value="3d">3D printed</option>
                 <option value="2d">2D drawing</option>
                 <option value="other">Other</option>
               </select>
             </label>
-            <label>Location <input v-model="draftItem.location" placeholder="my block" /></label>
+            <label class="lbl">Location <input v-model="draftItem.location" placeholder="my block" /></label>
           </div>
           <div class="row">
-            <button class="btn" @click="saveItem">Save</button>
+            <button class="btn block" @click="saveItem">💾 Save Item</button>
             <button class="btn ghost" @click="showAddItem = false">Cancel</button>
           </div>
+        </div>
+        <div class="op-list-hint" v-if="activeItems.length">
+          {{ activeItems.length }} item{{ activeItems.length === 1 ? '' : 's' }} in shop
         </div>
       </div>
 
@@ -446,11 +482,20 @@ onUnmounted(() => {
       <!-- Add Job panel -->
       <div v-if="panel === 'jobs'" class="op-body">
         <div class="form-block">
-          <input v-model="draftJob.title" placeholder="Job title" />
-          <input v-model="draftJob.icon" placeholder="Icon (emoji)" maxlength="4" />
-          <textarea v-model="draftJob.description" placeholder="Description" rows="2" />
-          <label>Reward 💰<input v-model.number="draftJob.reward" type="number" min="0" /></label>
-          <button class="btn block" @click="saveJob">➕ Add Job</button>
+          <div class="form-head">📝 New job</div>
+          <label class="lbl">Title
+            <input v-model="draftJob.title" placeholder="e.g. Water plants" @keydown.enter="saveJob" />
+          </label>
+          <label class="lbl">Icon (emoji)
+            <input v-model="draftJob.icon" placeholder="💼" maxlength="4" />
+          </label>
+          <label class="lbl">Description
+            <textarea v-model="draftJob.description" placeholder="What to do" rows="2" />
+          </label>
+          <label class="lbl">Reward 💰
+            <input v-model.number="draftJob.reward" type="number" min="0" />
+          </label>
+          <button class="btn block" @click="saveJob">💾 Save Job</button>
         </div>
       </div>
     </aside>
@@ -496,7 +541,9 @@ onUnmounted(() => {
   position: fixed; top: 74px; left: 50%; transform: translateX(-50%);
   background: #10b981; color: white; padding: 10px 20px; border-radius: 999px;
   font-weight: 800; z-index: 30; box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  max-width: 80%; text-align: center;
 }
+.shop-toast.bad { background: #ef4444; }
 
 .section { max-width: 1200px; margin: 24px auto; padding: 0 20px; }
 .section-title { font-size: 26px; margin: 0 0 4px; }
@@ -589,13 +636,23 @@ onUnmounted(() => {
 .op-body { flex: 1; overflow-y: auto; padding: 12px; display: grid; gap: 10px; align-content: start; }
 .muted { color: #64748b; font-style: italic; text-align: center; padding: 20px; }
 
-.form-block { display: grid; gap: 8px; padding: 10px; background: #0f172a; border-radius: 10px; }
+.form-block {
+  display: grid; gap: 10px; padding: 14px; background: #0f172a;
+  border-radius: 12px; border: 1px solid #334155;
+}
+.form-head { font-weight: 900; font-size: 15px; color: #f59e0b; }
 .form-block input, .form-block textarea, .form-block select {
   background: #1e293b; color: #f1f5f9; border: 1px solid #334155;
-  padding: 8px; border-radius: 8px; font-family: inherit; font-size: 14px; width: 100%;
+  padding: 10px; border-radius: 8px; font-family: inherit; font-size: 14px; width: 100%;
+  box-sizing: border-box;
 }
+.form-block input:focus, .form-block textarea:focus, .form-block select:focus {
+  outline: none; border-color: #f59e0b;
+}
+.lbl { display: grid; gap: 4px; font-size: 12px; color: #94a3b8; font-weight: 700; }
 .form-row { display: flex; gap: 8px; }
-.form-row label { flex: 1; display: grid; gap: 4px; font-size: 12px; color: #94a3b8; }
+.form-row .lbl { flex: 1; }
+.op-list-hint { color: #64748b; font-size: 12px; text-align: center; padding-top: 8px; }
 
 .op-row {
   background: #1e293b; border: 1px solid #334155; border-radius: 10px;
